@@ -1,0 +1,10 @@
+/**                      
+ * default style file - based on bootstrap functionality
+ * @date 08.02.20201
+*/
+
+/* specific M5 */
+table caption{
+  caption-side: top;  
+} 
+
