@@ -165,89 +165,6 @@ abstract class M5_core{
     if (count($_GET)>0 && count($_POST)>0 ){$DATA=array_merge($_GET,$_POST);}
     return $DATA;
   }
-  
-  static function message($message_key){
-    $lan_mes=array(
-    'LOVC'=>'static &eq;=&eq;,&lt;=&lt;,&lt;&eq;=&lt;&eq;,&gt;&eq;=&gt;&eq;,&gt;=&gt;,'.
-     'like=obsahuje,null=je prázdné,not null=je neprázdné,in=v,not in=není v',
-    'LOVE'=>'static &eq;=&eq;,&lt;=&lt;,&lt;&eq;=&lt;&eq;,&gt;&eq;=&gt;&eq;,&gt;=&gt;,'.
-     'like=contains,null=empty,not null=not empty,in=v,not in=not in',
-    'LOVSC'=>'static &eq;=&eq;,&lt;=&lt;,&lt;&eq;=&lt;&eq;,&gt;&eq;=&gt;&eq;,&gt;=&gt;,',
-    'LOVSE'=>'static &eq;=&eq;,&lt;=&lt;,&lt;&eq;=&lt;&eq;,&gt;&eq;=&gt;&eq;,&gt;=&gt;,', 
-    'BACKC'=>'Zpět',
-    'BACKE'=>'Back',
-    'NOJAC'=>'<NOSCRIPT>JavaScript není podporován</NOSCRIPT>',
-    'NOJAE'=>'<NOSCRIPT>JavaScript is not supported</NOSCRIPT>',
-    'ERRC'=>'Nastala chyba',
-    'ERRE'=>'An error has occured',
-    'COLC'=>'Sloupec',
-    'COLE'=>'Column',
-    'VALC'=>'Hodnoty',
-    'VALE'=>'Value',
-    'NOCC'=>'Nelze se připojit',
-    'NOCE'=>'No connection',
-    'PRIC'=>'Příkaz',
-    'PRIN'=>'command',
-    'VYBC'=>'podmínka pro výběr',
-    'VYBE'=>'conditional query',
-    'PREVC'=>'Předchozí',
-    'PREVE'=>'Previous',
-    'BEGC'=>'Od začátku',
-    'BEGE'=>'From the begin',
-    'NEXTC'=>'Dalších $n vět',
-    'NEXTE'=>'Next $n records',
-    'VETAC'=>'věta',
-    'VETAN'=>'record',
-    'FINDC'=>'Hledej',
-    'FINDE'=>'Find',
-    'ADDRC'=>'Nový záznam',
-    'ADDRE'=>'New record',
-    'EDVC'=>'Editace věty',
-    'EDVE'=>'Record edit',
-    'SAVC'=>'Uložit',
-    'SAVE'=>'Save',
-    'SHOWC'=>'Celkem $n záznamů',
-    'SHOWE'=>'Total $n records',
-    'SHO2C'=>'Celkem $n záznamy',
-    'SHO2E'=>'Total $n records',
-    'SHO1C'=>'Celkem 1 záznam',
-    'SHO1E'=>'Total 1 record',
-    'DELC'=>'Smazat',
-    'DELE'=>'Delete',
-    'NRIGC'=>'Nemáte přidělená práva k editaci. Informace jen pro čtení.',
-    'NRIGE'=>'You don\'t have edit access rights. Read only mode.',
-    'INSRC'=>'Přidání věty',
-    'INSRE'=>'Insert a record',
-    'PEC'=>'editace',
-    'PEE'=>'edit',
-    'PPC'=>'prohlížení',
-    'PPE'=>'view',
-    'PNC'=>'nepřihlášeno',
-    'PNE'=>'not logged',
-    'PVC'=>'neuveden',
-    'PVC'=>'no info.',
-    'HELPC'=>'Nápověda',
-    'HELPE'=>'Help',
-    'WHRC'=>'Zadejte klauzuli where :','WHRE'=>'Input where clause :',
-    'RUNSC'=>'Vyhledej','RUNSE'=>'Find',
-    'RECIC'=>'Věta přidána.','RECIE'=>'Record inserted.',
-    'RDELC'=>'Věta odstraněna.','RDELE'=>'Record deleted.',
-    'WRONC'=>'Chybná volba','WRONE'=>'Wrong parameter',
-    'REAC'=>'Věta upravena.','REAE'=>'Record updated.',
-    'RDC'=>'Opravdu vymazat tento záznam ?','RDE'=>'Are you sure to delete this record?',
-    'ANOC'=>'Ano','ANOE'=>'Yes',
-    'NENALC'=>'Žádná data neodpovídají Vašemu výběru','NENALE'=>'No data found',
-    'ROWC'=>'řádek','ROWE'=>'row',
-    'CELKEMC'=>'celkem','CELKEME'=>'total',
-    'LOV2C'=>'static or=nebo,and=a zároveň','LOV2E'=>'static or=or,and=and'
-     );
-   
-     if (isset($lan_mes[$message_key.(self::$http_lan=='E'?'E':'C')])){
-       return $lan_mes[$message_key.(self::$http_lan=='E'?'E':'C')];
-     }else{
-       return '';
-     }
-   }
    
    /** 
     * @param string $text1
@@ -280,10 +197,9 @@ abstract class M5 extends M5_core{
      tg('meta','http-equiv="content-type" content="text/html; charset=utf-8"').
      tg('meta','name="language" content="cs"').
      tg('meta','name="viewport" content="width=device-width, initial-scale=1.0"').
-     tg('meta','name="description" lang="cs" content="Aplikace ČGS"').
-     tg('meta','name="keywords" lang="cs" content="Merkur aplication framework"').
+     tg('meta','name="description" lang="cs" content="Merkur 5 kit set"').
+     tg('meta','name="keywords" lang="cs" content="Merkur5 kit"').
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'css/m5.css?a=11" type="text/css" ','noslash').
-     tg('link','rel="stylesheet" media="screen,print" href="'.$path.'css/m5_add.css?a=11" type="text/css" ','noslash').
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'vendor/bootstrap/css/bootstrap.css" type="text/css" ','noslash').
      tg('script','type="text/javascript" src="'.$path.'vendor/jquery/jquery.min.js"',' ').
      tg('script','type="text/javascript" src="'.$path.'vendor/bootstrap/js/bootstrap.bundle.min.js"',' ')
