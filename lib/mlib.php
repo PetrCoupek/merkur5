@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package merkur5
- * @version 0.0
+ * @version 0.1
  */
 
 ini_set('default_charset','utf-8');
@@ -128,7 +128,7 @@ abstract class M5_core{
    self::$htptemp=preg_replace('/#___#/','', self::$htptemp);
    if (self::$debug) {
      self::$htptemp=preg_replace('/#ERRORS#/',
-      tg('div','class="errors"',
+      tg('div','class="m5-errors"',
       ' '.str_replace("\n",br(),
       str_replace(' ',nbsp(1),self::$errors),self::$errors)),self::$htptemp);
    }else{
@@ -413,7 +413,7 @@ function tick($text=''){
 }
 
 
-/* aliasy pro uzitecne globalne pouzitelne funkce */
+/* globl function aliasses */
 
 /** Tag expression function.
    * 

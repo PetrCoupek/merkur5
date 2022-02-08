@@ -3,14 +3,14 @@
  * @date 08.02.20201
 */
 
-/* specific M5 */
+/* specific bootstrap change */
 table caption{
   caption-side: top;  
 } 
 
 /* page loader spinner functionality */
 
-div.loader_passive{
+div.m5-loader_passive{
   position:absolute;
   visibility:hidden;
   top: 0px;
@@ -23,7 +23,7 @@ div.loader_passive{
   background:url("../img/FhHRx.gif") no-repeat center center rgba(0,0,0,0.25)
 }
 
-div.loader{
+div.m5-loader{
   position:absolute;
   visibility:hidden;
   width: 100%;
@@ -33,3 +33,16 @@ div.loader{
   justify-content: center; 
   top: 0;
 }
+
+/* error box if debug is set */
+div.m5-errors{
+  background-color: #FFFFC8;
+  color: red;
+  padding: 5px;
+  font-family: monospace;
+  font-size:  small;
+  float: left; 
+  width: 100%; 
+  overflow: auto; 
+} 
+
