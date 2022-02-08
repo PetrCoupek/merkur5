@@ -1,5 +1,5 @@
 <?php
-/** Merkur 5 zero appliation
+/** Merkur 5 zero application
  * @author Petr Coupek
  * @date 07.02.2022
  */
