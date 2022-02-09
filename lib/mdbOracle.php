@@ -301,11 +301,11 @@ class OpenDB_Oracle {
    * 
    * combine Sql and FetchRow method into one step and returns data array
    * @param string $sql_command - and sql command
-   * @param integer $limit - max. count of resuts , 0= no limit
    * @param array $bind - list of bind parameters
+   * @param integer $limit - max. count of resuts , 0= no limit
    * @return array with the data content
    */
-  function SqlFetchArray($prikaz,$limit=0,$bind=array()){
+  function SqlFetchArray($prikaz,$bind=array(),$limit=0){
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
     $a=array();
     //$a= new SplFixedArray(10000);$i=0;
@@ -346,6 +346,23 @@ class OpenDB_Oracle {
       }
     }
     return $a;    
+  }
+  
+  /** $result = $db->SqlFetchList($prikaz,$limit,$sep,$bind)
+   * 
+   * prepare a list of values from a select query to one column
+   * @param string $sql_command - and sql command
+   * @param arry $bind
+   * @return string a result list or empty string ( also in case of error )
+   */
+  function SqlFetchList($prikaz,$bind=array(),$limit=100,$sep=', '){
+    $r='';
+    if (!$this->Sql($prikaz,$bind)) {    
+      while ($this->FetchRowA() && $limit--){
+        $r.=($r==''?'':$sep).(string)($this->data[0]);
+      } 
+    }  
+    return $r;  
   }
 }
  
