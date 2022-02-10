@@ -4,22 +4,11 @@
  *  @author Petr Čoupek
  */ 
      
- /*  29.10.2014
- *  27.5.2016 - uprava kodu 
- *  8.8.2017 - OCI_RETURN_NULLS
- *  31.8.2018 - pridan oci_commit do metody SQl + parametr na ovladani ...
- *  27.2.2019 - metoda pragma
- *  03.10.2019 - FetchRowA
- *  24.08.2020 - rozsireni metody SqlFetchKeys o vraceni poli
- *  12.1.2021 - DataHash vraci LOB polozky jiz prevedene do retezcu
- *  03.05.2021 - rozsireni o bind parametru pri pouzivani metdo Sql, SqlFetchArray, SqlFetchKeys. SQLFetch.
- *  Zmena priznaku commit
- *  02.09.2021 - navratovy typ sqlFetch
- */
-
-//namespace Microbe; /* namespace pro framework, volani globalnich objektu pak zacina \ */
+ /*  29.10.2014-2021
+  */
+include_once "mdbAbstract.php";
  
-class OpenDB_Oracle {
+class OpenDB_Oracle extends OpenDB{
   var $conn;      // pripojeni - vysledek po volani ocilogon
   var $parse;     // dotaz sql - vysledek ociparse
   var $data;      // struktura, ve ktere je radek z databaze
@@ -27,8 +16,7 @@ class OpenDB_Oracle {
   var $p_sloupcu; // pocet sloupcu
   var $com_kontr; // kontrola zda je zapnuty commit
   var $Error;     // retezec obsahujici chybu SQL. (kod, popis, ofset)..
-  //var $charset="EE8MSWIN1250";
-  var $charset="AL32UTF8";
+  var $charset="AL32UTF8"; //"EE8MSWIN1250"
   var $commit=true;
   var $typedb='oracle';
   //var $charset="UTF-8";
@@ -40,14 +28,14 @@ class OpenDB_Oracle {
    * @param string $connect - connection string
    * @return OpenDB_Oracle a new database wrapper object, or false when connection was not established
    */
-  function __construct($napojeni){ 
+  function __construct($connect){ 
     $this->typedb='oracle';
     //putenv ("NLS_LANG=CZECH_CZECH REPUBLIC.EE8MSWIN1250");
     putenv ("NLS_LANG=CZECH_CZECH REPUBLIC.AL32UTF8");   //?jede
     putenv ("NLS_NUMERIC_CHARACTERS=.,");
     putenv ("NLS_DATE_FORMAT=DD.MM.YYYY"); 
     $m=array();
-    if (preg_match('/^dsn=(.+);uid=(.+);pwd=(.+)$/i',$napojeni,$m)){  
+    if (preg_match('/^dsn=(.+);uid=(.+);pwd=(.+)$/i',$connect,$m)){  
       $this->conn=@oci_connect($m[2],$m[3],$m[1],$this->charset);
       $this->com_kontr=true; //nastav natrue autocomit je implicitne zaply
       if (!$this->conn){
@@ -109,9 +97,9 @@ class OpenDB_Oracle {
    * @param string $lob_content - LOB content 
    * @return boolean, true when an error has occured, false on success
    */
-  function SqlLOB($dotaz,$lob_field,$lob_content){
+  function SqlLOB($command,$lob_field,$lob_content){
     $delkalob=100000;
-    $this->parse=@ociparse($this->conn,$dotaz);
+    $this->parse=@ociparse($this->conn,$command);
     $clob = @oci_new_descriptor($this->conn, OCI_DTYPE_LOB); // OCI_D_LOB ?
     if ($clob){ 
       @oci_bind_by_name($this->parse, $lob_field, $clob, $delkalob, OCI_B_CLOB);  
@@ -159,17 +147,17 @@ class OpenDB_Oracle {
    * @param string $command - table info pragma
    * @return boolean, true when an error has occured, false on success
    */
-  function Pragma($dotaz){
+  function Pragma($command){
     /* metoda vraci strukturu s udaji - napr. struktura tabulky a nebo false v pripade chyby*/
     /* duvodem teto metody je sjednoceni pristupu k datovemu katalogu napric databazemi */
     $m=array(); $struktura=array();
-    if (preg_match('/^\s*table_info\(\'(.+)\'\)\s*$/',$dotaz,$m)){
+    if (preg_match('/^\s*table_info\(\'(.+)\'\)\s*$/',$command,$m)){
       $table_name=strtoupper($m[1]);  
            
       /* vrat strukturu tabulky $m[1] - generuje se interoperabilni tvar spolecny pro ruzne databaze */
       if (preg_match('/^(\w+)\.(\w+)$/',$table_name,$m)){  
         /* tabulka uvedena jako schema.tabulka */
-		$table_name=strtoupper($m[2]);  
+		    $table_name=strtoupper($m[2]);  
         $dodatek=" and owner='$m[1]'";
         $dodatek2=" and all_constraints.owner='$m[1]'"; /* uvodni mezera dulezita */
 	    }else{
@@ -213,7 +201,7 @@ class OpenDB_Oracle {
       return($struktura);
     }
     
-    if (preg_match('/^\s*catalog\s*$/',$dotaz,$m)){
+    if (preg_match('/^\s*catalog\s*$/',$command,$m)){
       /* vraci seznam tabulek - pohledu */
       $this->parse=@ociparse($this->conn,"select table_name from tabs order by table_name asc");
       $x=@ociexecute($this->parse,OCI_DEFAULT);
@@ -242,36 +230,6 @@ class OpenDB_Oracle {
       return false;
     }   
   }
-  
-  /** $value = $db->Data('attribute');
-   * 
-   * This method returns current attribute value
-   * @param string $attribute - the name of the attribute (in the view/table), 
-   *   automatic case sensitivity detection 
-   * @return string with the attribute value
-   */
-  function Data($sloupec){
-    if (isset($this->data[$sloupec])) {
-      return $this->data[$sloupec];
-    }else{
-      return '';
-    }
-  }
-  
-  /** $value = $db->DataHash();
-   * 
-   * This method returns current attribute value
-   * @return hash with the current fetched row values BLOB are converted to strings.
-   */
-  function DataHash(){
-    $h=array();
-    if ($this->data) foreach ($this->data as $k=>$v){
-      $h[$k]=isset($this->data[$k])?(
-       (gettype($this->data[$k])=="string")?$v:$this->data[$k]->load()
-       ):'';      
-    }
-    return $h;  
-  }  
  
   /** $db->Close();
    * 
@@ -281,89 +239,7 @@ class OpenDB_Oracle {
     if ($this->conn) {oci_close($this->conn);}
   }
   
-  /** $string = $db->SqlFetch($sql_command)
-   * 
-   * combine Sql and FetchRow method into one step and returns data hash 
-   * @param string $command - and sql command
-   * @param array $bind - list of bind parameters
-   * @return string with the data content
-   */
-  function SqlFetch($prikaz,$bind=array()){
-    /* zjednoduseni nacteni hodnoty z db primo do promenne */
-    if (!$this->Sql($prikaz,$bind) && $this->FetchRowA()) {
-      return (string)($this->data[0]);
-    }else{
-      return '';
-    }  
-  }
   
-  /** $array = $db->SqlFetchArray($sql_command,$limit=0)
-   * 
-   * combine Sql and FetchRow method into one step and returns data array
-   * @param string $sql_command - and sql command
-   * @param array $bind - list of bind parameters
-   * @param integer $limit - max. count of resuts , 0= no limit
-   * @return array with the data content
-   */
-  function SqlFetchArray($prikaz,$bind=array(),$limit=0){
-    /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
-    $a=array();
-    //$a= new SplFixedArray(10000);$i=0;
-    if (!$this->Sql($prikaz,$bind)){
-      while ($this->FetchRow()){
-        array_push($a,$this->DataHash());
-        //$a[++$i]=$this->DataHash();
-        if ($limit && $limit<=count($a)) break;
-      }
-    }
-    return $a;    
-  }
-  
-  /** $error = $db->SqlFetchKeys($sql_command,$key)
-   * 
-   * combine Sql and FetchRow method into one step and returns data array
-   * @param string $sql_command - and sql command
-   * @return array with the data content
-   */
-  function SqlFetchKeys($prikaz,$key,$bind=array()){
-    /* zjednoduseni nacteni celeho vysledku select primo do pole podle klice */
-    $a=array();
-    if (!$this->Sql($prikaz,$bind)){
-      while ($this->FetchRow()){
-        if (isset($a[$this->Data($key)])){
-          /* tato hodnota klice se opakuje, struktura bude pole */
-          if (!isset($a[$this->Data($key)][0]) ){
-            /* pole zatim neexistuje, vlozeni jiz zarazeneho prvku do pole */
-            $tmp=$a[$this->Data($key)];
-            $a[$this->Data($key)]=array();
-            array_push($a[$this->Data($key)],$tmp);
-          }
-          /* pripojeni prvku k poli */
-          array_push($a[$this->Data($key)],$this->DataHash());  
-        }else{
-          $a[$this->Data($key)]=$this->DataHash();
-        }  
-      }
-    }
-    return $a;    
-  }
-  
-  /** $result = $db->SqlFetchList($prikaz,$limit,$sep,$bind)
-   * 
-   * prepare a list of values from a select query to one column
-   * @param string $sql_command - and sql command
-   * @param arry $bind
-   * @return string a result list or empty string ( also in case of error )
-   */
-  function SqlFetchList($prikaz,$bind=array(),$limit=100,$sep=', '){
-    $r='';
-    if (!$this->Sql($prikaz,$bind)) {    
-      while ($this->FetchRowA() && $limit--){
-        $r.=($r==''?'':$sep).(string)($this->data[0]);
-      } 
-    }  
-    return $r;  
-  }
 }
  
 ?>
