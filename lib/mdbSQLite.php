@@ -4,17 +4,11 @@
  *  @author Petr Čoupek
  */  
  
- /*  29.10.2014 , 12.5.2015, 31.03.2016, 13.4.2016
- *  10.12.2018 - odchyt chyby, pokud je SQL spatne , upravy
- *  17.1.2019
- *  25.1.2019 - zavedeni metody pragma
- *  26.2.2019 metody SqlFetch, SqlArrayFetch
- *  23.04.2020
- *  17.07.2020 - oprava
- *  22.07.2021
- */
+ /*  29.10.2014-2021
+  */
+include_once "mdbAbstract.php";
  
-class OpenDB_SQLite {
+class OpenDB_SQLite extends OpenDB{
   var $conn;       /* pripojeni - vysledek po volani objektu SQLite3 */
   var $parse;      /* dotaz sql - SQLite3 objekt, ktery (zpravidla) obsahuje vysledek dotazu */
   var $data;       /* struktura, ve ktere je radek z databaze */
@@ -65,8 +59,6 @@ class OpenDB_SQLite {
       return $this->stav; 
     }  
   }
-
-  
   
   /** $error = $db->Sql($sql_command)
    * 
@@ -205,70 +197,6 @@ class OpenDB_SQLite {
       return false;
     }
     return false;     
-  }
-  
-  /** $error = $db->SqlFetch($sql_command)
-   * 
-   * combine Sql and FetchRow method into one step and returns data hash 
-   * @param string $command - and sql command
-   * @param array bind
-   * @return hash with the data content
-   */
-  function SqlFetch($prikaz,$bind=array()){
-    /* zjednoduseni nacteni hodnoty z db primo do promenne */
-    if (!$this->Sql($prikaz,$bind) && $this->FetchRowA()) {
-      return (string)($this->data[0]);
-    }else{
-      return '';
-    }  
-  }
-  
-  /** $error = $db->SqlFetchArray($sql_command)
-   * 
-   * combine Sql and FetchRow method into one step and returns data array
-   * @param string $command - and sql command
-   * @return array with the data content
-   */
-  function SqlFetchArray($prikaz,$limit=0){
-    /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
-    $a=array();
-    if (!$this->Sql($prikaz)){
-      while ($this->FetchRow()){
-        array_push($a,$this->DataHash());
-        if ($limit && $limit<=count($a)) break;
-      }
-    }
-    return $a;    
-  }
-  
-  /** $array = $db->SqlFetchKeys($sql_command,$key)
-   * 
-   * combine Sql and FetchRow method into one step and returns data array
-   * @param string $sql_command - and sql command
-   * @param $key
-   * @return array the data content in a hash indexed by a key
-   */
-  function SqlFetchKeys($prikaz,$key,$bind=array()){
-    /* zjednoduseni nacteni celeho vysledku select primo do pole podle klice */
-    $a=array();
-    if (!$this->Sql($prikaz,$bind)){
-      while ($this->FetchRow()){
-        if (isset($a[$this->Data($key)])){
-          /* tato hodnota klice se opakuje, struktura bude pole */
-          if (!isset($a[$this->Data($key)][0]) ){
-            /* pole zatim neexistuje, vlozeni jiz zarazeneho prvku do pole */
-            $tmp=$a[$this->Data($key)];
-            $a[$this->Data($key)]=array();
-            array_push($a[$this->Data($key)],$tmp);
-          }
-          /* pripojeni prvku k poli */
-          array_push($a[$this->Data($key)],$this->DataHash());  
-        }else{
-          $a[$this->Data($key)]=$this->DataHash();
-        }  
-      }
-    }
-    return $a;    
   }
     
   /** $value = $db->Data('attribute');

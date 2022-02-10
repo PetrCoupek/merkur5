@@ -4,8 +4,9 @@
  * 11.10.2021
  * 
  */
- 
-class OpenDB_pg{
+include_once "mdbAbstract.php";
+
+class OpenDB_pg extends OpenDB{
   var $conn;       //pripojeni - vysledek po volani ocilogon
   var $parse;      //dotaz sql - vysledek ociparse
   var $data;       //struktura, ve ktere je radek z databaze
@@ -179,16 +180,14 @@ class OpenDB_pg{
       tco.constraint_name,
       kcu.ordinal_position as position,
       kcu.column_name as key_column
-from information_schema.table_constraints tco
-join information_schema.key_column_usage kcu 
-    on kcu.constraint_name = tco.constraint_name
-    and kcu.constraint_schema = tco.constraint_schema
-    and kcu.constraint_name = tco.constraint_name
-where tco.constraint_type = 'PRIMARY KEY'
-and kcu.table_name='".$table_name."' and kcu.table_schema='".$table_schema."'
-order by kcu.table_schema,
-        kcu.table_name,
-        position ");
+      from information_schema.table_constraints tco
+      join information_schema.key_column_usage kcu 
+      on kcu.constraint_name = tco.constraint_name
+      and kcu.constraint_schema = tco.constraint_schema
+      and kcu.constraint_name = tco.constraint_name
+      where tco.constraint_type = 'PRIMARY KEY'
+      and kcu.table_name='".$table_name."' and kcu.table_schema='".$table_schema."'
+      order by kcu.table_schema, kcu.table_name, position ");
       while($this->FetchRow()){
         $col=$this->Data('key_column');
         $struktura[$prevod[$col]]['pk']=$this->Data('position');

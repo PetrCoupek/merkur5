@@ -53,7 +53,12 @@ class OpenDB_Oracle extends OpenDB{
       $this->stav=false;              
       return $this->stav; 
     }  
-  } 
+  }
+  
+  function __destruct(){
+    if ($this->conn) {oci_close($this->conn);}
+    $this->conn=null;
+  }
   
   /** $error = $db->Sql($sql_command)
    * 
@@ -237,6 +242,7 @@ class OpenDB_Oracle extends OpenDB{
    */  
   function Close(){
     if ($this->conn) {oci_close($this->conn);}
+    $this->conn=null;
   }
   
   
