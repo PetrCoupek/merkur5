@@ -216,14 +216,14 @@ abstract class M5 extends M5_core{
       tg('div','class="d-flex justify-items-end"',
         "© SmallM, 2022").
       '#ERRORS#'.
-      tg('div','class="loader"',
+      tg('div','class="m5-loader"',
        tg('div','class="d-flex justify-content-center"',
         tg('div','class="spinner-border text-primary big"',' ')).
          
       tg('script','type="text/javascript"',
          '$(window).bind("beforeunload", function(){
            document.body.style.opacity=0.6;
-          $(".loader").css("visibility","visible");          
+          $(".m5-loader").css("visibility","visible");          
            });'
       )))
       ));
