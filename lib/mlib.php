@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package merkur5
- * @version 0.1
+ * @version 0.2
  */
 
 ini_set('default_charset','utf-8');
@@ -121,19 +121,15 @@ abstract class M5_core{
    */
   static function htpr_all(){
    if (self::$title=='') self::$title= self::$header;
-   self::$htptemp=preg_replace('/#TITLE#/',self::$title ,self::$htptemp);
-   self::$htptemp=preg_replace('/#HEADER#/',self::$header ,self::$htptemp);
-   self::$htptemp=preg_replace('/#BODY#/',self::$htpr, self::$htptemp);
-   self::$htptemp=preg_replace('/#ACTIONS#/',self::$htactions, self::$htptemp);
-   self::$htptemp=preg_replace('/#___#/','', self::$htptemp);
-   if (self::$debug) {
-     self::$htptemp=preg_replace('/#ERRORS#/',
-      tg('div','class="m5-errors"',
-      ' '.str_replace("\n",br(),
-      str_replace(' ',nbsp(1),self::$errors),self::$errors)),self::$htptemp);
-   }else{
-     self::$htptemp=preg_replace('/#ERRORS#/','',self::$htptemp);
-   }
+   self::$htptemp=str_replace('#TITLE#',self::$title ,self::$htptemp);
+   self::$htptemp=str_replace('#HEADER#',self::$header ,self::$htptemp);
+   self::$htptemp=str_replace('#BODY#',self::$htpr, self::$htptemp);
+   self::$htptemp=str_replace('#ACTIONS#',self::$htactions, self::$htptemp);
+   self::$htptemp=str_replace('#___#','', self::$htptemp);
+   self::$htptemp=str_replace('#ERRORS#',
+     (self::$debug)?(tg('div','class="m5-errors"',' '.str_replace("\n",br(),
+                    str_replace(' ',nbsp(1),self::$errors),self::$errors))
+                    ):'',self::$htptemp);
    echo self::$htptemp;
   }
 
@@ -470,10 +466,11 @@ function br($count=1){
  * @return string */
  
 function textfield($label,$name,$size,$maxl,$value,$add=''){
-  if ($label!= '') {$p='&nbsp;';}else{$p='';}
+  if ($label!='') {$p='&nbsp;';}else{$p='';}
   $value=str_replace('"',"&quot;",$value);
-  return $label.$p.tg('input','type="text" name="'.$name.'" size="'.$size.'" '.
-   'maxlength="'.$maxl.'" value="'.$value.'" '.$add);
+  return ta('span',$label.$p).
+         tg('input','type="text" name="'.$name.'" size="'.$size.'" '.
+            'maxlength="'.$maxl.'" value="'.$value.'" '.$add,'noslash');
 }
 
 /** The function returns the HTML tag for a text input, initial value is taken from a global $DB hash
