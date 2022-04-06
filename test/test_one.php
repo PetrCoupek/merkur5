@@ -5,14 +5,18 @@
  */
 
 include_once '../lib/mlib.php';
-M5::set('header','Test no. 1');
+M5::set('header','Test One');
+M5::set('debug',true);
 M5::skeleton('../');
 htpr(ta('h1','Hello'),
      'This is the test');
 $db=new OpenDB_SQLite('file=../data/m5.sqlite3,mode=1');
-//print_r($db);die;
-htpr(ht_table('Name days',array(),
-   $db->SqlFetchArray("select * from jmeniny order by den, mesic ")));
+//deb($db);
+htpr(
+  ht_table('Name days',array('den'=>'Den','mesic'=>'Měsíc','jmena'=>'Jména'),
+            $db->SqlFetchArray("select * from jmeniny order by den, mesic "),
+            'Nejsou data.',
+            'class="table table-striped table-bordered table-hover table-sm"'));
 $db->Close();     
 htpr_all();
 

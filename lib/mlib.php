@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package merkur5
- * @version 0.2
+ * @version 0.21
  */
 
 ini_set('default_charset','utf-8');
@@ -919,13 +919,14 @@ function http_lan_text($text1,$text2){
 
 /** The getter for global script parameters
  * @param string $key parameter identifier
+ * @param string $default default value when no data - default is ''
  * @return mixed global $DATA[$key] ( = result of $_GET or $_POST request )
  */ 
 
-function getpar($key){
+function getpar($key,$default=''){
   global $DATA;
   if (isset($DATA[$key])) return $DATA[$key];  
-  return '';
+  return $default;
 }
 
 /** The setter for global script parameters
@@ -984,9 +985,10 @@ function helptext($text){
  * @param array $head - table of head strings, if not empty, only these columns will in the table in given order
  * @param array $content - Array of rows with table data.
  * @param string no data text - optional
+ * @param string $class - css class of the table
  * @return string HTML */
 
-function ht_table($caption,$head,$content,$nodata=''){
+function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
   $s=''; 
   if (!is_array($content)) return '';
 
@@ -1012,7 +1014,7 @@ function ht_table($caption,$head,$content,$nodata=''){
    if (!$is_content){
      $s=ta('tr',tg('td','colspan='.count($L),$nodata.nbsp()));
    }
-   $s=tg('table','class="sestava" ',
+   $s=tg('table',$class,
        ta('caption',$caption).
         ta('thead',
           ta('tr',$hlav))
@@ -1033,6 +1035,10 @@ function getparm_string(){
   return $s;
 }
 
+/** Date conversion for HTML5 date input in the form 
+ * @param string - national form of date
+ * @return string - form of date for HTML5 input
+*/
 function konvdat($s){
   if (preg_match("/^(\d+)\.(\d+)\.(\d+)$/", $s, $m)){
     $day=$m[1];

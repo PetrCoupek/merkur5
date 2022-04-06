@@ -5,6 +5,7 @@
  */ 
      
  /*  2014-2022
+  *  add offset parameter
  */
  
 abstract class OpenDB {
@@ -149,16 +150,17 @@ abstract class OpenDB {
    * @param string $sql_command - and sql command
    * @param array $bind - list of bind parameters
    * @param integer $limit - max. count of resuts , 0= no limit
+   * @param integer $offset - start position in the select, default=1
    * @return array with the data content
    */
-  function SqlFetchArray($prikaz,$bind=array(),$limit=0){
+  function SqlFetchArray($prikaz,$bind=array(),$limit=0,$offset=1){
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
     $a=array();
-    //$a= new SplFixedArray(10000);$i=0;
+    
     if (!$this->Sql($prikaz,$bind)){
+      $n=0;
       while ($this->FetchRow()){
-        array_push($a,$this->DataHash());
-        //$a[++$i]=$this->DataHash();
+        if (++$n>=$offset) array_push($a,$this->DataHash());
         if ($limit && $limit<=count($a)) break;
       }
     }

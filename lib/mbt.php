@@ -244,14 +244,18 @@ function bt_menu($title,$leftMenu=array(),$rightSide=''){
  */
 function bt_container($colrules,$rows){
   $r='';
+  if (!is_array($colrules)||count($colrules)<1) return '';
+  if (!is_array($rows)||count($rows)<1) return '';
   for($i=0;$i<count($rows);$i++){
     $t='';
     for($j=0;$j<count($rows[$i]);$j++){
-      $t.=tg('div','class="'.$colrules[$j].'"',$rows[$i][$j]);
+      /* osetreni chybne vytvoreneho pole */
+      if (isset($rows[$i][$j])) $t.=tg('div','class="'.$colrules[$j].'"',$rows[$i][$j].' '); 
+      /* mezera na konci pro zamezeni degenerace prazdnych tagu */
     }
-    $r.=tg('div','class="row"',$t);  
+    $r.=tg('div','class="row"',$t.' '); /*mezera*/  
   }
-  $r=tg('div','class="container"',$r);
+  $r=tg('div','class="container"',$r.' '); /*mezera*/
   return $r;
 }
 
@@ -266,13 +270,17 @@ function bt_container($colrules,$rows){
 function bt_hidable_area($label, $docid, $content, $addlabel=''){
   return 
    tg('div','id="'.$docid.'_o" ',
-   tg('a','id="'.$docid.'_c" href="#" '.$addlabel,$label.nbsp(2).bt_icon('caret-down')).
+   ta('h5',tg('a','id="'.$docid.'_c" href="#" '.$addlabel, $label.nbsp(2).bt_icon('caret-down'))).
   
-   tg('div','id="'.$docid.'_i"', $content)).
+   tg('div','id="'.$docid.'_i" style="display:none" ', $content.
+     tg('a','id="'.$docid.'_d" href="#" ',bt_icon('caret-up')))).
    ta('script',
     '$(document).ready(function(){'.
       '$("#'.$docid.'_c").click(function(){'.
-        '$("#'.$docid.'_i").toggle(); });  $("#'.$docid.'_i").hide();'.
+        '$("#'.$docid.'_i").toggle(); });  '.
+      //' /* $("#'.$docid.'_i").hide(); */ '.
+      '$("#'.$docid.'_d").click(function(){'.
+        '$("#'.$docid.'_i").hide(); });  '. 
      '});');
  }
 
@@ -401,6 +409,99 @@ function bt_icon($name='info-square'){
   </svg>';
   }
 
+}
+
+/** Tooltip - text displayed when mouse gooes over object
+ * @param string $title - tooltip text
+ * @param string $text - object - text normal visible 
+ * @param string $placement - optional instruction on which side place the tooltip
+ */
+function bt_tooltip($title,$text,$placement='top'){
+
+  return tg('span','data-toggle="tooltip" data-placement="'.$placement.'" title="'.$title.'"',$text);
+}
+
+
+function bt_lister($caption='',
+                   $head=[],
+                   $content=[[]],
+                   $nodata_text='',
+                   $bt_class='',
+                   $pagination=''){
+
+  $s=''; 
+  if (!is_array($content)) return '';
+  if ($bt_class=='') $bt_class='class="table table-striped table-bordered table-hover table-sm"'; 
+  $is_head=is_array($head)&&count($head)>0;
+  $is_content=(count($content)>0);
+  for ($hlav='',$L=$is_head?array_keys($head):($is_content?array_keys($content[0]):array('0'=>nbsp())),$i=0;
+       $i<count($L);
+       $i++) 
+      $hlav.=ta('th',isset($head[$L[$i]])?$head[$L[$i]]:$L[$i]);
+  $n=0;          
+  foreach ($content as $row){
+    $rkapsa='';
+    for ($i=0;$i<count($L);$i++){
+       $ktisku=$row[$L[$i]];
+       if (gettype($ktisku)=="object" && gettype($ktisku)!="NULL")
+         $ktisku=$ktisku->load();
+       if ($ktisku=='') $ktisku=nbsp(1);  
+       $rkapsa.=ta('td',$ktisku);
+     }
+     $s.=tg('tr',$n%2?' class="sudy"':'',$rkapsa);
+     $n++; 
+   }
+   if (!$is_content){
+     $s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
+   }
+   $s=tg('div','class="table-responsive"',
+       tg('table',$bt_class,
+        ta('caption',ta('h3',$caption)).
+        tg('thead','class="thead-light"',ta('tr',$hlav)).
+        ta('tbody',$s)).$pagination);
+   return $s;
+}
+
+
+/** pagination for bt_lister
+ * 
+ *  @param integer $current - first record on the screen
+ *  @param integer $total - total records in the set
+ *  @param integer $step - number of records on the page
+ * 
+ */
+function bt_pagination($current,$total,$step){
+  $s='';
+  $offset='_ofs';
+  /* posun o stranku zpet */
+  if ($current>$step) $s.=tg('li','class="page-item"',
+        tg('a','class="page-link" href="?'.$offset.'='.($current-$step).'"',
+        bt_icon('left')));
+  for($i=1;$i<=$total;$i+=$step){
+    if ($i==$current){
+        $s.=tg('li','class="page-item active "',
+             tg('span','class="page-link"',
+              ceil($i/$step).tg('span','class="sr-only"','current')));
+    }else{
+        if ((abs($current-$i)<4*$step) || ($current+$i<6*$step) || abs($i)<$step || abs($total-$i)<$step)
+          $s.=tg('li','class="page-item"',
+           tg('a','class="page-link" href="?'.$offset.'='.$i.'"',ceil($i/$step).' ') );
+    }
+  }
+  /* posun o stranku vpred */
+  
+  if ($total-$current>=$step) $s.=tg('li','class="page-item"',
+       tg('a','class="page-link" href="?'.$offset.'='.($current+$step).'"',
+         bt_icon('right')));
+  
+    /* informacni text o zaznamech */
+  $nstran=ceil(($i-1)/$step);
+  $stran=($nstran>4?'stran':($nstran>1?'strany':($nstran==1?'strana':'stran'))); 
+  $zaznamu=($total>4?'záznamů':($total>1?'záznamy':($total==1?'záznam':'záznamů')));       
+  $s=tg('nav','aria-label="..."',
+      "Celkem $total $zaznamu ($nstran $stran) ".
+      (($total>$step)?tg('ul','class="pagination"',$s):''));
+  return $s;
 }
 
 
