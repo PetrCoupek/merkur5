@@ -12,7 +12,7 @@ The design is a targeted to make simple server-side development with a minimum s
 The set constists of :
  
 - the kernel library (static PHP class/module object called M5),
-- database wrappers (database connection objects with same methods for Oracle, MySQl, SQLite ),
+- database wrappers with unified behaviour, database connection objects with same methods for Oracle, SQLite, PostgreSQL and MySQL including inified parameter binding
 - parts for visualization of the database entities 
 - built-in content management system (**Cm::** module), minimal version can be stored in the SQLite database.
 - included recommended vendor styles and front-end functionality (Bootstrap + JQuery included)
@@ -24,7 +24,8 @@ The set constists of :
 - The HTML/XML output is generated using function **ta()**, **tg()** and other global functions generating HTML/XML strings. 
  No HTML/XML tags in the code. All these functions are naturaly nested to generate output. The result is pushed into a
  buffer using **htpr()** function. The page template is separated from the code.
-- The input is processed via **getpar()** function with sanitization possibilities.
+- Built-in set of frequently used SVG icons for tool buttons. 
+- The input is processed via **getpar()** function with sanitization possibilities and optional defaults.
 - More complex application are decomposed into a separate parts/componets using content management class **Cm::**, 
  which includes "user in group" rights management, application logging and standard left user-sensitive menu.
 - The components have **route()** and/or **skeleton()** method. 
@@ -46,7 +47,7 @@ class Hello extends M5{
  static function skeleton(){
    parent::skeleton('../');           /* implicit route */
    htpr(ta('h1','Minimal application'), 
-        ta('p','That\'s it !'));      /* Functionlity print */
+        ta('p','That\'s it !'));      /* main action - print HTML page */
    htpr_all();                        /* buffer write */
  }
 
