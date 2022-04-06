@@ -10,7 +10,7 @@ M5::set('header','Test One');
 M5::set('debug',true);
 M5::skeleton('../');
 
-$db = new OpenDB_Oracle('dsn=sdedb02;uid=app_dkb;pwd=jsdn*6343Jkjsedn*324');
+$db = new OpenDB_Oracle('dsn=sdedb02;uid=app_dkb;pwd=*********');
 $where="id<18";
 $pole=$db->SqlFetchArray(
     "select id, nazev, ochrana_stup_kod, ochrana_kat_kod, ochrana_dop ".
