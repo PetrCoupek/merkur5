@@ -4,12 +4,12 @@
  *  
  * This file contains the framework's core essentials. The abstract class M5_core
  * is an abstranct startpoint for client-server functionality. The class M5 could be
- * used directly or override with the real one. The set of basic global functions define
+ * used directly or override with the real one. The set of basic global functions defines
  * the basic functionality
  *  
  * @author Petr Čoupek
  * @package merkur5
- * @version 0.21
+ * @version 0.24
  */
 
 ini_set('default_charset','utf-8');
@@ -54,10 +54,11 @@ abstract class M5_core{
    * @param string $content
    * @return string */ 
   
+   /* packing tags cause problems in HTML pages */
   static function ta($tagname,$content=''){
-    if ($content ==''){
-      return '<'.$tagname.'/>';
-    }
+    //if ($content ==''){
+    //  return '<'.$tagname.'/>';
+    //}
     if ($content=='noslash'){
       return '<'.$tagname.'>';
     }
@@ -65,19 +66,19 @@ abstract class M5_core{
   }
 
   /** see global function tg() */
-  static function tg($tagname,$params='',$content='',$nopack=false){
-    if ($params.$content==''){
-      return '<'.$tagname.'/>';
-    }
+  static function tg($tagname,$params='',$content='',$nopack=true){
+    //if ($params.$content==''){
+    //  return '<'.$tagname.'/>';
+    //}
     if ($params!='') $params=' '.$params;
     if ($content=='noslash' && !$nopack){
        return '<'.$tagname.$params.'>';
     }
-    if ($content=='' && !$nopack){
-      return '<'.$tagname.$params.'/>'."\n";
-    }else{
+    //if ($content=='' && !$nopack){
+    //  return '<'.$tagname.$params.'/>'."\n";
+    //}else{
       return '<'.$tagname.$params.'>'.$content.'</'.$tagname.'>'."\n";
-    }
+    //}
   }
   
   /** Skeleton method
@@ -189,7 +190,7 @@ abstract class M5 extends M5_core{
   self::set('htptemp','<!DOCTYPE html>'."\n".
    ta('html',
     ta('head',
-     ta('title','Merkur 5').
+     ta('title','#TITLE#').
      tg('meta','http-equiv="content-type" content="text/html; charset=utf-8"').
      tg('meta','name="language" content="cs"').
      tg('meta','name="viewport" content="width=device-width, initial-scale=1.0"').
@@ -638,7 +639,7 @@ function dblov($label,$name,$napojeni,$sele,$js='',$limit=1200){
 /** The function returns the HTML tag for a drop-down list of items, list is an input array
  * @param string $label - label before the tag
  * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param array $list - the key/value array of given options
+ * @param array $list - the key/value array of given options, use to_hash function to convert SQL result for this input
  * @param string $def - initial selected value in the list
  * @param string $js - other added parametres in the tag (useful for javascript client-side functionality or styling)
  * @return string HTML*/
@@ -992,9 +993,13 @@ function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
   $s=''; 
   if (!is_array($content)) return '';
 
-  $is_head=is_array($head)&&count($head)>0;
+  $is_head=is_array($head)&&(count($head)>0);
   $is_content=(count($content)>0);
-  for ($hlav='',$L=$is_head?array_keys($head):($is_content?array_keys($content[0]):array('0'=>nbsp())),$i=0;
+  if (!isset($content[0])) return '';
+  for ($hlav='',
+        $L=$is_head?array_keys($head):
+        ($is_content?array_keys($content[0]):array('0'=>nbsp())),
+        $i=0;
        $i<count($L);
        $i++) 
       $hlav.=ta('th',isset($head[$L[$i]])?$head[$L[$i]]:$L[$i]);
@@ -1049,5 +1054,65 @@ function konvdat($s){
   }
   return $s;  
 }
+
+/**  autocomplete_format - 
+ *  @param $a Array input Array with elements ['V'=>somekey, 'T'=>somevisible text to key ] 
+ *  @return - autocomplete format, JSON encoded
+*/
+function autocompleteFormat($a=[]){
+  $r=[];
+  for ($i=0;$i<count($a);$i++){
+    $r[$i]=['value'=>$a[$i]['V'],'text'=>$a[$i]['T']];
+  }
+  return json_encode($r,JSON_UNESCAPED_UNICODE);
+}
+
+/**  get_resp - return a JSON response message to the client
+ *   @param string $response - an JSON encoded data
+ *   @param bool $zip - true when packed
+ *   @param bool $text - true when header content type is text/plain, otherwise 
+ *              application/json
+ */ 
+function getResp($response,$zip=true,$text=false){
+    header('Cache-Control: private, must-revalidate, max-age=0');
+    if ($text){
+      header('Content-Type: text/plain;charset=UTF-8'); /* jediny dovoleny format pro CORS*/
+    }else{
+      header('Content-Type: application/json;charset=UTF-8');
+    }  
+    if ($zip){
+      header('Content-Encoding: gzip');
+      echo gzencode($response);
+    }else{  
+      echo $response;
+    }  
+}
+
+/** page link with post request method 
+ * 
+ * @param string $link - target page link (f.e '?')
+ * @param string $label - visible label on link
+ * @param array $params - an array of posted parameters
+ * @param string $addpar - additional code in visible 'button'/anchor tag  
+ * @return string HTML code with POST link
+*/
+
+function postLink($link,$label,$params,$addpar=''){
+  $r='';
+  $p='';
+  foreach ($params as $k=>$v){
+     $p.=tg('input','type="hidden" name="'.$k.'" value="'.$v.'"','noslash');
+  };
+
+
+  $r.=tg('form','method="post" action="'.$link.'" style="display: inline;"',
+        $p.
+        tg('button','type="submit" name="submit_param" value="submit_value" '.$addpar,$label));
+
+  return $r;
+}
+
+
+
 
 ?>

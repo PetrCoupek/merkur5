@@ -7,6 +7,9 @@
  * @package Merkur5
  * @version 1.1
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
+ * 07.07.2022
+ * 27.07.2022
+ * 02.08.2022
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -83,6 +86,19 @@ function bt_autocomplete($label,$pole,$size,$maxlength,$script,$formname,$value=
     );
     ");  
   return $s;
+}
+
+function bt_autocomplete2($label,$name,$url){
+  $r=ta('span',$label).
+     tg('select','class="form-control basicAutoSelect" name="'.$name.'" placeholder="zadejte text..." ',' ');
+  $r.=ta('script',"$('.basicAutoSelect').autoComplete({
+    resolverSettings: {
+      url: '".$url."',     
+      autocomplete: 'off',
+      noResultsText: 'Nic nenalezeno.' },
+      minLength: 1});");    
+
+  return $r;
 }
 
 /** The function provides an Info dialog over HTML screen using Bootstrap Modal dialog. There is OK button to close it.
@@ -338,7 +354,7 @@ function bt_icon($name='info-square'){
   case 'geo-alt':
     return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-geo-alt" viewBox="0 0 16 16">
   <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"/>
-  <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>';
+  <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/></svg>';    
   case 'plusminus':
     return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-slash-minus" viewBox="0 0 16 16">
     <path d="m1.854 14.854 13-13a.5.5 0 0 0-.708-.708l-13 13a.5.5 0 0 0 .708.708ZM4 1a.5.5 0 0 1 .5.5v2h2a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 1 0-1h2v-2A.5.5 0 0 1 4 1Zm5 11a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 9 12Z"/>
@@ -401,6 +417,11 @@ function bt_icon($name='info-square'){
      <path d="M15.5 6h-5.5v-5.5c0-0.276-0.224-0.5-0.5-0.5h-3c-0.276 0-0.5 0.224-0.5 0.5v5.5h-5.5c-0.276 0-0.5 0.224-0.5 0.5v3c0 0.276 0.224 0.5 0.5 0.5h5.5v5.5c0 0.276 0.224 0.5 0.5 0.5h3c0.276 0 0.5-0.224 0.5-0.5v-5.5h5.5c0.276 0 0.5-0.224 0.5-0.5v-3c0-0.276-0.224-0.5-0.5-0.5z"></path>
      </svg>';
 
+  case 'search':
+     return '<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" viewBox="0 0 16 16">
+     <path fill="#000000" d="M15.504 13.616l-3.79-3.223c-0.392-0.353-0.811-0.514-1.149-0.499 0.895-1.048 1.435-2.407 1.435-3.893 0-3.314-2.686-6-6-6s-6 2.686-6 6 2.686 6 6 6c1.486 0 2.845-0.54 3.893-1.435-0.016 0.338 0.146 0.757 0.499 1.149l3.223 3.79c0.552 0.613 1.453 0.665 2.003 0.115s0.498-1.452-0.115-2.003zM6 10c-2.209 0-4-1.791-4-4s1.791-4 4-4 4 1.791 4 4-1.791 4-4 4z"></path>
+     </svg>';   
+
   /* default, when input doesnt match */
   default:
     return '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-info-square" viewBox="0 0 16 16">
@@ -422,12 +443,28 @@ function bt_tooltip($title,$text,$placement='top'){
 }
 
 
+
+/** Table list - a page with strutured (database origin) table
+ * @param string $caption - table caption
+ * @param array $head
+ * @param array $content
+ * @param string $nodata_text
+ * @param string $bt_class
+ * @param string $pagination (result of the bt_pagination function) 
+ * @param string $content
+ * @param bool  $postlink - when true, generater links are POSTed
+ * @param string filter -when not null, it prints this text as filter description
+ * 
+ */
 function bt_lister($caption='',
                    $head=[],
                    $content=[[]],
                    $nodata_text='',
                    $bt_class='',
-                   $pagination=''){
+                   $pagination='',
+                   $context='',
+                   $postlink=false,
+                   $filter=null){
 
   $s=''; 
   if (!is_array($content)) return '';
@@ -436,8 +473,16 @@ function bt_lister($caption='',
   $is_content=(count($content)>0);
   for ($hlav='',$L=$is_head?array_keys($head):($is_content?array_keys($content[0]):array('0'=>nbsp())),$i=0;
        $i<count($L);
-       $i++) 
-      $hlav.=ta('th',isset($head[$L[$i]])?$head[$L[$i]]:$L[$i]);
+       $i++) {
+      $label=(isset($head[$L[$i]])?$head[$L[$i]]:$L[$i]).
+      (getpar('_o')==$L[$i].' asc'?bt_icon('caret-down'):(getpar('_o')==$L[$i].' desc'?bt_icon('caret-up'):''));   
+      $hlav.=ta('th',
+               $L[$i]!='detail'?
+                ($postlink?postLink('?'.$context,$label,['_o'=>$L[$i].(getpar('_o')==$L[$i].' asc'?' desc':' asc')],'class="btn btn-light text-primary"'):
+                ahref('?_o='.$L[$i].(getpar('_o')==$L[$i].' asc'?' desc':' asc').$context,
+                       $label
+                )):'detail');
+  }              
   $n=0;          
   foreach ($content as $row){
     $rkapsa='';
@@ -452,13 +497,16 @@ function bt_lister($caption='',
      $n++; 
    }
    if (!$is_content){
-     $s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
-   }
-   $s=tg('div','class="table-responsive"',
+     //$s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
+     $s=bt_alert($nodata_text,'alert-warning');
+   }else{
+    $s=tg('div','class="table-responsive"',
        tg('table',$bt_class,
-        ta('caption',ta('h3',$caption)).
+        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
+        (getpar('_whr')?(isset($filter)?$filter:  ('Filtrováno: '.urldecode(getpar('_flt'))  )):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
+   }
    return $s;
 }
 
@@ -468,41 +516,52 @@ function bt_lister($caption='',
  *  @param integer $current - first record on the screen
  *  @param integer $total - total records in the set
  *  @param integer $step - number of records on the page
+ *  @param string  $context - context paramaters in the page
+ *  @param bool  $postlink - when true, generater links are POSTed
  * 
  */
-function bt_pagination($current,$total,$step){
+function bt_pagination($current,$total,$step,$context='',$postlink=false){
   $s='';
   $offset='_ofs';
+
   /* posun o stranku zpet */
   if ($current>$step) $s.=tg('li','class="page-item"',
-        tg('a','class="page-link" href="?'.$offset.'='.($current-$step).'"',
-        bt_icon('left')));
+           $postlink?postLink('?'.$context,bt_icon('left'),[$offset=>$current-$step,'_o'=>getpar('_o')],'class="page-link"'):
+           tg('a','class="page-link" href="?'.$offset.'='.($current-$step).$context.'"',bt_icon('left')));
   for($i=1;$i<=$total;$i+=$step){
     if ($i==$current){
+      /* aktualni stranka je zvyraznena inverzi a nema odkaz */
         $s.=tg('li','class="page-item active "',
              tg('span','class="page-link"',
               ceil($i/$step).tg('span','class="sr-only"','current')));
     }else{
-        if ((abs($current-$i)<4*$step) || ($current+$i<6*$step) || abs($i)<$step || abs($total-$i)<$step)
+       /* pokud je stranek hodne, mezilehle se nezobrazuji */
+        if ((abs($current-$i)<4*$step) || 
+            ($current+$i<6*$step) || 
+            abs($i)<=$step || 
+            abs($total-$i)<$step)
           $s.=tg('li','class="page-item"',
-           tg('a','class="page-link" href="?'.$offset.'='.$i.'"',ceil($i/$step).' ') );
+          $postlink?postLink('?'.$context,ceil($i/$step),[$offset=>$i,'_o'=>getpar('_o')],'class="page-link"'):
+                    tg('a','class="page-link" href="?'.$offset.'='.$i.$context.'"',ceil($i/$step).' ') );
     }
   }
-  /* posun o stranku vpred */
-  
+
+  /* posun o stranku vpred */  
   if ($total-$current>=$step) $s.=tg('li','class="page-item"',
-       tg('a','class="page-link" href="?'.$offset.'='.($current+$step).'"',
-         bt_icon('right')));
+     $postlink?postLink('?'.$context,bt_icon('right'),[$offset=>$current+$step,'_o'=>getpar('_o')],'class="page-link"'):
+       tg('a','class="page-link" href="?'.$offset.'='.($current+$step).$context.'"',bt_icon('right')));
   
-    /* informacni text o zaznamech */
+  /* informacni text o zaznamech */
   $nstran=ceil(($i-1)/$step);
   $stran=($nstran>4?'stran':($nstran>1?'strany':($nstran==1?'strana':'stran'))); 
   $zaznamu=($total>4?'záznamů':($total>1?'záznamy':($total==1?'záznam':'záznamů')));       
   $s=tg('nav','aria-label="..."',
       "Celkem $total $zaznamu ($nstran $stran) ".
       (($total>$step)?tg('ul','class="pagination"',$s):''));
+
   return $s;
 }
+
 
 
 ?>
