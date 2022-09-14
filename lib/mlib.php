@@ -1,60 +1,61 @@
 <?php
 /** mlib.php - Merkur5 core library
  * 
- *  
- * This file contains the framework's core essentials. The abstract class M5_core
- * is an abstranct startpoint for client-server functionality. The class M5 could be
- * used directly or override with the real one. The set of basic global functions defines
- * the basic functionality
+ * There are some default actions when the core starts (executable part).
+ * This file contains the framework's core essentials. 
+ * The abstract class M5_core is the startpoint for client-server functionality. 
+ * The class M5 could be used directly or could be override with the real one. 
+ * The set of basic global functions simplifies and shorted the basic functionality
  *  
  * @author Petr Čoupek
- * @package merkur5
- * @version 0.24
+ * @package Merkur5
+ * @version 0.3 - 140922
  */
 
+/* executable part */
 ini_set('default_charset','utf-8');
 set_time_limit(0);
+M5_core::iniset();
+spl_autoload_register("autoload_function");
+set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext) {
+    /* error was suppressed with the @-operator */
+    /* $errcontext is attached object with all the details - do not print_r it ! */
+    if (0 === error_reporting()) {
+        return false;
+    }
+    M5::set('errors',M5::get('errors')."$errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n");
+});
 
-/** Abstract class with the minimal core functionality. */
+/* the attempt to load global parametres stored in  $GLOBALS */
+if (file_exists('ini.php')) include_once 'ini.php';
+/* done.. */
+
+/** Abstract class with the core functionality */
 
 abstract class M5_core{
-  /**
-   * @var string $htpr
-   * @var string $htptemp
-   * @var string $title
-   * @var string $header
-   * @var string $htactions
-   * @var string $errors
-   * @var bool $debug
-   * @var string $http_lan
-   */
-  public static 
-    $htpr,
-    $htptemp='', 
-    $title='', 
-    $header='', 
-    $htactions='', 
-    $errors, 
-    $debug=false,
-    $http_lan='C';
   
-  /** constructor 
-   * @return M5_core
-  */
-  function __construct(){
-    self::$debug=false;
-    self::$htptemp='';
-    self::$errors='';
-    self::$title='Merkur 5';
-    self::$http_lan='C'; /* C|E|.. */
+  public static $ent=array();
+  
+  /** initialize of internal variables - the registry pattern */
+  static function iniset(){
+    self::set('htpr','');
+    self::set('sapi_name','unset');
+    self::set('title','Generic M page');
+    self::set('header','No header');
+    self::set('version','(c) SmallM 2022');
+    self::set('debug',false);
+    self::set('immediate',false);
+    self::set('title','');
+    self::set('header','');
+    self::set('errors','');
+    self::set('http_lan','C');
+    self::set('ht_actions','');
   }
-
+     
   /** see global function ta() 
    * @param string $tagname
    * @param string $content
    * @return string */ 
-  
-   /* packing tags cause problems in HTML pages */
   static function ta($tagname,$content=''){
     //if ($content ==''){
     //  return '<'.$tagname.'/>';
@@ -65,20 +66,15 @@ abstract class M5_core{
     return '<'.$tagname.'>'.$content.'</'.$tagname.'>'."\n";
   }
 
-  /** see global function tg() */
+  /** see global function tg() 
+   * 
+  */
   static function tg($tagname,$params='',$content='',$nopack=true){
-    //if ($params.$content==''){
-    //  return '<'.$tagname.'/>';
-    //}
     if ($params!='') $params=' '.$params;
     if ($content=='noslash' && !$nopack){
-       return '<'.$tagname.$params.'>';
+      return '<'.$tagname.$params.'>';
     }
-    //if ($content=='' && !$nopack){
-    //  return '<'.$tagname.$params.'/>'."\n";
-    //}else{
-      return '<'.$tagname.$params.'>'.$content.'</'.$tagname.'>'."\n";
-    //}
+    return '<'.$tagname.$params.'>'.$content.'</'.$tagname.'>'."\n";
   }
   
   /** Skeleton method
@@ -99,9 +95,10 @@ abstract class M5_core{
      self::ta('title','#TITLE#').
      self::tg('link','rel="stylesheet" media="screen" href="'.$path.'" type="text/css"')).
     self::tg('body','','#BODY#'.'#ERRORS#')));
-   self::set('title','Generic M page');
-   self::set('header','No header');
-   static::route();   /* slovo static zaruci Late static bindings */
+  
+   
+ 
+   static::route();   /* word static does "Late static bindings" */
   }
   
   /** Route method
@@ -114,24 +111,38 @@ abstract class M5_core{
 
   static function putht($htext){
     if (is_array($htext)) $htext=print_r($htext,true);
-    self::$htpr.=$htext;
+    self::set('htpr',self::get('htpr').$htext);
   }
   
-  /** Flush the buffer to output
+  /** Flush the buffer to output, depending if is called from command line interface (cli)
+   * or differently (apache2handler)
    * @return void
    */
   static function htpr_all(){
-   if (self::$title=='') self::$title= self::$header;
-   self::$htptemp=str_replace('#TITLE#',self::$title ,self::$htptemp);
-   self::$htptemp=str_replace('#HEADER#',self::$header ,self::$htptemp);
-   self::$htptemp=str_replace('#BODY#',self::$htpr, self::$htptemp);
-   self::$htptemp=str_replace('#ACTIONS#',self::$htactions, self::$htptemp);
-   self::$htptemp=str_replace('#___#','', self::$htptemp);
-   self::$htptemp=str_replace('#ERRORS#',
-     (self::$debug)?(tg('div','class="m5-errors"',' '.str_replace("\n",br(),
-                    str_replace(' ',nbsp(1),self::$errors),self::$errors))
-                    ):'',self::$htptemp);
-   echo self::$htptemp;
+   if (self::get('sapi_name')=='cli'){
+      if (self::get('header')!='' && !M5::get('immediate')) echo self::get('header')."\n".str_repeat("=",80)."\n";
+      echo str_replace('<br>','',self::get('htpr'))."\n";
+      if (self::get('debug')) echo "DEBUG\n".str_repeat("-",80)."\n".self::get('errors').str_repeat("-",80)."\n";
+   }else{  
+     if (self::get('title')=='') self::set('title',self::get('header'));
+     self::set('htptemp',
+      str_replace('#TITLE#',self::get('title'),
+      str_replace('#HEADER#',self::get('header'),
+      str_replace('#BODY#',self::get('htpr'),
+      str_replace('#ACTIONS#',self::get('htactions'),
+      str_replace('#___#','', self::get('htptemp')))))));
+     if (self::get('debug')){
+       self::set('htptemp',
+        str_replace('#ERRORS#',
+          tg('div','class="m5-errors"',' '.
+           str_replace("\n",br(),str_replace(' ',nbsp(1),self::get('errors')))),
+          self::get('htptemp')));
+     }else{
+       self::set('htptemp',
+        str_replace('#ERRORS#','',self::get('htptemp')));
+     }   
+     echo self::get('htptemp');
+   }  
   }
 
   /** Replace something in the output buffer
@@ -140,26 +151,45 @@ abstract class M5_core{
    * @return void
    */
   static function htpr_replace($r,$s){
-    self::$htpr=str_replace($r,$s,self::$htpr);
+    self::set('htpr',str_replace($r,$s,self::get('htpr')));
+  }
+  
+  /** Registry design template for strings - common setter */
+  static function set($k,$v){
+    self::$ent[$k]=$v;
   }
 
-  static function set($k,$v){
+  /** Registry design template for strings - common getter */
+  static function get($k){
     /* common setter for class variables */
-    switch ($k){
-      case 'htptemp': self::$htptemp=$v; break;
-      case 'title'  : self::$title=$v; break;
-      case 'header' : self::$header=$v; break;
-      case 'htactions' : self::$htactions=$v; break;
-      case 'debug'  : self::$debug=$v; break;
-    }
+    return isset(self::$ent[$k])?self::$ent[$k]:'';  
   }
 
   static function getparm(){
-    /* fill a hash with all input parameters */
+    /* fill a hash with all input parameters, sets the api_name variable */
     $DATA=array();
-    if (count($_POST)>0 && count($_GET)==0 ){$DATA=$_POST;}
-    if (count($_GET)>0 && count($_POST)==0 ){$DATA=$_GET;}
-    if (count($_GET)>0 && count($_POST)>0 ){$DATA=array_merge($_GET,$_POST);}
+    /* initialize the sapi_name flag, the only point the standard PHP function is used*/
+    self::set('sapi_name',php_sapi_name()); /* when =='cli' command line script is running */ 
+    /* command-line params are in form p1=val1 p2=val2 ..etc delimiter is blank char
+       when no = is present, then the param is set to '' (but not null) */
+    if (self::get('sapi_name')=='cli'){
+      $sep='=';
+      if (isset($_SERVER['argv'])){
+        for($i=1;$i<count($_SERVER['argv']);$i++) {
+          if (strpos($_SERVER['argv'][$i],$sep)){
+            $t=explode($sep,$_SERVER['argv'][$i]);
+            $DATA[$t[0]]=$t[1];
+          }else{
+            $DATA[$_SERVER['argv'][$i]]='';
+          }  
+        }  
+      }
+    }else{  
+      /*if (count($_POST)>0 && count($_GET)==0 ){$DATA=$_POST;}
+      if (count($_GET)>0 && count($_POST)==0 ){$DATA=$_GET;}
+      if (count($_GET)>0 && count($_POST)>0 ){$DATA=array_merge($_GET,$_POST);}*/
+      $DATA=array_merge($_GET,$_POST);
+    }  
     return $DATA;
   }
    
@@ -169,13 +199,13 @@ abstract class M5_core{
     * @param string $text3
     */
    static function lan($text1, $text2, $text3=''){
-      if (self::$http_lan == 'E') return $text1;
-      if (self::$http_lan == 'C') return $text2;
+      if (self::get('http_lan') == 'E') return $text1;
+      if (self::get('http_lan') == 'C') return $text2;
       return $text3;
    }
 }
 
-/** Merkur class
+/** Merkur5 class
  * 
  * The real Merkur-based server-side application should extend this class.
  * Methods skeleton and route are to override.
@@ -186,46 +216,46 @@ abstract class M5 extends M5_core{
   
   /** skeleton method sets a HTML template and provide a basic route . 
    * The route methods is to be override. */
-  static function skeleton($path=''){  
-  self::set('htptemp','<!DOCTYPE html>'."\n".
-   ta('html',
+  static function skeleton($path=''){
+      
+   self::set('htptemp','<!DOCTYPE html>'."\n".
+   tg('html','lang="cs"',
     ta('head',
      ta('title','#TITLE#').
-     tg('meta','http-equiv="content-type" content="text/html; charset=utf-8"').
-     tg('meta','name="language" content="cs"').
-     tg('meta','name="viewport" content="width=device-width, initial-scale=1.0"').
-     tg('meta','name="description" lang="cs" content="Merkur 5 kit set"').
-     tg('meta','name="keywords" lang="cs" content="Merkur5 kit"').
+     tg('meta','http-equiv="content-type" content="text/html; charset=utf-8"','noslash').
+     tg('meta','name="language" content="cs"','noslash').
+     tg('meta','name="viewport" content="width=device-width, initial-scale=1.0"','noslash').
+     tg('meta','name="description" lang="cs" content="Merkur 5 kit set"','noslash').
+     tg('meta','name="keywords" lang="cs" content="Merkur5 kit"','noslash').
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'css/m5.css?a=11" type="text/css" ','noslash').
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'vendor/bootstrap/css/bootstrap.css" type="text/css" ','noslash').
-     tg('script','type="text/javascript" src="'.$path.'vendor/jquery/jquery.min.js"',' ').
-     tg('script','type="text/javascript" src="'.$path.'vendor/bootstrap/js/bootstrap.bundle.min.js"',' ')
+     tg('script','src="'.$path.'vendor/jquery/jquery.min.js"',' ').
+     tg('script','src="'.$path.'vendor/bootstrap/js/bootstrap.bundle.min.js"',' ')
      ).
      tg('body','style="padding-top: 3.5rem;"',
       tg('nav','class="navbar navbar-expand-ld navbar-dark bg-dark fixed-top"',
        tg('a', 'class="navbar-brand" href="#"','#HEADER#')
       ).
-      tg('main', 'role="main" ',
+      ta('main',
       tg('div',
          'id="page-content-wrapper"',
        tg('div',
-         ' class="container-fluid"','#BODY#'))).
-      tg('div','class="d-flex justify-items-end"',
-        "© SmallM, 2022").
-      '#ERRORS#'.
+         ' class="container-fluid"','#BODY#'))).'<hr>'.
+       tg('div','class="d-flex justify-items-end float-right"',
+        self::get('version').
+      
       tg('div','class="m5-loader"',
        tg('div','class="d-flex justify-content-center"',
         tg('div','class="spinner-border text-primary big"',' ')).
          
-      tg('script','type="text/javascript"',
+      tg('script',' ',
          '$(window).bind("beforeunload", function(){
            document.body.style.opacity=0.6;
           $(".m5-loader").css("visibility","visible");          
            });'
-      )))
-      ));
+      ))).'#ERRORS#')));
 
-   static::route();   /* slovo static zaruci Late static bindings */
+   static::route();   /* keyword "static::" does "Late static bindings" */
  }
 
 }
@@ -272,23 +302,10 @@ function autoload_function($class){
   }
 }
 
-spl_autoload_register("autoload_function");
 
-set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext) {
-    /* error was suppressed with the @-operator */
-    /* $errcontext is attached object with all the details - do not print_r it ! */
-    if (0 === error_reporting()) {
-        return false;
-    }
-    //htpr("$errstr, $errno, $errfile, $errline");
-    M5::$errors.="$errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n";
-});
+/* globl function aliasses */
 
-/* automaticky pokus o nahrani konfiguracniho souboru s globalnimi promennymi
-    - lib.php by mel byt inkludovani na globalni urovni, komponenty pak mohou uzivat pole $GLOBALS */
-if (file_exists('ini.php')) include_once 'ini.php';
-
-/** The function "prints" the HTML content into a HTML buffer M5::$htptemp
+/** The function "prints" the HTML content into a HTML buffer M5::get('htptemp')
   * 
   * Global shortcut for the internal method for creating a HTML output: It stores the conontent of it's parametres into
   * the $htptemp buffer, which is finally send to the standard output using htpr_all function.
@@ -296,6 +313,17 @@ if (file_exists('ini.php')) include_once 'ini.php';
   */
 
 function htpr(){
+  static $first;
+  if (M5::get('sapi_name')=='cli' && M5::get('immediate')){
+    if (!isset($first)) {
+      echo M5::get('header')."\n".str_repeat("=",80)."\n"; /* print header when direct output */
+      $first=false;
+    }  
+    for ($i = 0; $i < func_num_args(); $i++){
+      echo(str_replace('<br>','',func_get_arg($i)));
+    }
+    return;
+  }
   for ($i = 0; $i < func_num_args(); $i++){
     M5::putht(func_get_arg($i));
   }
@@ -364,37 +392,32 @@ function deb($t,$btrace=true){  /* funkce realizujici ladici vypisy */
         (isset($d[$i]['line'])?$d[$i]['line']:'').':'.
         "\n";
   }
+  $er=M5::get('errors');
   if (is_null($t)) {
-    M5::$errors.=$s.'NULL'."\n";
-    return;
-  }
-  if (is_bool($t)){
-    M5::$errors.=$s.'[bool]:'.($t?'TRUE':'FALSE')."\n";
-    return;
-  }
-  if (is_float($t)) {
-    M5::$errors.=$s.'[float]:'.$t."\n";
-  }  
-  if (is_array($t) || is_object($t)) {
-    M5::$errors.=$s.print_r($t,true)."\n";
+    $er.=$s.'NULL'."\n";
+  }elseif (is_bool($t)){
+    $er.=$s.'[bool]:'.($t?'TRUE':'FALSE')."\n";
+  }elseif (is_float($t)) {
+    $er.=$s.'[float]:'.$t."\n";
+  }elseif (is_array($t) || is_object($t)) {
+    $er.=$s.print_r($t,true)."\n";
     //return;
-  }  
-  if (is_string($t) ) {
-    //M5::$errors.=$s."[string]:'".htmlentities($t,ENT_COMPAT | ENT_HTML401,'utf-8')."'\n";
-    M5::$errors.=$s."[string]:'".htmlentities($t,ENT_COMPAT,'utf-8')."'\n";
-    return; 
-  } /* string je pak i skalar*/
-  if (is_int($t)) {
-    M5::$errors.=$s.'[int]:'.$t."\n";
+  }elseif (is_string($t)) {
+    $er.=$s."[string]:'".htmlentities($t,ENT_COMPAT,'utf-8')."'\n"; 
+  }elseif (is_int($t)) {
+    $er.=$s.'[int]:'.$t."\n";
+    M5::set('errors',$er);
     return;
-  } /* int je pak i skalar */  
-  if (is_resource($t)) {
-    M5::$errors.=$s.'[resource]:'.$t."\n";
-    return;
-  }  
-  if (is_scalar($t)) {
-    M5::$errors.=$s.'[scalar]:'.$t."\n";
-  }  
+  }elseif (is_resource($t)) {
+    $er.=$s.'[resource]:'.$t."\n";
+  }elseif (is_scalar($t)) {
+    $er.=$s.'[scalar]:'.$t."\n";
+  }
+  M5::set('errors',$er);
+  if (M5::get('sapi_name')=='cli' && M5::get('immediate')){
+    echo 'DEBUG: '.M5::get('errors')."\n";
+    M5::set('errors','');
+  }    
 }
 
 /** Sets the time-measure tool
@@ -406,11 +429,8 @@ function deb($t,$btrace=true){  /* funkce realizujici ladici vypisy */
 function tick($text=''){
   static $t;
   if (!isset($t)) $t=microtime(true);
-  M5::$errors.=sprintf(" %2.4f s %s",microtime(true)-$t,$text."\n");
+  M5::set('errors',M5::get('errors'),sprintf(" %2.4f s %s",microtime(true)-$t,$text."\n"));
 }
-
-
-/* globl function aliasses */
 
 /** Tag expression function.
    * 
@@ -674,29 +694,6 @@ function radio($label,$name,$list,$def='',$js=''){
   return $r;  
 }
 
-
-
-/** The Function returns the HTML tag for a radio box, value to be posted when checked is taken from a global $DB hash
- * @param string $label - label before the input
- * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param array  $list -  list of the items
- * @param string $def - default value (ommited)
- * @param string $js - another parametres in the tag
- * @return string HTML */
- 
-function dbradio($label,$name,$list,$def='',$js=''){
-  global $DB;
-  return jq_radiogroup($label,$name,$list,$DB[$name],$js);
-}
-
-/** The function returns a combo for conditions 
- * @param string $text - parameter text
- * @obsolete
- */ 
- 
-function parlov($text){
-  return lov('',$text,'', M5::message('LOV'),'like');
-}
 
 /** returns HTML sequence useful for one line in the parametric form. Parametric form is used when subset of the data is specified.
  * @param string $label - label before the input query
@@ -1111,8 +1108,5 @@ function postLink($link,$label,$params,$addpar=''){
 
   return $r;
 }
-
-
-
 
 ?>

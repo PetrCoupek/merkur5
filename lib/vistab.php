@@ -15,7 +15,7 @@
  * 
  *  Special data searching instecting can be extended from this class
  */ 
-
+include_once '../lib/mbt.php';
 
 class VisTab {
 
@@ -131,15 +131,18 @@ function form_param($context){
   //$this->dewhere(base64_decode(getpar('_whr')));
   /*$a=$this->db->Pragma("table_info('$t')");*/
   $a=$this->pragma;
+  if (!is_array($a)) {deb('wrong pragma'); return 0;}
   $b=array();
   for ($i=0;$i<count($a);$i++){
-    $b[$i][0]=$a[$i]['name'];
-    $b[$i][1]=combo('',$a[$i]['name'].'_par',[
+    if (isset($a[$i]['name'])){
+      $b[$i][0]=(isset($a[$i]['comment']))?$a[$i]['comment']:$a[$i]['name'];
+      $b[$i][1]=combo('',$a[$i]['name'].'_par',[
                     'like'=>'obsahuje',
                     'begins'=>'začíná',
                     '='=>'='],
                     getpar($a[$i]['name'].'_par')?getpar($a[$i]['name'].'_par'):'like');
-    $b[$i][2]=textfield('',$a[$i]['name'],20,40,getpar($a[$i]['name']));                
+      $b[$i][2]=textfield('',$a[$i]['name'],20,40,getpar($a[$i]['name']));
+    }                  
   }
   $b[$i]=[nbsp(1),submit('_st','Storno','btn btn-secondary'),submit('_sg','Vyhledej','btn btn-primary')];
   htpr(tg('form',
@@ -370,7 +373,6 @@ function detail($context){
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */
   
   $cprikaz=$this->genfilter($this->cprikaz);
- 
   $dprikaz=$this->genfilter($this->dprikaz);
   $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
   /* popisy polozek mohou byt z popisu entity v databazi */
@@ -383,9 +385,11 @@ function detail($context){
 
   $b=[[]];$i=0;
   foreach ($r[0] as $k=>$v){
-    $b[$i][0]=ta('b',$p[$k]);
-    $b[$i][1]=$v; 
-    $i++;
+    if (isset($p[$k])){
+      $b[$i][0]=ta('b',$p[$k]);
+      $b[$i][1]=$v; 
+      $i++;
+    }  
   }
 
   /* pocet zaznamu a listovani po zaznamech */
