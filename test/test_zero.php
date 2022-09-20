@@ -8,7 +8,8 @@ include_once '../lib/mlib.php';
 M5::set('header','Zero test');
 M5::skeleton('../');
 htpr(ta('h1','Hello'),
-     'This is the zero functionality test');
+     'This is the zero functionality test ', br(),
+     'PHP version: '.PHP_VERSION_ID);
 htpr_all();
 
 ?>

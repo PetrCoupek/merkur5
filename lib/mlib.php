@@ -11,7 +11,14 @@
  * @package Merkur5
  * @version 0.3 - 140922
  */
-
+ /*compatability*/
+if (!defined('PHP_VERSION_ID')) {
+  $_version = explode('.', PHP_VERSION);
+  define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
+}
+if (!defined('__DIR__')){
+  define('__DIR__',dirname(__FILE__));
+}
 /* executable part */
 ini_set('default_charset','utf-8');
 set_time_limit(0);
