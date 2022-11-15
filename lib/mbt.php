@@ -307,6 +307,7 @@ function bt_icon($name='info-square'){
   $p2='version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16"';
   switch ($name){
   case 'chevron-down':
+  case 'on':  
     return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"'));
   case 'chevron-left':
@@ -316,6 +317,7 @@ function bt_icon($name='info-square'){
      return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"'));
   case 'chevron-up':
+  case 'off':   
     return  tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"'));
   case 'arrow-left':
@@ -406,6 +408,7 @@ function bt_icon($name='info-square'){
     tg('path','d="M11.5 11h-7c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5h7c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5z"').
     tg('path','d="M11.5 9h-7c-0.276 0-0.5-0.224-0.5-0.5s0.224-0.5 0.5-0.5h7c0.276 0 0.5 0.224 0.5 0.5s-0.224 0.5-0.5 0.5z"'));
    case 'pencil':
+   case 'edit':
     return tg('svg',$p2,
     tg('path','d="M6 10l2-1 7-7-1-1-7 7-1 2zM4.52 13.548c-0.494-1.043-1.026-1.574-2.069-2.069l1.548-4.262 2-1.217 6-6h-3l-6 6-3 10 10-3 6-6v-3l-6 6-1.217 2z"'));   
    case 'cross':
@@ -497,12 +500,12 @@ function bt_lister($caption='',
       }   
       $hlav.=ta('th',$tmp); 
   }              
-  $n=0;          
+  $n=0; 
   foreach ($content as $row){
     $rkapsa='';
     for ($i=0;$i<count($L);$i++){
        if (substr($L[$i],0,1)=='_') $L[$i]=substr($L[$i],1);
-       $ktisku=$row[$L[$i]];
+       $ktisku=isset($row[$L[$i]])?$row[$L[$i]]:'';
        if (gettype($ktisku)=="object" && gettype($ktisku)!="NULL")
          $ktisku=$ktisku->load();
        if ($ktisku=='') $ktisku=nbsp(1);  

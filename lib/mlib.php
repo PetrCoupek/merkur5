@@ -11,7 +11,7 @@
  * @package Merkur5
  * @version 0.3 - 140922
  */
- /*compatability*/
+ /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
   $_version = explode('.', PHP_VERSION);
   define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));

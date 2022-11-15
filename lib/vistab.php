@@ -14,8 +14,8 @@
  *                     'dprikaz'=>'..'],$db); 
  * 
  *  Special data searching instecting can be extended from this class
+ *  18.10.2022
  */ 
-include_once '../lib/mbt.php';
 
 class VisTab {
 
@@ -102,7 +102,7 @@ function lister($context){
     htpr(
       bt_lister(
         $this->header,
-        [],
+        $this->column_labels(),
         $a,
         'Nejsou záznamy.',
         '',
@@ -149,6 +149,23 @@ function form_param($context){
           'method="post" action="?'.$context.'&_o='.getpar('_o').'"',
            bt_container(['col-4','col-2','col-6'],$b))); 
 
+}
+
+/** based on pragma, it constructs the labels fo columns needed by bt_lister
+ */ 
+function column_labels(){
+  $a=$this->pragma;
+  if (!is_array($a)) {
+    return ['detail'=>'Detail'];
+  }
+  $b=array();
+  for ($i=0;$i<count($a);$i++){
+    if (isset($a[$i]['name'])){
+      $b[$a[$i]['name']]=(isset($a[$i]['comment']))?$a[$i]['comment']:$a[$i]['name'];
+    }                  
+  }
+  $b['detail']='Detail';
+  return $b;
 }
 
 /** genwhere - generovani podminky where z parametrickeho formulare 
