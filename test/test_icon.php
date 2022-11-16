@@ -14,12 +14,12 @@ htpr(ta('h1','Icons'),
     'Bootstrap',
     ['chevron-down','chevron-left','chevron-right','chevron-up','arrow-left','arrow-right',
      'caret-down','caret-up','check','check-circle','geo-alt','menu-app',
-     'power','plusminus','floppy-add','','aaaa'
+     'power','plusminus','','aaaa'
     ]),
   br(2),  
   ikona_sekvence(
     'Moon',
-    ['floppy-disc','left','right','home','file-pdf','file-word','file-excel',
+    ['floppy-disc','floppy-add','left','right','home','file-pdf','file-word','file-excel',
      'file-text','pencil','cross','plus','search'
     ]));
 

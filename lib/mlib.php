@@ -33,7 +33,7 @@ set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext) {
     M5::set('errors',M5::get('errors')."$errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n");
 });
 
-/* the attempt to load global parametres stored in  $GLOBALS */
+/* the attempt to load global parametres stored in $GLOBALS or defined constants ..*/
 if (file_exists('ini.php')) include_once 'ini.php';
 /* done.. */
 
@@ -241,7 +241,7 @@ abstract class M5 extends M5_core{
      ).
      tg('body','style="padding-top: 3.5rem;"',
       tg('nav','class="navbar navbar-expand-ld navbar-dark bg-dark fixed-top"',
-       tg('a', 'class="navbar-brand" href="#"','#HEADER#')
+       tg('a', 'class="navbar-brand" href="?"','#HEADER#')
       ).
       ta('main',
       tg('div',

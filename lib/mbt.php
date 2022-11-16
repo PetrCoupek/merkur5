@@ -7,7 +7,7 @@
  * @package Merkur5
  * @version 1.2
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
- * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022
+ * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -318,54 +318,58 @@ function bt_icon($name='info-square'){
      tg('path','fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"'));
   case 'chevron-up':
   case 'off':   
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"'));
   case 'arrow-left':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"'));
   case 'arrow-right':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M1 8a.5.5 0 0 1 .5-.5h11.793l-3.147-3.146a.5.5 0 0 1 .708-.708l4 4a.5.5 0 0 1 0 .708l-4 4a.5.5 0 0 1-.708-.708L13.293 8.5H1.5A.5.5 0 0 1 1 8z"'));    
   case 'caret-down':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M3.204 5h9.592L8 10.481 3.204 5zm-.753.659 4.796 5.48a1 1 0 0 0 1.506 0l4.796-5.48c.566-.647.106-1.659-.753-1.659H3.204a1 1 0 0 0-.753 1.659z"'));   
   case 'caret-up':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M3.204 11h9.592L8 5.519 3.204 11zm-.753-.659 4.796-5.48a1 1 0 0 1 1.506 0l4.796 5.48c.566.647.106 1.659-.753 1.659H3.204a1 1 0 0 1-.753-1.659z"'));  
   case 'check':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M10.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L4.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093 3.473-4.425a.267.267 0 0 1 .02-.022z"'));
   case 'check-circle':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"').
      tg('path','d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"'));
   case 'geo-alt':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 '.
                '7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"').
      tg('path','d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"'));     
   case 'menu-app':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M0 1.5A1.5 1.5 0 0 1 1.5 0h2A1.5 1.5 0 0 1 5 1.5v2A1.5 1.5 0 0 1 3.5 5h-2A1.5 1.5 0 0 1 0 3.5v-2zM1.5 1a.5.5 0 0 0-.5.5v2a.5.5 0 0 0 .5.5h2a.5.5 0 0 '.
                 '0 .5-.5v-2a.5.5 0 0 0-.5-.5h-2zM0 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V8zm1 3v2a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2H1zm14-1V8a1 1 0 0 '.
                 '0-1-1H2a1 1 0 0 0-1 1v2h14zM2 8.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5zm0 4a.5.5 0 0 1 .5-.5h6a.5.5 0 0 1 0 1h-6a.5.5 0 0 1-.5-.5z"'));
   case 'power':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="M7.5 1v7h1V1h-1z"').
      tg('path','d="M3 8.812a4.999 4.999 0 0 1 2.578-4.375l-.485-.874A6 6 0 1 0 11 3.616l-.501.865A5 5 0 1 1 3 8.812z"'));
   case 'plusminus':
-    return  tg('svg',$p1,
+    return tg('svg',$p1,
      tg('path','d="m1.854 14.854 13-13a.5.5 0 0 0-.708-.708l-13 13a.5.5 0 0 0 .708.708ZM4 1a.5.5 0 0 1 .5.5v2h2a.5.5 0 0 1 0 1h-2v2a.5.5 0 0 1-1 0v-2h-2a.5.5 0 0 '.
                 '1 0-1h2v-2A.5.5 0 0 1 4 1Zm5 11a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5A.5.5 0 0 1 9 12Z"'));
-  case 'floppy-add':
-    return  tg('svg',$p1,
-     tg('path','d="M433.1 129.1l-83.9-83.9C342.3 38.32 327.1 32 316.1 32H64C28.65 32 0 60.65 0 96v320c0 35.35 28.65 64 64 64h320c35.35 0 64-28.65 64-64V163.9C448 152.9 441.7 137.7 433.1 129.1zM224 416c-35.34 0-64-28.66-64-64s28.66-64 64-64s64 28.66 64 64S259.3 416 224 416zM320 208C320 216.8 312.8 224 304 224h-224C71.16 224 64 216.8 64 208v-96C64 103.2 71.16 96 80 96h224C312.8 96 320 103.2 320 112V208z"'));
-
-
-  /* Moon icons */  
+  
+  /* Moon icons */
+  case 'floppy':  
   case 'floppy-disc':
     return tg('svg',$p2,
      tg('path','d="M14 0h-14v16h16v-14l-2-2zM8 2h2v4h-2v-4zM14 14h-12v-12h1v5h9v-5h1.172l0.828 0.828v11.172z"'));
+  case 'floppy-add':
+      return  tg('svg',$p2,
+       tg('path',
+       'd="M11.5 7c-2.485 0-4.5 2.015-4.5 4.5s2.015 4.5 4.5 4.5c2.485 0 4.5-2.015 4.5-4.5s-2.015-4.5-4.5-4.5zM14 12h-2v2h-1v-2h-2v-1h2v-2h1v2h2v1z"').
+       tg('path','d="M14 0h-14v16h16v-14l-2-2zM8 2h2v4h-2v-4zM14 14h-12v-12h1v5h9v-5h1.172l0.828 0.828v11.172z"'));
+  
+     
   case 'left':
     return tg('svg',$p2,tg('path','d="M0.5 8l7.5 7.5v-4.5h8v-6h-8v-4.5z"'));
   case 'right':
@@ -454,7 +458,7 @@ function bt_tooltip($title,$text,$placement='top'){
 
 
 
-/** Table list - a page with strutured (database origin) table
+/** Table list - a page with structured (database origin) table
  * @param string $caption - table caption
  * @param array $head - a hash keys are table columns an valueas are table header labels. When key begins
  *                      with _ , ti means tah that column } without that _) is not orderable 
