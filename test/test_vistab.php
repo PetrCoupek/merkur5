@@ -26,6 +26,6 @@ $tt= new VisTab(
 
 $tt->route("&vyhl=1");
 $db->Close();   
-htpr_all();
+M5::htpr_all();
 
 ?>

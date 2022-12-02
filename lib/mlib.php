@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.3 - 140922
+ * @version 0.4 - 221122 011222 021222
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -23,8 +23,8 @@ if (!defined('__DIR__')){
 ini_set('default_charset','utf-8');
 set_time_limit(0);
 M5_core::iniset();
-spl_autoload_register("autoload_function");
-set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext) {
+spl_autoload_register("autoload_function"); /* $errcontext=null pro PHP8 */
+set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext=null) {
     /* error was suppressed with the @-operator */
     /* $errcontext is attached object with all the details - do not print_r it ! */
     if (0 === error_reporting()) {
@@ -43,7 +43,9 @@ abstract class M5_core{
   
   public static $ent=array();
   
-  /** initialize of internal variables - the registry pattern */
+  /** initialize of internal variables - the registry pattern 
+   *  It is called in the mlib library itself
+  */
   static function iniset(){
     self::set('htpr','');
     self::set('sapi_name','unset');
@@ -57,12 +59,16 @@ abstract class M5_core{
     self::set('errors','');
     self::set('http_lan','C');
     self::set('ht_actions','');
+    self::set('path_current',str_replace('\\','/',dirname(dirname( __FILE__ )))); /* it requires to be called from subdir lib*/
+    self::set('path_relative',str_replace($_SERVER['DOCUMENT_ROOT'],'',self::get('path_current')));
+    self::set('routes',[]);
   }
      
   /** see global function ta() 
    * @param string $tagname
    * @param string $content
-   * @return string */ 
+   * @return string 
+   */ 
   static function ta($tagname,$content=''){
     //if ($content ==''){
     //  return '<'.$tagname.'/>';
@@ -199,6 +205,73 @@ abstract class M5_core{
     }  
     return $DATA;
   }
+
+  /** implicit dispatch procedure
+   *  it provides inspect of $_SERVER['REQUEST_URI'] and search "subfolders"
+   *  accorning to the rules on routes params table
+   *  it ends with success on first match
+   * it works together with recomended Apache mod_rewrite settings
+   *  @return bool true on success param route
+  */
+  static function getroute(){
+    //$p=M5::get('path_relative'); deb($p,false);
+    $request_url = filter_var($_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL);
+    $request_url = strtok(rtrim($request_url, '/'), '?');
+
+    foreach(self::get('routes') as $route=>$action){
+      $route_parts = explode('/', $route); 
+      $request_url_parts = explode('/', $request_url);
+      array_shift($route_parts);
+      array_shift($request_url_parts);
+      array_shift($request_url_parts); /* twice - app itself is in subfolder from document root */
+      //deb($route_parts);
+      //deb($request_url_parts);
+      if( $route_parts[0] == '' && count($request_url_parts) == 0 ){
+        //deb('route primitive :'.$route,false);
+        return true;
+      }
+      if(count($route_parts)!=count($request_url_parts)){ 
+        //deb('none +:'.$route,false);
+        continue; 
+      }
+      $parameters = []; 
+      for($i=0,$ok=true;$i<count($route_parts);$i++){
+        $rp=$route_parts[$i];
+        if( preg_match("/^[$]/",$rp) ){
+          $rp=ltrim($rp,'$');
+          array_push($parameters,$request_url_parts[$i]);
+          setpar($rp,$request_url_parts[$i]);
+          //deb('set '.$rp.':'.getpar($rp),false);
+        }elseif($route_parts[$i] != $request_url_parts[$i] ){
+          //deb('none *:'.$route,false);
+          $ok=false;
+          break;
+        } 
+      }
+      //deb($i);
+      if ($ok){
+        if (!str_contains($route,'$')){
+          //deb('route static link++'.$route);
+          if (is_callable($action)){   
+            call_user_func_array($action, $parameters);
+          }else{
+            eval($action); 
+          }  
+          return true;
+        }else{
+          //deb('route dynamic link++'.$route);
+          if (is_callable($action)){
+            call_user_func_array($action, $parameters);
+          }else{
+            eval($action); 
+          }  
+          return true;
+        }  
+      } 
+    }
+    return false;
+  }
+
    
    /** 
     * @param string $text1
@@ -209,6 +282,13 @@ abstract class M5_core{
       if (self::get('http_lan') == 'E') return $text1;
       if (self::get('http_lan') == 'C') return $text2;
       return $text3;
+   }
+
+   /**
+    * synonym for htpr_all method
+    */
+   static function done(){
+      self::htpr_all();
    }
 }
 
@@ -237,7 +317,8 @@ abstract class M5 extends M5_core{
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'css/m5.css?a=11" type="text/css" ','noslash').
      tg('link','rel="stylesheet" media="screen,print" href="'.$path.'vendor/bootstrap/css/bootstrap.css" type="text/css" ','noslash').
      tg('script','src="'.$path.'vendor/jquery/jquery.min.js"',' ').
-     tg('script','src="'.$path.'vendor/bootstrap/js/bootstrap.bundle.min.js"',' ')
+     tg('script','src="'.$path.'vendor/bootstrap/js/bootstrap.bundle.min.js"',' ').
+     '#___#'
      ).
      tg('body','style="padding-top: 3.5rem;"',
       tg('nav','class="navbar navbar-expand-ld navbar-dark bg-dark fixed-top"',

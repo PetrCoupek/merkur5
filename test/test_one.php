@@ -17,7 +17,9 @@ htpr(
             $db->SqlFetchArray("select * from jmeniny order by den, mesic "),
             'Nejsou data.',
             'class="table table-striped table-bordered table-hover table-sm"'));
-$db->Close();     
-htpr_all();
+$db->Close();
+
+htpr(M5::get('sapi_name'));
+M5::done();
 
 ?>

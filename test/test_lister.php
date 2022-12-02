@@ -6,7 +6,7 @@
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-M5::set('header','Test One');
+M5::set('header','Test Lister');
 M5::set('debug',true);
 M5::skeleton('../');
 

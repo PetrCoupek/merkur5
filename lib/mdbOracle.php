@@ -68,20 +68,20 @@ class OpenDB_Oracle extends OpenDB{
    * @return boolean, true when an error has occured, false on success
    */
   function Sql($command,$bind=array()){
-    $this->parse=@ociparse($this->conn,$command);
+    $this->parse=@oci_parse($this->conn,$command);
     if (count($bind)){
       foreach($bind as $k=>$v){
          @oci_bind_by_name($this->parse,$k,$bind[$k]); /* pozor $v nefunguje! musi byt $bind[$k] !*/
       }
     }
-    $x=@ociexecute($this->parse,OCI_DEFAULT);
+    $x=@oci_execute($this->parse,OCI_DEFAULT);
     if(!$x){
-      $em=@ocierror($this->parse);
+      $em=@oci_error($this->parse);
       $this->Error=$em['code'].'; '.$em['message'];  //.'; '.$em['offset'].'; '.$em['sqltext'];
       $this->stav=true;
       return $this->stav;
     }
-    $this->p_sloupcu=@ocinumcols($this->parse); 
+    $this->p_sloupcu=@oci_num_fields($this->parse); 
     if(! $this->parse){ 
       $this->stav=true;
       $this->Error='Parse error';
