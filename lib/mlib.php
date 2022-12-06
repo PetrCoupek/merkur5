@@ -47,21 +47,19 @@ abstract class M5_core{
    *  It is called in the mlib library itself
   */
   static function iniset(){
-    self::set('htpr','');
-    self::set('sapi_name','unset');
-    self::set('title','Generic M page');
-    self::set('header','No header');
-    self::set('version','(c) SmallM 2022');
-    self::set('debug',false);
-    self::set('immediate',false);
-    self::set('title','');
-    self::set('header','');
-    self::set('errors','');
-    self::set('http_lan','C');
-    self::set('ht_actions','');
+    self::set('debug',false);  /* debug status */
+    self::set('errors','');    /* erors area for debug mode */
+    self::set('header','');    /* header text */
+    self::set('htfr','');      /* frontend content - scripts and styles */
+    self::set('htpr','');      /* output text/html buffer */
+    self::set('http_lan','C'); /* initial language */
+    self::set('immediate',false); /* in CLI, you can output immediatelly, no to wait when script ends */ 
     self::set('path_current',str_replace('\\','/',dirname(dirname( __FILE__ )))); /* it requires to be called from subdir lib*/
     self::set('path_relative',str_replace($_SERVER['DOCUMENT_ROOT'],'',self::get('path_current')));
-    self::set('routes',[]);
+    self::set('routes',[]);    /* initial route rules */
+    self::set('sapi_name',php_sapi_name()); /* when =='cli' command line script is running */
+    self::set('title',''); /* title text */
+    self::set('version','(c) SmallM 2022'); /* version text */
   }
      
   /** see global function ta() 
@@ -107,9 +105,7 @@ abstract class M5_core{
      self::tg('meta', 'http-equiv="Content-Type" content="text/html;" charset="utf-8"').
      self::ta('title','#TITLE#').
      self::tg('link','rel="stylesheet" media="screen" href="'.$path.'" type="text/css"')).
-    self::tg('body','','#BODY#'.'#ERRORS#')));
-  
-   
+    self::tg('body','','#BODY#'.'#ERRORS#')));  
  
    static::route();   /* word static does "Late static bindings" */
   }
@@ -122,9 +118,23 @@ abstract class M5_core{
     getparm();  /* minimal route is to call getparm() */
   }
 
+  /** put text into output text/html buffer */
   static function putht($htext){
-    if (is_array($htext)) $htext=print_r($htext,true);
+    if (is_array($htext) || is_object($htext)) $htext=print_r($htext,true);
     self::set('htpr',self::get('htpr').$htext);
+  }
+  
+  /** put text into part for downloading the frontend functionality
+   *  @param string $htext 
+   *  @param string $key - the key is unique when the same functionality is required more then once 
+   *                (f.e. two datefields in one form - the CSS,JS is downloaded only once )
+   */
+  static function puthf($htext,$key){
+    static $keys=[];
+    if (!isset($keys[$key])){
+      $keys[$key]=true;
+      self::set('htfr',self::get('htfr').$htext);
+    }
   }
   
   /** Flush the buffer to output, depending if is called from command line interface (cli)
@@ -143,7 +153,7 @@ abstract class M5_core{
       str_replace('#HEADER#',self::get('header'),
       str_replace('#BODY#',self::get('htpr'),
       str_replace('#ACTIONS#',self::get('htactions'),
-      str_replace('#___#','', self::get('htptemp')))))));
+      str_replace('#___#',self::get('htfr'), self::get('htptemp')))))));
      if (self::get('debug')){
        self::set('htptemp',
         str_replace('#ERRORS#',
@@ -181,8 +191,7 @@ abstract class M5_core{
   static function getparm(){
     /* fill a hash with all input parameters, sets the api_name variable */
     $DATA=array();
-    /* initialize the sapi_name flag, the only point the standard PHP function is used*/
-    self::set('sapi_name',php_sapi_name()); /* when =='cli' command line script is running */ 
+    /* initialize the sapi_name flag, the only point the standard PHP function is used*/ 
     /* command-line params are in form p1=val1 p2=val2 ..etc delimiter is blank char
        when no = is present, then the param is set to '' (but not null) */
     if (self::get('sapi_name')=='cli'){
@@ -304,7 +313,6 @@ abstract class M5 extends M5_core{
   /** skeleton method sets a HTML template and provide a basic route . 
    * The route methods is to be override. */
   static function skeleton($path=''){
-      
    self::set('htptemp','<!DOCTYPE html>'."\n".
    tg('html','lang="cs"',
     ta('head',
@@ -605,7 +613,7 @@ function dbtext($label,$name,$size,$maxl,$add=''){
  * @return string */
  
 function textarea($label,$name,$rows,$cols,$value,$add=''){
-  return $label.tg('textarea', 'name="'.$name.'" rows='.$rows.' cols='.$cols.' '.$add,$value,true);
+  return $label.tg('textarea', 'name="'.$name.'" rows='.$rows.(' cols='.$cols).' '.$add,$value,true);
 }
 
 /** The function returns the HTML tag for a text area, initial value is taken from a global $DB hash

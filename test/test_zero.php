@@ -21,7 +21,8 @@ htpr(ta('h1','Hello'),
        ['QUERY_STRING',$_SERVER['QUERY_STRING']],
        ['SCRIPT_NAME',$_SERVER['SCRIPT_NAME']],
        ['DOCUMENT_ROOT',$_SERVER['DOCUMENT_ROOT']],
-       ['PHP_SELF',$_SERVER['PHP_SELF']]
+       ['PHP_SELF',$_SERVER['PHP_SELF']],
+       ['M5::$ent',ta('code',str_replace("\n",'<br>',htmlspecialchars(print_r(M5::$ent,true))))]
       ])
 );
 M5::done();

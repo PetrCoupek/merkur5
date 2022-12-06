@@ -7,7 +7,7 @@
  * @package Merkur5
  * @version 1.2
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
- * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022
+ * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022 06.12.2022
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -26,12 +26,17 @@ function bt_datefield($label,$name,$value,$add='',$f=''){
            'daysOfWeekHighlighted: "0",'.
            'autoclose: true,'.
            'todayHighlight: true';
-  
+  $path=M5::get('path_relative');
+  M5::puthf(
+            tg('script','src="'.$path.'/vendor/datepicker/js/bootstrap-datepicker.js"',' ').
+             tg('script','src="'.$path.'/vendor/datepicker/js/locales/bootstrap-datepicker.cs.js"',' ').
+             tg('link','rel="stylesheet" media="screen,print" href="'.$path.'/vendor/datepicker/css/bootstrap-datepicker3.css" type="text/css" ','noslash'),
+            'datepicker');
   return tg('script','type="text/javascript"',
           ' $( function() {'.
           '   $( "#'.$id.'" ).datepicker({'.$options.'});'.
           '  } );').
-        $label.nbsp(1).
+        $label.($label!=''?nbsp(1):'').
         tg('input','type="text" name="'.$name.'" id="'.$id.'" value="'.$value.'" size="10" '.$add);
 }
 
@@ -86,16 +91,32 @@ function bt_autocomplete($label,$pole,$size,$maxlength,$script,$formname,$value=
   return $s;
 }
 
-function bt_autocomplete2($label,$name,$url){
+/**
+ * see https://docs-test-2.readthedocs.io/en/latest/
+ */
+function bt_autocomplete2($label,$name,$url,$value=''){
+  $path=M5::get('path_relative');
+  M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>','autocomplete');
   $r=ta('span',$label).
-     tg('select','class="form-control basicAutoSelect" name="'.$name.'" placeholder="zadejte text..." ',' ');
-  $r.=ta('script',"$('.basicAutoSelect').autoComplete({
+     tg('select','class="form-control basicAutoSelect'.$name.'" name="'.$name.'" id="'.$name.'" placeholder="zadejte text..." ',' ');
+  $r.=ta('script',"$('.basicAutoSelect$name').autoComplete({
     resolverSettings: {
       url: '".$url."',     
       autocomplete: 'off',
       noResultsText: 'Nic nenalezeno.' },
       minLength: 1});");    
-
+  if ($value!=''){
+    /* set the appropriate value and 
+       find also the text written on the screen */
+    $r.=ta('script', 
+    "console.log('$value') ;\n".
+    '$.ajax({url:"'.$url.'?id='.$value.'",'.
+            'success: function(result){ '.
+            'console.log(result);'.
+            "$('.basicAutoSelect$name').autoComplete('set', { value: '".$value."', text: result['text'] });".
+            '}});');
+    //"$('.basicAutoSelect$name').autoComplete('set', { value: '".$value."', text: '".($value.'aaa')."' });");
+  }
   return $r;
 }
 
@@ -584,6 +605,20 @@ function bt_pagination($current,$total,$step,$context='',$postlink=false){
   return $s;
 }
 
-
+/** The function returns the HTML tag for a range input
+ * @param string $label - label before the tag
+ * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
+ * @param int $value 
+ * @param int $min
+ * @param int $max
+ * @param string $add - other added parametres in the tag (useful for javascript client-side functionality or styling) 
+ * @return string HTML  */
+ 
+function bt_range($label,$name,$min=0,$max=100,$step=1,$value=0,$add=''){
+  return tg('label','for="'.$name.'"',$label).
+    tg('input','type="range" id="'.$name.'" name="'.$name.'" min="'.$min.'" max="'.$max.
+     '" step="'.$step.'" value="'.$value.'" '.$add,
+     'noslash');
+}
 
 ?>
