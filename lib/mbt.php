@@ -8,6 +8,7 @@
  * @version 1.2
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
  * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022 06.12.2022
+ * 07.12.2022
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -63,38 +64,16 @@ function bt_accordion($content,$id='accordion',$aria_exp=1){
   return "\n".tg('div',' id="'.$id.'"',$t)."\n";
 }
 
-/** The function returns an input HTML field with the autocomplete functionality based on Autocomplete plugin for Bootstrap 
- * @param string $label - label before the input
- * @param string $pole - the identifier for the input area
- * @param integer $size - the size in chars
- * @param integer $maxlength - the maximum allowed input size in chars
- * @param string $script - the URL of the script (on server side, in PHP) realizing the asynchronous javascript based response
- * @param string $formname - form name, in which the input tag is placed
- * @param string $value - initial value in the text input
- * @return HTML string */
- 
-function bt_autocomplete($label,$pole,$size,$maxlength,$script,$formname,$value=''){
-  $s=tg('div','class="form-group row"',
-      tg('label','for="'.$pole.$formname.'" ',$label).nbsp(1).
-      tg('select','class="form-control w-50" name="'.$pole.'" id="'.$pole.$formname.'" '.
-    'placeholder="zadejte text..." '.
-    'data-noresults-text="Žádný záznam." '.
-    'autocomplete="on"',' '));
-  $s.=tg('script','type="text/javascript"',
-    " $('#".$pole.$formname."').autoComplete(  {
-        resolverSettings: { url: '".$script."?', fail:function(){}  },
-        resolver: 'ajax',
-        minLength: 1
-      }
-    );
-    ");  
-  return $s;
-}
 
-/**
+/**The function returns an input HTML field with the autocomplete functionality based on Autocomplete plugin for Bootstrap 
  * see https://docs-test-2.readthedocs.io/en/latest/
+ *  * @param string  $label - label before the input
+ * @param string  $name - the identifier for the input area
+ * @param integer $size - the size in chars
+ * @param string  $value - default value (f.e. for the database)
+ * @return HTML string 
  */
-function bt_autocomplete2($label,$name,$url,$value=''){
+function bt_autocomplete($label,$name,$url,$value=''){
   $path=M5::get('path_relative');
   M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>','autocomplete');
   $r=ta('span',$label).
@@ -620,5 +599,53 @@ function bt_range($label,$name,$min=0,$max=100,$step=1,$value=0,$add=''){
      '" step="'.$step.'" value="'.$value.'" '.$add,
      'noslash');
 }
+
+/**
+ * input file for multiple options 
+ * @param string $lab - label
+ * @param string $id - DOM id in the HTML document and also form field name
+ * @param array  $options - result of bt_getoptions function
+ * @param array  $data - selected/unselected options
+ * @param string $settings
+ */ 
+function bt_multiselect($lab,$id,$options,$data=[],$settings=''){
+  $s='';
+  if ($settings=='') {
+    $settings='{"disableSelectAll": true, '.
+     '"maxHeight": 200, "search": true ,"translations": '.
+     '{ "all": "Vše", "items": "položek","selectAll":"Označ vše","clearAll":"Zruš označení"}}';
+  }
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"').
+    tg('script','src="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.js"',' '),
+    'multiselect'
+  );
+  $d=array();
+  if (is_array($data)) for($i=0;$i<count($data);$i++){
+    $d[$data[$i]]=1;
+  }
+  foreach ($options as $k=>$v ){
+    $s.=tg('option','value="'.$k.'"'.(isset($d[$k])?' selected':''),$v); 
+  }
+  $s=$lab.' '.tg('select','id="'.$id.'" name="'.$id.'[]" multiple size="20"',$s).  
+      ta('script','selectBox'.$id.' = new vanillaSelectBox("#'.$id.'", '.$settings.');');
+      /* for PHP are essential [] after parametr name in the form */
+  return $s;
+}
+
+/**
+ * helper function for obtaining data into multiselect
+ * @param object $db - Database 
+ * @param string $sql - generationg SQL
+ */ 
+function bt_getoptions($db,$sql){
+  $r=array();
+  $db->Sql($sql);
+  while ($db->FetchRowA()){
+    $r[$db->Data(0)]=$db->Data(1);
+  }
+  return $r;
+}
+
 
 ?>

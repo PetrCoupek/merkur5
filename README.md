@@ -40,73 +40,64 @@ functionality using the PHP reflexive class
 
 ```PHP
 
-include_once '../lib/mlib.php'; 
+include_once '../lib/mlib.php';
 
 class Hello extends M5{
 
- static function skeleton(){
-   parent::skeleton('../');           /* implicit route */
-   htpr(ta('h1','Minimal application'), 
-        ta('p','That\'s it !'));      /* main action - print HTML page */
-   htpr_all();                        /* buffer write */
- }
+  static function skeleton($path=''){
+    self::set('header','Minimal application');  /* page header */ 
+    parent::skeleton();                         /* implicit route */
+    htpr(ta('h1','Minimal application'),        /* */
+         ta('p','That\'s it !'));
+    self::done();                               /* buffer write */       
+  }
 
-}
+} 
 
-Hello::skeleton();  /* Do it */ ` 
+/* singleton design */
+
+Hello::skeleton(); 
 
 ``` 
 
 ### Sequencional approach with high effectivity of code
 
 ```PHP
-include_once "../lib/mlib.php"; 
-M5::skeleton('../'); 
+include_once "../lib/mlib.php";
+M5::set('header',,'Minimal application'); 
+M5::skeleton(); 
 htpr(ta('h1','Minimal application'),ta('p','That\'s it !')); 
 htpr_all();                  
 ```
-notice: these 4 lines of code generate a complex HTML/CSS styled page
+notice: this 5 lines of code generate a complex HTML/CSS styled page
   with one header and one paragraph of text based on default frontend template
 
-### Primitive instant SQL workbech page with pragma functionality
+### Database table entity lister
 
-```PHP
-include_once "../lib/mlib.php"; /* nove aplikacni mikrojadro */
-M5::skeleton('../');
-htpr(tg('form','method="post" action="?" ',
-     textarea('SQL command: [PHP ver.'.PHP_MAJOR_VERSION.']'.br(),
-      'SQL',5,80,getpar('SQL')).
-     submit('OK','OK')));
-if ($sql=getpar('SQL')){
-  $db=new OpenDB_MySQL("ser=server.somewhere;db=smallm;uid=smallm_cz;pwd=****");
-  if (preg_match('/pragma\s+(.+)$/',$sql,$m)){
-    htpr(ht_table('Pragma','',$db->Pragma($m[1])));
-  }else{
-    htpr(ht_table('Result','',$db->SqlFetchArray($sql)));
-  }    
-  $db->Close();
-}  
-htpr_all(); 
-```
-notice: the function **getpar()** is responsible for sanitization
-
-### The database entity editor
 ```PHP
 include_once '../lib/mlib.php';
+include_once '../lib/mbt.php';
+M5::set('header','Test Lister');
+M5::set('debug',true);
+M5::skeleton('../');
 
-class Table_editor extends M5{
-
- static function skeleton(){
-   parent::skeleton('../');
-   $t=new Edit_table('', 'file=../data/ep.sqlite,mode=1', 't1');
-   $t->hledej_form=true;
-   $t->route();
-   htpr_all();
- }
- 
-} 
-
-Table_editor::skeleton();
-```  
-
-
+$db = new OpenDB_Oracle('dsn=sdedb02;uid=app_dkb;pwd=jsdn*6343Jkjsedn*324');
+$where="id<18";
+$pole=$db->SqlFetchArray(
+    "select id, nazev, ochrana_stup_kod, ochrana_kat_kod, ochrana_dop ".
+    "from dat_lok1.lok where $where",[],15,getpar('_ofs',1));
+$total=$db->SqlFetch("select count(*) as pocet from dat_lok1.lok where $where",[]);
+htpr(
+   bt_lister(
+      'Nalezené lokality',
+      ['ID'=>'Id lok.',
+        'NAZEV'=>'Název',
+        'OCHRANA_STUP_KOD'=>'Kód ochrany',
+        'OCHRANA_KAT_KOD'=>'Kategorie ochrany',
+        'OCHRANA_DOP'=>'Doporučení ochrany'],
+       $pole,
+       'Nejsou záznamy.','',
+       bt_pagination(getpar('_ofs',1),$total,15)));
+   
+htpr_all();
+```

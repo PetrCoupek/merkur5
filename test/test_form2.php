@@ -24,9 +24,10 @@ class Testform extends M5{
     })'));
 
    
-   htpr(tg('form','method="post" action="?" class="bg-light p-2 border" ',
-    ta('h4','Hlavička formuláře').
-    bt_container(['col-3','col-7','col-2'],
+   htpr(
+    tg('form','method="post" action="?" class="bg-light p-2 border" ',
+     ta('h4','Hlavička formuláře').
+     bt_container(['col-3','col-7','col-2'],
       [[bt_tooltip('Pokud nezadáte text při odeslání, vyvoláte upozornění o problému.','Zadejte text '.bt_icon('info').' :'),
         textfield("",'TXTFLD',20,20,getpar('TXTFLD')),
         nbsp()],
@@ -35,6 +36,7 @@ class Testform extends M5{
                            '2'=>'Dialog přes obrazovku',
                            '3'=>'nic'],getpar('RESPFO')?getpar('RESPFO'):'1'),
         nbsp()],
+       [hr(),nbsp(),nbsp()], 
        ['České datum',bt_datefield('','DATEF',getpar('DATEF')),'[nic]'],
        ['Databázový seznam', 
          combo("",'DBLIST',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
@@ -48,14 +50,24 @@ class Testform extends M5{
        ['Checkbox',check_box('','CH1',getpar('CH1')!=''?true:false)], 
        ['Range',bt_range('','RANGE',0,100,10,getpar('RANGE'),''),' '],
        ['Našeptávač -Obec',
-         bt_autocomplete2('','OBEC','ajax/auto_obec.php',getpar('OBEC')),'[nic]'],
+         bt_autocomplete('','OBEC','ajax/auto_obec.php',getpar('OBEC')),'[nic]'],
        ['České datum II',bt_datefield('','DATEF2',getpar('DATEF2')),' '], 
        ['Našeptávač -Obec 2 ',
-       bt_autocomplete2('','OBEC2','ajax/auto_obec.php',getpar('OBEC2')),'[nic]'], 
+         bt_autocomplete('','OBEC2','ajax/auto_obec.php',getpar('OBEC2')),'[nic]'], 
+       ['Multiselect ',
+         bt_multiselect('','MULTI', 
+          bt_getoptions($db,
+            "select kod, nazev ".
+            "from sn_ciselniky ".
+            "where ciselnik='faktory' ".
+            "order by poradi asc"),getpar('MULTI')),'[nic]'],
+       ['<hr>','<hr>','<hr>'],        
        [nbsp(),
         tg('input',' type="reset" class="btn btn-secondary" value="Nastavit původní stav"','noslash'),
         submit('OK','Odeslat')],
-      ])));
+   ]),hr())
+     
+    );
  }
 
  static function result(){
@@ -68,7 +80,9 @@ class Testform extends M5{
                                            getpar('AREA'),
                                            getpar('RANGE'),
                                            getpar('OBEC'),
-                                           getpar('OBEC2')]);
+                                           getpar('OBEC2'),
+                           '['.implode(';',(array)getpar('MULTI')).']'
+                              ]);
    if (getpar('RESPFO')==1)
     htpr(tg('div','class="p-2"',
      getpar('TXTFLD')?bt_alert($tp):

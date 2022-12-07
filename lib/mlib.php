@@ -313,6 +313,7 @@ abstract class M5 extends M5_core{
   /** skeleton method sets a HTML template and provide a basic route . 
    * The route methods is to be override. */
   static function skeleton($path=''){
+   if ($path==''){$path=M5::get('path_relative').'/';} 
    self::set('htptemp','<!DOCTYPE html>'."\n".
    tg('html','lang="cs"',
     ta('head',
@@ -566,11 +567,19 @@ function nbsp($count=1){
 
 /** The function returns the HTML tag for the page-break.  
  * @param number $count - number of page-braks, default=1 
- * @return string */
- 
+ * @return string 
+ */ 
 function br($count=1){
   for($k='';$count--; $k.="<br>\n");
   return $k;
+}
+
+/** The function returns the HTML tag for the vizible horizontal break-line
+ * @return string 
+ */
+ 
+function hr(){
+  return '<hr>'."\n";
 }
 
 /** The function returns the HTML tag for a text input

@@ -5,21 +5,21 @@
 
 include_once '../lib/mlib.php';
 
-
 class Hello extends M5{
 
- static function skeleton($path=''){
-   parent::skeleton('../');           /* zajisti volani metody route */
-   parent::set('header','Minimal application');
-   htpr(ta('p','Hello world. That\'s it !'));      /* Tisk funkcionality */
-   htpr_all();                        /* Zapis bufferu na standarni vystup */
- }
+  static function skeleton($path=''){
+    self::set('header','Minimal application');  /* page header */ 
+    parent::skeleton();                         /* implicit route */
+    htpr(ta('h1','Minimal application'),        /* */
+         ta('p','That\'s it !'));
+    self::done();                               /* buffer write */       
+  }
 
-} /* enf of class definition Hello */
+} 
 
-/* design sigleton,
- */
+/* singleton design */
 
-Hello::skeleton();  /* Let's call the skeleton method of the class Hello */
+Hello::skeleton();                            
+
 
 ?>
