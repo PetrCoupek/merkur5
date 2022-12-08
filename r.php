@@ -6,29 +6,37 @@
 include_once 'lib/mlib.php';
 include_once 'lib/mbt.php';
 
-M5::set('header','Merkur 5 - route test');
-M5::skeleton(M5::get('path_relative').'/');
+M5::set('header','Merkur 5');
+
 M5::set('debug',true);
 M5::set('routes',
-  ['/ahoj/moulo'=>function(){htpr('Nazdar');},
+  ['/'=>function(){htpr('Root');},
+   '/hello'=>function(){htpr(bt_alert('Hello'));},
+   '/hello/world'=>function(){htpr(bt_dialog('Route message','Hello World'));},
    '/doc/$id'=>function(){dokument(getpar('id'));},
    '/ahoj/svete'=>"dokument(15);",
    '/nazdar'=>'htpr(bt_dialog("Message","Hi"));'
   ]);
 
-htpr(ta('h1','Hello'),
-     'This route test is the only one in home folder. All others tests are in '.
+/*  action before routing */
+htpr(ta('h1','Micro framework'),
+     'This is the initial functionality. ',
+     'All standalone tests are in '.
      ahref(M5::get('path_relative').'/'.'test','test folder').br().
      ' The test folder has an exception - see mod_rewrite settings '.
-     ' and the PHP functionality. ', br());
+     ' and the PHP code functionality. ', br());
 
-if (M5::getroute()){
+/* routing */     
+if (($route=M5::getroute())!=''){
   htpr(bt_alert('Path OK'));
+  M5::set('header',M5::get('header').' - '.$route);
 }else{
   htpr(bt_alert('No path there ..','alert-warning'));
 }
+M5::skeleton(M5::get('path_relative').'/');
+M5::done();
 
-htpr_all();
+/*--------------------------------------------------------*/
 
 function dokument($id){
   htpr('Dokument '.$id);

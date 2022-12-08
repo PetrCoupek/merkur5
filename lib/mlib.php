@@ -49,6 +49,7 @@ abstract class M5_core{
   static function iniset(){
     self::set('debug',false);  /* debug status */
     self::set('errors','');    /* erors area for debug mode */
+    tick('start');
     self::set('header','');    /* header text */
     self::set('htfr','');      /* frontend content - scripts and styles */
     self::set('htpr','');      /* output text/html buffer */
@@ -225,19 +226,20 @@ abstract class M5_core{
   static function getroute(){
     //$p=M5::get('path_relative'); deb($p,false);
     $request_url = filter_var($_SERVER['REQUEST_URI'], FILTER_SANITIZE_URL);
+    $rel=M5::get('path_relative');
     $request_url = strtok(rtrim($request_url, '/'), '?');
 
     foreach(self::get('routes') as $route=>$action){
-      $route_parts = explode('/', $route); 
+      $route_parts = explode('/', $rel.$route); 
+      if( $route_parts[count($route_parts)-1]=='') array_pop($route_parts);
       $request_url_parts = explode('/', $request_url);
-      array_shift($route_parts);
-      array_shift($request_url_parts);
-      array_shift($request_url_parts); /* twice - app itself is in subfolder from document root */
-      //deb($route_parts);
-      //deb($request_url_parts);
+      array_shift($route_parts);       /* it removes the empty item from the begin .. */
+      array_shift($request_url_parts); /* ..on both arrays */
+      //deb($route_parts,false);
+      //deb($request_url_parts,false);
       if( $route_parts[0] == '' && count($request_url_parts) == 0 ){
         //deb('route primitive :'.$route,false);
-        return true;
+        return $route;
       }
       if(count($route_parts)!=count($request_url_parts)){ 
         //deb('none +:'.$route,false);
@@ -259,14 +261,14 @@ abstract class M5_core{
       }
       //deb($i);
       if ($ok){
-        if (!str_contains($route,'$')){
+        if (!strstr($route,'$')){
           //deb('route static link++'.$route);
           if (is_callable($action)){   
             call_user_func_array($action, $parameters);
           }else{
             eval($action); 
           }  
-          return true;
+          return $route;
         }else{
           //deb('route dynamic link++'.$route);
           if (is_callable($action)){
@@ -274,11 +276,11 @@ abstract class M5_core{
           }else{
             eval($action); 
           }  
-          return true;
+          return $route;
         }  
       } 
     }
-    return false;
+    return '';
   }
 
    
@@ -520,13 +522,15 @@ function deb($t,$btrace=true){  /* funkce realizujici ladici vypisy */
 /** Sets the time-measure tool
  *  First call in the script starts the clok, the next calls display the time difference since
  *  the first call and optionally some text hwich can identify the call
- * @param text string   string to be printed in the debug area. 
+ * @param string  -a text to be printed in the debug area. 
  */ 
 
 function tick($text=''){
   static $t;
   if (!isset($t)) $t=microtime(true);
-  M5::set('errors',M5::get('errors'),sprintf(" %2.4f s %s",microtime(true)-$t,$text."\n"));
+  $msg=sprintf(" %2.4f s %s",microtime(true)-$t,$text."\n");
+  M5::set('errors',M5::get('errors').$msg);
+  return $msg;
 }
 
 /** Tag expression function.
