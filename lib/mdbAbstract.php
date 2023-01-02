@@ -200,14 +200,20 @@ abstract class OpenDB {
    * 
    * prepare a list of values from a select query to one column
    * @param string $sql_command - and sql command
-   * @param arry $bind
+   * @param array $bind
+   * @param int $limit default 0
+   * @param string $sep - field separator
+   * @param string $subsep - subfiled separator
    * @return string a result list or empty string ( also in case of error )
    */
-  function SqlFetchList($prikaz,$bind=array(),$limit=100,$sep=', '){
+  function SqlFetchList($prikaz,$bind=array(),$limit=0,$sep=', ',$subsep='-'){
     $r='';
+    if ($limit==0) $limit=1e5;
     if (!$this->Sql($prikaz,$bind)) {    
       while ($this->FetchRowA() && $limit--){
-        $r.=($r==''?'':$sep).(string)($this->data[0]);
+        $t=implode($subsep,$this->data);
+        //$r.=($r==''?'':$sep).(string)($this->data[0]);
+        $r.=($r==''?'':$sep).$t;
       } 
     }  
     return $r;  

@@ -1,13 +1,14 @@
 ﻿<?php
 
-/** Merkur 5 Initial script inside the application directory
+/** Merkur 5 initial demostration script inside the application directory
+ * It containts minimalized presenter usage with some experimatal functionality,
+ *  but all the tests are in test sub-folder 
  */ 
 
-include_once 'lib/mlib.php';
-include_once 'lib/mbt.php';
+include_once 'lib/mlib.php';  /* core */
+include_once 'lib/mbt.php';   /* bootstrap */
 
 M5::set('header','Merkur 5');
-
 M5::set('debug',true);
 M5::set('routes',
   ['/'=>function(){htpr('Root');},
@@ -33,7 +34,9 @@ if (($route=M5::getroute())!=''){
 }else{
   htpr(bt_alert('No path there ..','alert-warning'));
 }
+/* set all neseccary */
 M5::skeleton(M5::get('path_relative').'/');
+/* finish */
 M5::done();
 
 /*--------------------------------------------------------*/

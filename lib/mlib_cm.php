@@ -14,6 +14,7 @@
  * 01.10.2021 - oprava formalnich chyb
  * 08.10.2021 - bind sql
  * 15.06.2022 - zakomentovani vsech prikazu debug
+ * 17.10.2022 - merkur version
  * 02.12.2022 - refakturing na merkur5
  */
 define('MIC_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
@@ -34,7 +35,7 @@ class Cm{
      $this->table=$table;
      //$this->user=$user;
      $this->leftside=$leftside;
-     $this->ace_editor=true; /* if ace JS --based editor is used for app's items */
+     $this->ace_editor=false; /* if ace JS --based editor is used for app's items */
      $this->db=$db;
      switch ($this->db->typedb){
        case 'sqlite': 
@@ -66,8 +67,7 @@ class Cm{
        if (isset($_SESSION['uzivatel']) && $_SESSION['uzivatel']!=''){
          $this->user=$_SESSION['uzivatel'];
        }else{
-         /* zkus se podivat, jestli je pritomno systemove logovani 
-          * odpovida automatickemu prihlaseni pres https, napr. https://appdev.geology.cz */
+          /* try system logging  */
          if (isset($_SERVER['PHP_AUTH_USER'])){
            $this->user=strtoupper($_SERVER['PHP_AUTH_USER']);
            $_SESSION['uzivatel']=$this->user;
@@ -453,6 +453,7 @@ class Cm{
 
   static function errorHandler($errno, $errstr, $errfile, $errline=null, $errcontext=null){ 
     $e_notice=false; /* e-notice level errors are not printed */
+    $e_general=false; /* general errors are not printed */
     if (!is_string($errcontext)){
       $errcontext=preg_replace("/pwd\=(.+)/",'pwd=****',print_r($errcontext,true));
     }
@@ -462,8 +463,10 @@ class Cm{
           deb("[Error:$errno:$errstr; file:$errfile; column:$errline \n");
         } 
         break; 
-      default:  
-        deb("[Error:$errno:$errstr; file:$errfile; column:$errline context:$errcontext]\n");
+      default:
+        if ($e_general) {  
+          deb("[Error:$errno:$errstr; file:$errfile; column:$errline context:$errcontext]\n");
+        }
         break;
     }  
     return true;
