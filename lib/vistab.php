@@ -1,8 +1,8 @@
 <?php
-/** Data visualization
+/** Data visualization and access to the view or edit detail
  * @author Petr Coupek
  * 
- *  class for table view, filtering sortin and more.
+ *  class for table view, filtering sorting and more.
  *  call example:
  *    $db= new OpenDB_Oracle($napojeni);
  *    $tt= new VisTab(['table'=>$t],$db); 
@@ -12,19 +12,28 @@
  *                     'cprikaz'=>'select ..',
  *                     'pragma'=>'..',
  *                     'dprikaz'=>'..'],$db); 
+ *  or: editing
+ *   $tt= new EdiTab(['table'=>$t],$db);
+ *   $tt->route("&vyhl=1&ROL_=1"); 
  * 
  *  Special data searching instecting can be extended from this class
- *  18.10.2022
+ *  18.10.2022 24.10.2022 09.01.2023 11.01.2023
+ *  
+ * 
  */ 
+include_once "mbt.php";
 
 class VisTab {
 
-  var $separator='~';
+var $separator='~';
+var $db, $nastrane, $param, $sprikaz, $cprikaz, $pragma, $dprikaz, $header, $postlink, $pk,
+ $filter;
 
 function __construct($param,$db){
 
   $this->db=$db;
   $this->nastrane=15;
+  $this->param=$param;
   if (isset($param['table'])){
     $t=$param['table'];
     $this->header=$t;
@@ -60,7 +69,7 @@ function route($context){
   
   if (getpar('_se')){
     $this->form_param($context);
-  }elseif (getpar('_de')){
+  }elseif (getpar('_det')){
     $this->detail($context);   
   }else{
     $this->lister($context);
@@ -78,25 +87,37 @@ function lister($context){
   $cprikaz=$this->genfilter($this->cprikaz);
   
   $a=$this->db->SqlFetchArray($sprikaz,[],15,getpar('_ofs',1));
-  /* pokud je nastaveny primarni klic, jde generovat sloupec
-    s linkem na prechod do detailu */
-  //if ($this->pk!=''){
-  //  for($i=0;$i<count($a);$i++){
-  //    $l='?_de=1&amp;_o='.getpar('_o').'&amp;_whr='.getpar('_whr').'&amp;_ofs='.getpar('_ofs');
-  //    foreach (explode(',',$this->pk) as $v) $l.='&amp;'.$v.'='.$a[$i][$v];
-  //    $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));        
-  //  }   
-  //}
-  if (count($a)>0){
-    for($i=0,$j=getpar('_ofs',1);$i<count($a);$i++,$j++){
-      if ($this->postlink){
-        $a[$i]['detail']=postLink('?'.$context,bt_icon('pencil'),
-         ['_de'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
-      }else{
-        $l='?_de=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
-        $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));
+  /* generovani linku pro prechod do detailu */
+  if (count($a)>0 ){
+    if (!isset($this->param['noDetail'])){
+      for($i=0,$j=getpar('_ofs',1);$i<count($a);$i++,$j++){
+        if ($this->postlink){
+          $a[$i]['detail']=postLink('?'.$context,bt_icon('pencil'),
+           ['_det'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
+        }else{
+          $l='?_det=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
+          $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));
+        }        
       }
-    }  
+    }    
+    /* modifikace nactene tabulky pred jejim zobrazenim - doplneni odkazu */
+    //deb($a);
+    if (isset($this->param['pragma'])){
+      $t=$this->param['pragma'];
+      for($i=0;$i<count($t);$i++){
+        if (isset($t[$i]['paralink'])){
+          $tt=$t[$i]['paralink'];
+          for($j=0;$j<count($a);$j++){
+            $link='?';
+            foreach ($tt as $k=>$v){
+              $link.=($link==''?'':'&').$k.'='.(is_array($v)?$a[$j][$v[0]]:$v);
+            }
+            $a[$j][$t[$i]['name']]=ahref($link,$a[$j][$t[$i]['name']]);
+          }
+        }  
+      }
+    }
+
 
     /* tisk tabulky a listovani */
     htpr(
@@ -156,7 +177,7 @@ function form_param($context){
 function column_labels(){
   $a=$this->pragma;
   if (!is_array($a)) {
-    return ['detail'=>'Detail'];
+    return []; // ['detail'=>'Detail'];
   }
   $b=array();
   for ($i=0;$i<count($a);$i++){
@@ -164,7 +185,8 @@ function column_labels(){
       $b[$a[$i]['name']]=(isset($a[$i]['comment']))?$a[$i]['comment']:$a[$i]['name'];
     }                  
   }
-  $b['detail']='Detail';
+  /* normally, add the column with link to the detail with special name */
+  if (!isset($this->param['noDetail'])) $b['detail']='Detail';
   return $b;
 }
 
@@ -385,30 +407,33 @@ function dewhere($where){
 /** Stranka s detailem zaznamu
  * 
  */
-function detail($context){
+function detail($context,$custom=''){
 
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */
   
   $cprikaz=$this->genfilter($this->cprikaz);
   $dprikaz=$this->genfilter($this->dprikaz);
-  $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
-  /* popisy polozek mohou byt z popisu entity v databazi */
-  $p=[];
-  for($i=0;$i<count($this->pragma);$i++)
-    if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
-      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
-    else 
-      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
+  if ($custom==''){
+    $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
+    /* popisy polozek mohou byt z popisu entity v databazi */
+    $p=[];
+    for($i=0;$i<count($this->pragma);$i++)
+      if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
+        $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
+      else 
+        $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
 
-  $b=[[]];$i=0;
-  foreach ($r[0] as $k=>$v){
-    if (isset($p[$k])){
-      $b[$i][0]=ta('b',$p[$k]);
-      $b[$i][1]=$v; 
-      $i++;
-    }  
+    $b=[[]];$i=0;
+    foreach ($r[0] as $k=>$v){
+      if (isset($p[$k])){
+        $b[$i][0]=ta('b',$p[$k]);
+        $b[$i][1]=$v; 
+        $i++;
+      }  
+    }
+    $custom=bt_container(['col-4','col-8'],$b);
   }
-
+  
   /* pocet zaznamu a listovani po zaznamech */
   $cprikaz=$this->genfilter($this->cprikaz);
   $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
@@ -422,25 +447,247 @@ function detail($context){
     $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
       'Zpět',
       'class="btn btn-primary"');
-  }     
+  }
 
-
-  htpr(ta('h3','Detail'),
+  htpr(//ta('h3','Detail'),
        bt_pagination(
             getpar('_ofs',1),
             $this->db->SqlFetch($cprikaz),
             1,
-            $this->postlink?($context.'&_de=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_de=1'),
+            $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
             $this->postlink
           ),
-       bt_container(['col-4','col-8'],$b),
+       $custom,
        $back
       );
 
 
 }
 
-} /* class */
+} /* class Editab is the VisTab listing/filtering/sorting functionality with editable detail */
 
- 
+class EdiTab extends VisTab{
+
+  var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz;
+
+  function __construct($param,$db){
+    parent::__construct($param,$db);
+    if (getpar('_det')){
+      /* detail form or detail form action */
+      if (isset($param['table'])){
+        $t=$param['table'];
+        $this->iprikaz="insert into $t ";
+        $this->uprikaz="update $t set ";
+        $this->rprikaz="delete from $t where ";
+        $ip1='';$ip2='';
+        for ($i=0;$i<count($this->pragma);$i++){
+          $name=$this->pragma[$i]['name']; 
+          if ($this->pragma[$i]['type']=='DATE'){
+            $pole="to_date(:".$name.",'DD.MM.YYYY HH24:MI:SS') ";
+          }else{
+            $pole=":".$name;
+          }  
+          //$this->uprikaz.=($i==0?'':',').$this->column[$i].'='."'#".$this->column[$i]."#'";
+          $this->uprikaz.=($i==0?'':', ').$name.'='.$pole;
+          /* bind array */
+          $ip1.=($i==0?'':', ').$name;
+          $ip2.=($i==0?'':', ').$pole;
+        }
+        $this->uprikaz.=" where ";
+        $this->iprikaz.='('.$ip1.') values ('.$ip2.')'; 
+      }
+      $rc='';
+      /* construct bind content - for insert and update */
+      if (getpar('_ins') || getpar('_upd'))
+        for ($i=0;$i<count($this->pragma);$i++){
+          $name=$this->pragma[$i]['name'];
+          $this->bind[':'.$name]=getpar($name);
+        }  
+      /* construct aditional bind variables - for update nad delete */
+      if (getpar('_upd') || getpar('_del')){
+        for ($i=0;$i<count($this->pragma);$i++)
+          if (isset($this->pragma[$i]['pk'])){
+            $name=$this->pragma[$i]['name']; 
+            $rc.=($rc==''?'':' and ').($name.'='.':'.strtolower($name));
+            $this->bind[':'.strtolower($name)]=getpar(strtolower($name));
+          }
+        $this->uprikaz.=$rc;   
+        $this->rprikaz.=$rc;
+      }  
+    }
+  }  
+  
+  function detail_form($data,$context){
+    return tg('form','method="post" action="?'.$context.'"',
+     para('_o',getpar('_o')).para('_flt',getpar('_flt')).para('_ofs',getpar('_ofs')).
+     '[replace]');
+  }
+  
+  function detail($context,$custom=''){
+    $eprikaz=$this->genfilter($this->dprikaz);
+    $db=$this->db;
+    if ($this->mode=='I'){
+      $data=[]; 
+      foreach($this->pragma as $k=>$v){
+        $data[$v['name']]=''; /* empty form fields */
+      }
+    }elseif ($this->mode=='i'){
+      /* navrat z neuspesneho pokusu o ulozeni - zopakuj POST polozky do editacnich poli */
+      $data=M5::getparm();
+      $this->mode='I'; /* dalsi pokus o ulozeni nove vety */
+    }else{
+      $r=$db->SqlFetchArray($eprikaz,[],1,getpar('_ofs',1));
+      $data=$r[0];
+    }       
+    //parent::detail($context,$this->detail_form($data,$context));
+    $original_primary='';
+    if ($custom==''){
+      $r=$this->db->SqlFetchArray($eprikaz,[],1,getpar('_ofs',1));
+      /* popisy polozek mohou byt z popisu entity v databazi */
+      $p=[];
+      for($i=0;$i<count($this->pragma);$i++){
+        if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
+          $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
+        else 
+          $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
+        if (isset($this->pragma[$i]['pk'])) 
+          $original_primary.=para(strtolower($this->pragma[$i]['name']),$r[0][$this->pragma[$i]['name']]); 
+      }
+      $b=[[]];$i=0;
+      foreach ($data as $k=>$v){
+        if (isset($p[$k])){
+          $b[$i][0]=ta('b',$p[$k]);
+          $b[$i][1]=textfield('',$k,40,40,$v); 
+          $i++;
+        }  
+      }
+      $b[$i]=[nbsp(1),
+              gl( ($this->mode=='I')?
+                   gl(submit('_ins','Vložit','btn btn-primary')):
+                   gl(submit('_upd','Uložit','btn btn-primary'),nbsp(5),
+                     submit('_del','Smazat','btn btn-primary'),
+                     $original_primary
+    ), 
+                 para('_o',getpar('_o')),
+                 para('_flt',getpar('_flt')),
+                 para('_ofs',getpar('_ofs')),
+                 para('_det',1)) 
+             ];
+      $custom=tg('form','method="post" action="?'.$context.'"',
+         bt_container(['col-4','col-8'],$b));
+    }
+    
+    /* pocet zaznamu a listovani po zaznamech */
+    if ($this->mode=='I') setpar('_ofs',1); /* pri vkladani noveho zaznamu se listovani da na zacatek */
+    $cprikaz=$this->genfilter($this->cprikaz);
+    $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
+    if ($this->postlink){
+      $back=postLink('?'.$context,'Zpět',
+                     ['_o'=>getpar('_o'),
+                     '_flt'=>getpar('_flt'),
+                     '_ofs'=>$ofs],
+                     'class="btn btn-primary"');
+    }else{
+      $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
+        'Zpět',
+        'class="btn btn-primary"');
+    }     
+  
+  
+    htpr(//ta('h3','Detail'),
+         bt_pagination(
+              getpar('_ofs',1),
+              $this->db->SqlFetch($cprikaz),
+              1,
+              $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
+              $this->postlink
+            ),
+         $custom,
+         $back
+        );
+    
+    //htpr(print_r($r,false));
+  }
+  
+  function route($context){  
+    if (getpar('_se')){
+      $this->form_param($context);
+    }elseif (getpar('_det')){
+      $result=false;      
+      if (getpar('_upd')){
+        $this->update();
+      }elseif (getpar('_del')){
+        $result=$this->delete();
+      }elseif (getpar('_ins')){
+        $result=$this->insert();
+      }elseif (getpar('_blank')){
+        $this->mode='I';
+      }
+      if ($result){
+        $this->lister($context);
+      }else{
+        $this->detail($context);
+      }
+    }else{
+      $this->lister($context);
+    }
+  }
+  
+  /** insert action
+   * @return bool $result means to stay in detail - in case of update always
+   */
+  
+   function insert(){
+    //deb($this->iprikaz,false);deb($this->bind,false);
+    $er=$this->db->Sql($this->iprikaz,$this->bind);
+    if (!$er){
+      htpr(bt_alert('Záznam vložen'));
+      setpar('_ofs',1);
+      return true;
+    }else{
+      htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
+      $this->mode='i';
+      return false;
+    }     
+  }
+  
+  /** update action
+   * @return bool $result means to stay in detail - in case of update always
+   */
+  function update(){
+    $er=$this->db->Sql($this->uprikaz,$this->bind);
+    if (!$er){
+      htpr(bt_alert('Záznam byl uložen'));
+    }else{
+      htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
+    }
+    return true;  
+  }
+  
+  /** delete action
+   * @return bool $result means to stay in detail - in case of update always
+   */
+  function delete(){
+    //deb($this->rprikaz,false);deb($this->bind,false);
+    $er=$this->db->Sql($this->rprikaz,$this->bind);
+    if (!$er){
+      htpr(bt_alert('Záznam smazán'));
+      setpar('_ofs',1);
+      return true;
+    }else{
+      htpr(bt_alert('Záznam nebyl smazán '.$this->db->Error,'alert-danger'));
+      return false;
+    }  
+  }
+  
+  /** lister
+   * @param string $context
+   */
+  function lister($context){
+    parent::lister($context);
+    htpr(ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"'));    
+  }
+  
+}
+   
 ?>

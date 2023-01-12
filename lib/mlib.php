@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.4 - 221122 011222 021222
+ * @version 0.41 - 221122 011222 021222 120123
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -375,8 +375,8 @@ function autoload_function($class){
   /* rizeny autoload jednotlivych modulu  zakladni knihovny */
   $path=__DIR__; /* $path by mel obsahovat cestu z zakladni knihovne lib, ktera je nactena jeko prvni */
   //echo $path,";";  //puvodne $path='lib';
-  $f=array('Edit_table'=>$path.'/tlib.php',
-           'View_table'=>$path.'/slib.php',
+  $f=array('VisTab'=>$path.'/vistab.php',
+           'EdiTab'=>$path.'/vistab.php',
            'OpenDB_Oracle'=>$path.'/mdbOracle.php',
            'OpenDB_MySQL'=>$path.'/mdbMySQL.php',
            'OpenDB_SQLite'=>$path.'/mdbSQLite.php',

@@ -5,8 +5,8 @@
  */
 
 include_once '../lib/mlib.php';
-include_once '../lib/mbt.php';
-include_once '../lib/vistab.php';
+//include_once '../lib/mbt.php';
+//include_once '../lib/vistab.php';
 
 M5::set('header','Test Vistab');
 M5::set('debug',true);

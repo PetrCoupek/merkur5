@@ -61,8 +61,12 @@ class Testform extends M5{
             "from sn_ciselniky ".
             "where ciselnik='faktory' ".
             "order by poradi asc"),getpar('MULTI')),'[nic]'],
+       ['Doplňovací seznam',
+        bt_comboauto('','CA1',to_hash("select distinct den+100*mesic,jmena from jmeniny",$db),getpar('CA1')),
+        '-'],     
+            
        ['<hr>','<hr>','<hr>'],        
-       [nbsp(),
+       [nbsp(),nbsp(20).
         tg('input',' type="reset" class="btn btn-secondary" value="Nastavit původní stav"','noslash'),
         submit('OK','Odeslat')],
    ]),hr())
@@ -98,5 +102,35 @@ class Testform extends M5{
 Testform::set('header','Test českého formuláře a jeho potvrzení');
 Testform::set('debug',true);
 Testform::skeleton('../'); /* volani skriptu */
+
+/** ComboBox with the abitity of typing a new value
+ * @param string $lab label
+ * @param string $id field identifier
+ * @param array list of available options, use function to_hash() to generate it from an SQL command
+ * @param string $val default value
+ */
+function bt_comboauto_testing_version($lab,$id,$data=[],$val=''){
+  deb($data);
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/comboAutocomplete/cbac.css" rel="stylesheet"').
+    tg('script','src="'.M5::get('path_relative').'/vendor/comboAutocomplete/cbac.js"',' '),
+    'comboauto'
+  );
+  $s='';
+  foreach ($data as $k=>$v) $s.=tg('li','id="'.$id.'_'.$k.'" role="option"',$v);
+  $s=tg('div','class="combobox combobox-list"',
+      tg('div','class="group"',
+       tg('input','id="'.$id.'-input" name="'.$id.'" class="cb_edit" type="text" role="combobox" aria-autocomplete="list" '.
+                  'aria-expanded="false" aria-controls="'.$id.'-listbox" value="'.$val.'"','noslash').
+       tg('button','id="'.$id.'-button" tabindex="-1" aria-label="States" aria-expanded="false" aria-controls="'.$id.'-listbox" type="button"',
+       '<svg width="18" height="16" aria-hidden="true" focusable="false" style="forced-color-adjust: auto">
+        <polygon class="arrow" stroke-width="0" fill-opacity="0.75" fill="currentcolor" points="3,6 15,6 9,14"></polygon>
+        </svg>'      
+        )).
+       tg('ul','id="'.$id.'-listbox" role="listbox" aria-label="'.$lab.'"',$s)); 
+  if ($lab!='') $s=tg('label','for="'.$id.'"',$lab).$s;   
+  
+  return $s;
+}
 
 ?>
