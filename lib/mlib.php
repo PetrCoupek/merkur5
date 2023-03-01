@@ -61,6 +61,7 @@ abstract class M5_core{
     self::set('sapi_name',php_sapi_name()); /* when =='cli' command line script is running */
     self::set('title',''); /* title text */
     self::set('version','(c) SmallM 2022'); /* version text */
+    self::set('DATA',self::getparm());
   }
      
   /** see global function ta() 
@@ -144,9 +145,11 @@ abstract class M5_core{
    */
   static function htpr_all(){
    if (self::get('sapi_name')=='cli'){
-      if (self::get('header')!='' && !M5::get('immediate')) echo self::get('header')."\n".str_repeat("=",80)."\n";
+      if (self::get('header')!='' && !M5::get('immediate')) 
+        echo self::get('header')."\n".str_repeat("=",80)."\n";
       echo str_replace('<br>','',self::get('htpr'))."\n";
-      if (self::get('debug')) echo "DEBUG\n".str_repeat("-",80)."\n".self::get('errors').str_repeat("-",80)."\n";
+      if (self::get('debug')) 
+        echo "DEBUG\n".str_repeat("-",80)."\n".self::get('errors').str_repeat("-",80)."\n";
    }else{  
      if (self::get('title')=='') self::set('title',self::get('header'));
      self::set('htptemp',
@@ -216,6 +219,7 @@ abstract class M5_core{
     return $DATA;
   }
 
+  
   /** implicit dispatch procedure
    *  it provides inspect of $_SERVER['REQUEST_URI'] and search "subfolders"
    *  accorning to the rules on routes params table
@@ -877,16 +881,15 @@ function para($name,$value){
  * @param string $name - the name of the tag
  * @param string $value - the visible label on the button
  * @param string $class - the CSS class for special buttons
+ * @param string $title - optional title
  * @return string HTML  */
  
-function submit($name,$value,$class='btn btn-primary'){
+ function submit($name,$value,$class='btn btn-primary',$title=''){
   if ($class=='ulozit' || $class=='vlozit' || $class=='smazat') {
     return tg('input','type="submit" title="'.$value.'" name="'.$name.'" value=" " '.'class="'.$class.'"','noslash');
-  /*}elseif ($class=='' && false){
-    include_once 'lib_bt.php';
-    return bt_submit($name,$value);*/
   }else{
-    return tg('input','type="submit" name="'.$name.'" value="'.$value.'" title="'.$value.'" '.'class="'.
+    return tg('input','type="submit" name="'.$name.'" value="'.$value.
+     '" title="'.($title!=''?$title:$value).'" '.'class="'.
     ($class<>''?$class:'submit').'"','noslash');
   }
 }
@@ -1031,8 +1034,10 @@ function http_lan_text($text1,$text2){
  */ 
 
 function getpar($key,$default=''){
-  global $DATA;
-  if (isset($DATA[$key])) return $DATA[$key];  
+  //global $DATA;
+  //if (isset($DATA[$key])) return $DATA[$key];  
+  if (isset(M5::$ent['DATA'][$key])) return M5::$ent['DATA'][$key];
+
   return $default;
 }
 
@@ -1042,8 +1047,9 @@ function getpar($key,$default=''){
  */ 
 
 function setpar($key,$value){
-  global $DATA;
-  $DATA[$key]=$value;  
+  //global $DATA;
+  //$DATA[$key]=$value;  
+  M5::$ent['DATA'][$key]=$value;
   return 0;
 }
 

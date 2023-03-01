@@ -27,51 +27,49 @@ class Testform extends M5{
    htpr(
     tg('form','method="post" action="?" class="bg-light p-2 border" ',
      ta('h4','Hlavička formuláře').
-     bt_container(['col-3','col-7','col-2'],
+     bt_container(['col-4','col-8'],
       [[bt_tooltip('Pokud nezadáte text při odeslání, vyvoláte upozornění o problému.','Zadejte text '.bt_icon('info').' :'),
-        textfield("",'TXTFLD',20,20,getpar('TXTFLD')),
-        nbsp()],
+        textfield("",'TXTFLD',20,20,getpar('TXTFLD'))],
        ['Tvar odpovědi:',
         combo("",'RESPFO',['1'=>'Výstraha nahoře na stránce',
                            '2'=>'Dialog přes obrazovku',
-                           '3'=>'nic'],getpar('RESPFO')?getpar('RESPFO'):'1'),
-        nbsp()],
-       [hr(),nbsp(),nbsp()], 
-       ['České datum',bt_datefield('','DATEF',getpar('DATEF')),'[nic]'],
+                           '3'=>'nic'],getpar('RESPFO')?getpar('RESPFO'):'1')],
+       [hr(),hr()], 
+       ['České datum',bt_datefield('','DATEF',getpar('DATEF'))],
        ['Databázový seznam', 
          combo("",'DBLIST',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
-         getpar('DBLIST')),
-         '[nic]'],
+         getpar('DBLIST'))],
        ['Radio seznam', 
          radio("",'DBRADIO',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
-         getpar('DBRADIO')),
-         nbsp()],
+         getpar('DBRADIO'))],
        ['Odstavec',textarea('','AREA',3,80,getpar('AREA'),'class="form-control" style="min-width: 100%"')],   
        ['Checkbox',check_box('','CH1',getpar('CH1')!=''?true:false)], 
-       ['Range',bt_range('','RANGE',0,100,10,getpar('RANGE'),''),' '],
+       ['Range',bt_range('','RANGE',0,100,10,getpar('RANGE'),'')],
        ['Našeptávač -Obec',
-         bt_autocomplete('','OBEC','ajax/auto_obec.php',getpar('OBEC')),'[nic]'],
-       ['České datum II',bt_datefield('','DATEF2',getpar('DATEF2')),' '], 
+         bt_autocomplete('','OBEC','ajax/auto_obec.php',getpar('OBEC'))],
+       ['České datum II',bt_datefield('','DATEF2',getpar('DATEF2'))], 
        ['Našeptávač -Obec 2 ',
-         bt_autocomplete('','OBEC2','ajax/auto_obec.php',getpar('OBEC2')),'[nic]'], 
-       ['Multiselect ',
+         bt_autocomplete('','OBEC2','ajax/auto_obec.php',getpar('OBEC2'))], 
+       ['Multiselect (VannilaSelectBox)',
          bt_multiselect('','MULTI', 
           bt_getoptions($db,
             "select kod, nazev ".
             "from sn_ciselniky ".
             "where ciselnik='faktory' ".
-            "order by poradi asc"),getpar('MULTI')),'[nic]'],
+            "order by poradi asc"),getpar('MULTI'))],
        ['Doplňovací seznam',
-        bt_comboauto('','CA1',to_hash("select distinct den+100*mesic,jmena from jmeniny",$db),getpar('CA1')),
-        '-'],     
-            
-       ['<hr>','<hr>','<hr>'],        
-       [nbsp(),nbsp(20).
+        bt_comboauto('','CA1',to_hash("select distinct den+100*mesic,jmena from jmeniny",$db),getpar('CA1'))],
+       ['Select (VannilaSelectBox)',
+        bt_select("",'DBLIST',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
+        getpar('DBLIST'))]      
+      ]).      
+      '<hr>'.        
+     bt_container(['col-8','col-4'],
+       [[nbsp(20).
         tg('input',' type="reset" class="btn btn-secondary" value="Nastavit původní stav"','noslash'),
-        submit('OK','Odeslat')],
-   ]),hr())
-     
-    );
+        submit('OK','Odeslat')]
+       ]),
+     hr()));
  }
 
  static function result(){

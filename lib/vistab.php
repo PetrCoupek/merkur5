@@ -17,7 +17,7 @@
  *   $tt->route("&vyhl=1&ROL_=1"); 
  * 
  *  Special data searching instecting can be extended from this class
- *  18.10.2022 24.10.2022 09.01.2023 11.01.2023
+ *  18.10.2022 24.10.2022 09.01.2023 11.01.2023 27.01.2023 - viz M5::get('DATA')
  *  
  * 
  */ 
@@ -83,6 +83,7 @@ function lister($context){
     setpar('_whr',$this->genwhere());
     setpar('_flt',urlencode($this->packfilter()));
   }
+  
   $sprikaz=$this->genfilter($this->sprikaz);
   $cprikaz=$this->genfilter($this->cprikaz);
   
@@ -195,8 +196,8 @@ function column_labels(){
 */
 function genwhere(){
  
-  //$DAT=M5::getparm();
-  $DAT=$GLOBALS['DATA'];
+  $DAT=M5::get('DATA');
+  //$DAT=$GLOBALS['DATA'];
   $where='';
   $find_ascii=false;
   if (getpar('GPA_')){
@@ -293,7 +294,8 @@ function genwhere(){
 */
 function packfilter(){  
   //$DAT=M5::getparm();
-  $DAT=$GLOBALS['DATA'];
+  //$DAT=$GLOBALS['DATA'];
+  $DAT=M5::get('DATA');
   $s='';
   foreach ($DAT as $pol => $value){
     if (preg_match("/^(.+)_par$/",$pol, $m)){
@@ -332,9 +334,11 @@ function getfilter(){
      for($i=0;$i<count($F);$i=$i+3){
        setpar($F[$i],$F[$i+2]);
        setpar($F[$i].'_par',$F[$i+1]);
+       //deb($F[$i],false);
      }
   }
-  //deb($GLOBALS['DATA']);
+  //deb($GLOBALS['DATA'],false);
+  //deb(M5::get('DATA'),false);
 }
 
 
@@ -345,7 +349,6 @@ function getfilter(){
 */
 function genfilter($sprikaz){
   $where=getpar('_whr');
-  //deb($where);
   $sprikaz=preg_replace("/\x0d/",' ',$sprikaz);
   $sprikaz=preg_replace("/\x0a/",' ',$sprikaz); //odstran odradkovani, aby fungoval r. vyraz
   $oby=(getpar('_o')!='')?(' '.getpar('_o')):'';

@@ -226,7 +226,8 @@ function pripoj_csv($soubor,$tabulka,$odkud=''){
   while(true){
     $r=fgets($f);
     if ($r===false) break;
-    //$r=iconv("windows-1250","utf-8//TRANSLIT",$r);    
+    //$r=iconv("windows-1250","utf-8//TRANSLIT",$r);
+    $r=str_replace(array("\r", "\n"), '', $r);    
     if ($k==0){
       /* prvni radek obsahuje hlavicky */
       $pole=explode($this->oddelovac,$r);
@@ -260,8 +261,13 @@ function pripoj_csv($soubor,$tabulka,$odkud=''){
         if (strstr($hodnoty[$i],'\"')){
           $hodnoty[$i]=str_replace('\"','"||char(34)||"',$hodnoty[$i]);
         }
-      }      
-      $prikaz="insert into $tabulka (".implode($pole,', ').') values ('.implode($hodnoty,', ').')';
+        if ($hodnoty[$i]!='null') $hodnoty[$i]="'".$hodnoty[$i]."'";
+      } 
+      if (PHP_VERSION<8){
+        $prikaz="insert into $tabulka (".implode($pole,', ').') values ('.implode($hodnoty,', ').')';
+      }else{
+        $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
+      }  
       /*if ($k==9621) {
         echo $prikaz; 
         print_r($hodnoty);

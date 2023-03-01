@@ -5,10 +5,11 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 1.2
+ * @version 1.3
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
  * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022 06.12.2022
  * 07.12.2022 03.01.2023
+ * 10.02.2023 
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -31,7 +32,7 @@ function bt_datefield($label,$name,$value,$add='',$f=''){
   M5::puthf(
             tg('script','src="'.$path.'/vendor/datepicker/js/bootstrap-datepicker.js"',' ').
              tg('script','src="'.$path.'/vendor/datepicker/js/locales/bootstrap-datepicker.cs.js"',' ').
-             tg('link','rel="stylesheet" media="screen,print" href="'.$path.'/vendor/datepicker/css/bootstrap-datepicker3.css" type="text/css" ','noslash'),
+             tg('link','rel="stylesheet" media="screen,print" href="'.$path.'/vendor/datepicker/css/bootstrap-datepicker3.css" type="text/css" ','noslash')."\n",
             'datepicker');
   return tg('script','type="text/javascript"',
           ' $( function() {'.
@@ -73,9 +74,10 @@ function bt_accordion($content,$id='accordion',$aria_exp=1){
  * @param string  $value - default value (f.e. for the database)
  * @return HTML string 
  */
-function bt_autocomplete($label,$name,$url,$value=''){
+function bt_autocomplete($label,$name,$url,$value='',$add=''){
   $path=M5::get('path_relative');
-  M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>','autocomplete');
+  M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>'."\n",
+  'autocomplete');
   $r=ta('span',$label).
      tg('select','class="form-control basicAutoSelect'.$name.'" name="'.$name.'" id="'.$name.'" placeholder="zadejte text..." ',' ');
   $r.=ta('script',"$('.basicAutoSelect$name').autoComplete({
@@ -83,7 +85,7 @@ function bt_autocomplete($label,$name,$url,$value=''){
       url: '".$url."',     
       autocomplete: 'off',
       noResultsText: 'Nic nenalezeno.' },
-      minLength: 1});");    
+      minLength: 1".($add!=''?(",\n".$add):'')."});");    
   if ($value!=''){
     /* set the appropriate value and 
        find also the text written on the screen */
@@ -250,13 +252,14 @@ function bt_menu($title,$leftMenu=array(),$rightSide=''){
  * Bootstrap container helper for table based on CSS styles
  * @param array $colrules - rules for columens in bt-styles
  * @param array $rows  - array with container's rows in table
+ * @param string $rowclass - the class used on every row, default: rowclass
  * example : bt_container(
           ['col-1','col-3','col-8'],
           [['row1 col1 text', 'row1 col3 text', 'row1 col8 text'],
            ['row2 col1 text', 'row2 col3 text', 'row2 col8 text'],
            ['row3 col1 text', 'row3 col3 text', 'row3 col8 text']]);
  */
-function bt_container($colrules,$rows){
+function bt_container($colrules,$rows,$rowclass='row'){
   $r='';
   if (!is_array($colrules)||count($colrules)<1) return '';
   if (!is_array($rows)||count($rows)<1) return '';
@@ -267,7 +270,7 @@ function bt_container($colrules,$rows){
       if (isset($rows[$i][$j])) $t.=tg('div','class="'.$colrules[$j].'"',$rows[$i][$j].' '); 
       /* mezera na konci pro zamezeni degenerace prazdnych tagu */
     }
-    $r.=tg('div','class="row"',$t.' '); /*mezera*/  
+    $r.=tg('div','class="'.$rowclass.'"',$t.' '); /*mezera*/  
   }
   $r=tg('div','class="container"',$r.' '); /*mezera*/
   return $r;
@@ -304,8 +307,11 @@ function bt_hidable_area($label, $docid, $content, $addlabel=''){
  * @param string $add - added directiove in svg, for exaple fill="#000000" to force black icon
 */
 function bt_icon($name='info-square',$add=''){
-  $p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16" ';
-  $p2='version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16"';
+  //$p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16" ';
+  //$p2='version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16"';
+  $p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi '.$name.'" viewBox="0 0 16 16" fill="currentColor"';
+  $p2='version="1.1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi '.$name.'" viewBox="0 0 16 16" fill="currentColor"';
+  
   switch ($name){
   case 'chevron-down':
   case 'on':  
@@ -380,11 +386,18 @@ function bt_icon($name='info-square',$add=''){
   case 'lock':   
   case 'lock-fill':
     return tg('svg',$p1,
-     tg('path','d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"'.$add));    
+     tg('path','d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"'.$add));
+  case 'question':
+    return tg('svg',$p1,
+     tg('path','d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h12zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2H2z"'.$add).
+     tg('path','d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 '.
+     '1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 '.
+     '0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"'.$add));      
   
   /* Moon icons */
   case 'floppy':  
   case 'floppy-disc':
+  case 'save':  
     return tg('svg',$p2,
      tg('path','d="M14 0h-14v16h16v-14l-2-2zM8 2h2v4h-2v-4zM14 14h-12v-12h1v5h9v-5h1.172l0.828 0.828v11.172z"'.$add));
   case 'floppy-add':
@@ -439,6 +452,7 @@ function bt_icon($name='info-square',$add=''){
     return tg('svg',$p2,
     tg('path','d="M6 10l2-1 7-7-1-1-7 7-1 2zM4.52 13.548c-0.494-1.043-1.026-1.574-2.069-2.069l1.548-4.262 2-1.217 6-6h-3l-6 6-3 10 10-3 6-6v-3l-6 6-1.217 2z"'.$add));   
    case 'cross':
+   case 'delete': 
     return tg('svg',$p2,
     tg('path','d="M15.854 12.854c-0-0-0-0-0-0l-4.854-4.854 4.854-4.854c0-0 0-0 0-0 0.052-0.052 0.090-0.113 0.114-0.178 0.066-0.178 '.
      '0.028-0.386-0.114-0.529l-2.293-2.293c-0.143-0.143-0.351-0.181-0.529-0.114-0.065 0.024-0.126 0.062-0.178 0.114 0 0-0 0-0 '.
@@ -656,24 +670,24 @@ function bt_range($label,$name,$min=0,$max=100,$step=1,$value=0,$add=''){
 }
 
 /**
- * input file for multiple options 
+ * input combo for multiple options 
  * @param string $lab - label
  * @param string $id - DOM id in the HTML document and also form field name
  * @param array  $options - result of bt_getoptions function
  * @param array  $data - selected/unselected options
- * @param string $settings
+ * @param array $settings
  */ 
-function bt_multiselect($lab,$id,$options,$data=[],$settings=''){
+function bt_multiselect($lab,$id,$options,$data=[],
+          $settings=[
+            "disableSelectAll"=>true, 
+            "maxHeight"=> 200, 
+            "search"=> true,
+            "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]]){
   $s='';
-  if ($settings=='') {
-    $settings='{"disableSelectAll": true, '.
-     '"maxHeight": 200, "search": true ,"translations": '.
-     '{ "all": "Vše", "items": "položek","selectAll":"Označ vše","clearAll":"Zruš označení"}}';
-  }
   M5::puthf(
-    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"').
+    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"')."\n".
     tg('script','src="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.js"',' '),
-    'multiselect'
+    'vanilaselect'
   );
   $d=array();
   if (is_array($data)) for($i=0;$i<count($data);$i++){
@@ -683,7 +697,38 @@ function bt_multiselect($lab,$id,$options,$data=[],$settings=''){
     $s.=tg('option','value="'.$k.'"'.(isset($d[$k])?' selected':''),$v); 
   }
   $s=$lab.' '.tg('select','id="'.$id.'" name="'.$id.'[]" multiple size="20"',$s).  
-      ta('script','selectBox'.$id.' = new vanillaSelectBox("#'.$id.'", '.$settings.');');
+      ta('script','selectBox'.$id.' = new vanillaSelectBox("#'.$id.'", '.json_encode($settings,JSON_UNESCAPED_UNICODE).');');
+      /* for PHP are essential [] after parametr name in the form */
+  return $s;
+}
+
+/**
+ * input combo for one options 
+ * @param string $lab - label
+ * @param string $id - DOM id in the HTML document and also form field name
+ * @param array  $options - result of bt_getoptions function
+ * @param array  $data - selected/unselected options
+ * @param array $settings
+ * @param array $colors - color schema (classes) for individual options
+ */ 
+function bt_select($lab,$id,$options,$data='',
+          $settings=[
+            "disableSelectAll"=>true, 
+            "maxHeight"=> 200, 
+            "search"=> true,
+            "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]],
+            $colors=[]){
+  $s='';
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"')."\n".
+    tg('script','src="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.js"',' '),
+    'vanilaselect'
+  );
+  foreach ($options as $k=>$v ){
+    $s.=tg('option','value="'.$k.'"'.($data==$k?' selected':'').(isset($colors[$k])?' class="'.$colors[$k].'" ':''),$v); 
+  }
+  $s=$lab.' '.tg('select','id="'.$id.'" name="'.$id.'" ',$s).  
+      ta('script','selectBox'.$id.' = new vanillaSelectBox("#'.$id.'", '.json_encode($settings,JSON_UNESCAPED_UNICODE).');');
       /* for PHP are essential [] after parametr name in the form */
   return $s;
 }
@@ -711,7 +756,7 @@ function bt_getoptions($db,$sql){
  */
 function bt_comboauto($lab,$id,$data=[],$val=''){
   M5::puthf(
-    tg('link','href="'.M5::get('path_relative').'/vendor/comboAutocomplete/cbac.css" rel="stylesheet"').
+    tg('link','href="'.M5::get('path_relative').'/vendor/comboAutocomplete/cbac.css" rel="stylesheet"')."\n".
     tg('script','src="'.M5::get('path_relative').'/vendor/comboAutocomplete/cbac.js"',' '),
     'comboauto'
   );
@@ -731,6 +776,18 @@ function bt_comboauto($lab,$id,$data=[],$val=''){
   
   return $s;
 }
+
+/** The Function returns HTML form submit button  
+ * @param string $name - the name of the tag
+ * @param string $title - the visible label on the button
+ * @param string $class - the CSS class for special buttons
+ * @return string HTML  */
+ 
+ function bt_button($name,$value,$class='btn btn-primary',$title=''){
+    return tg('button','name="'.$name.'" value="'.$value.'" class="'.$class.'"',$title!=''?$title:$value).para($name,$value);
+ }
+
+ 
 
 
 ?>

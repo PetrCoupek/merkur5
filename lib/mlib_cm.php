@@ -16,13 +16,25 @@
  * 15.06.2022 - zakomentovani vsech prikazu debug
  * 17.10.2022 - merkur version
  * 02.12.2022 - refakturing na merkur5
+ * 05.01.2023 - zotaveni z fatalnich chyb
  */
 define('MIC_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
+
+register_shutdown_function( "fatal_handler" );
+function fatal_handler() {
+    deb(error_get_last());
+    htpr('Něco se pokazilo.');
+    if (error_get_last()!=NULL) {
+       htpr_all(); 
+       die;
+    }   
+}
 
 class Cm{
 
   var $tree=array();  /* internal tree with menu items */
-  var $db;
+  var $db, $table, $leftside, $ace_editor, $sysdate, $begin, $end, $concat, $debug, $default_node,
+   $user, $legacy, $afterEdit, $typy, $def_s_p, $dv, $def_la, $erh, $item, $err;
     
   /** constructor for the cms 
    * @param string $table - the name of the tree table
@@ -403,7 +415,9 @@ class Cm{
      * v jednotlivych polozkach
      */          
     $a=to_array(
-        "select id,typ_polozky,nazev,zkr_nazev,popisek,poradi,zarovnani from $table where id_up=$item and ".
+        "select id,typ_polozky,nazev,zkr_nazev,popisek,poradi,zarovnani ".
+        "from $table ".
+        "where id_up=$item and ".
         "id in (".
         " select distinct id from $table_prava ". 
         " where ". 
@@ -432,13 +446,13 @@ class Cm{
           try{
             //deb($D['POPISEK']);
             $D['POPISEK']=str_replace('require','include',$D['POPISEK']); /* require hands pre-compile PHP system core */
-            @eval($D['POPISEK']);
+            eval($D['POPISEK']);
+            /* neni @eval($D['POPISEK']) */
           }catch (Exception $e){
             /*return false;*/
-            //echo $e;
-            htpr($e);
+            deb($e);
           }  
-          restore_error_handler();
+          //restore_error_handler();
           break;
         case 'text': htpr($D['NAZEV']!=''?ta('h3',$D['NAZEV']):'',$D['POPISEK']);
           break;
@@ -762,7 +776,7 @@ class Cm{
       $sql=$this->begin.
       "insert into $table_strom ".
                "(id, id_up, nazev, zkr_nazev, panazev, poradi, popisek, sloupcu, zarovnani, nazev_e, zkr_nazev_e, popisek_e, dbuser, dbdatum) ".
-      "values  (:id,:id_up,:nazev,:zkr_nazev,:panazev,:poradi,:popisek,:sloupcu,:zarovnani,:nazev_e,:zkr_nazev_e,:popisek_e,:dbuser,".$this->sysdate."); ".
+      "values  (:id,:id_up,:nazev,:zkr_nazev,:panazev,:poradi,:popisek,:sloupcu,:zarovnani,:nazev_e,:zkr_nazev_e,:popisek_e,:dbuser, ".$this->sysdate."); ".
       "insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
       " values (:id,'FOLDER','NONE',:uzivatel,'OWN',:dbuser,".$this->sysdate."); ".
       $this->end;
@@ -1179,10 +1193,10 @@ class Cm{
     }  
     $sql1=
       "insert into $table_polozky ".
-      "(id,id_up,nazev,zkr_nazev,poradi,popisek,zarovnani,typ_polozky,nazev_e,".
-      "zkr_nazev_e,popisek_e,dbuser,dbdatum) ".
-      "values (:id,:id_up,:nazev,:zkr_nazev,:poradi,:popisek,:zarovnani,:typ_polozky,:nazev_e,".
-      ":zkr_nazev_e,:popisek_e,'".$this->user."',".$this->sysdate."); ";
+      "(id, id_up ,nazev, zkr_nazev, poradi, popisek, zarovnani, typ_polozky, nazev_e, ".
+      "zkr_nazev_e, popisek_e, dbuser, dbdatum) ".
+      "values (:id, :id_up, :nazev, :zkr_nazev, :poradi, :popisek, :zarovnani, :typ_polozky, :nazev_e, ".
+      ":zkr_nazev_e, :popisek_e, '".$this->user."', ".$this->sysdate.") ";
     $bind1=array(
      ':id_up'=>(integer)getpar('ID_UP'),
      ':nazev'=>(string)getpar('NAZEV'),
@@ -1197,7 +1211,7 @@ class Cm{
      ':id'=>(integer)$next_id
     );  
     $sql2="insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
-      " values (:id,'ITEM','NONE','".$this->user."','OWN','".$this->user."',".$this->sysdate."); ";
+      " values (:id,'ITEM','NONE','".$this->user."','OWN','".$this->user."',".$this->sysdate.") ";
     $bind2=array(
       ':id'=>(integer)$next_id);  
     if ($this->db->Sql($sql1,$bind1)){
@@ -1209,6 +1223,7 @@ class Cm{
     }
     if ($er){
        htpr(bt_dialog('Chyba','Data nebyla uložena.'));
+       
        setpar('POPISEK',$popisek);
        setpar('NEW',1);
        return -1;

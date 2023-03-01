@@ -14,7 +14,7 @@ htpr(ta('h1','Icons'),
     'Bootstrap',
     ['chevron-down','chevron-left','chevron-right','chevron-up','arrow-left','arrow-right',
      'caret-down','caret-up','check','check-circle','geo-alt','menu-app',
-     'power','plusminus','exclamation-triangle','check-square','diamond','dot','lock','aaaa'
+     'power','plusminus','exclamation-triangle','check-square','diamond','dot','lock','info','question'
     ]),
   br(2),  
   ikona_sekvence(
