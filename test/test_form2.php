@@ -60,8 +60,14 @@ class Testform extends M5{
        ['Doplňovací seznam',
         bt_comboauto('','CA1',to_hash("select distinct den+100*mesic,jmena from jmeniny",$db),getpar('CA1'))],
        ['Select (VannilaSelectBox)',
-        bt_select("",'DBLIST',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
-        getpar('DBLIST'))]      
+        bt_select("",'DBLIST2',to_hash("select den||'.'||mesic||'.',jmena from jmeniny order by jmena asc",$db),
+        getpar('DBLIST2'),
+        [ "disableSelectAll"=>true, 
+          "maxHeight"=> 200, 
+          "search"=> false,
+          "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]
+        ])
+       ] 
       ]).      
       '<hr>'.        
      bt_container(['col-8','col-4'],
@@ -83,7 +89,9 @@ class Testform extends M5{
                                            getpar('RANGE'),
                                            getpar('OBEC'),
                                            getpar('OBEC2'),
-                           '['.implode(';',(array)getpar('MULTI')).']'
+                           '['.implode(';',(array)getpar('MULTI')).']',
+                                           getpar('CA1'),
+                                           getpar('DBLIST2')
                               ]);
    if (getpar('RESPFO')==1)
     htpr(tg('div','class="p-2"',

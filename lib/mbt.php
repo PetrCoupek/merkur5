@@ -252,7 +252,7 @@ function bt_menu($title,$leftMenu=array(),$rightSide=''){
  * Bootstrap container helper for table based on CSS styles
  * @param array $colrules - rules for columens in bt-styles
  * @param array $rows  - array with container's rows in table
- * @param string $rowclass - the class used on every row, default: rowclass
+ * @param string $rowclass - the class used on every row, default: row
  * example : bt_container(
           ['col-1','col-3','col-8'],
           [['row1 col1 text', 'row1 col3 text', 'row1 col8 text'],

@@ -18,7 +18,7 @@
  * 
  *  Special data searching instecting can be extended from this class
  *  18.10.2022 24.10.2022 09.01.2023 11.01.2023 27.01.2023 - viz M5::get('DATA')
- *  
+ *  09.03.2023 
  * 
  */ 
 include_once "mbt.php";
@@ -174,6 +174,7 @@ function form_param($context){
 }
 
 /** based on pragma, it constructs the labels fo columns needed by bt_lister
+ * attributes not listed in table have set attribute 'nolist' to true in pragma.
  */ 
 function column_labels(){
   $a=$this->pragma;
@@ -182,7 +183,7 @@ function column_labels(){
   }
   $b=array();
   for ($i=0;$i<count($a);$i++){
-    if (isset($a[$i]['name'])){
+    if (isset($a[$i]['name']) && !isset($a[$i]['nolist'])){
       $b[$a[$i]['name']]=(isset($a[$i]['comment']))?$a[$i]['comment']:$a[$i]['name'];
     }                  
   }
@@ -471,9 +472,9 @@ function detail($context,$custom=''){
 
 class EdiTab extends VisTab{
 
-  var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz;
+var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz,$rowid;
 
-  function __construct($param,$db){
+function __construct($param,$db){
     parent::__construct($param,$db);
     if (getpar('_det')){
       /* detail form or detail form action */
@@ -498,35 +499,46 @@ class EdiTab extends VisTab{
         }
         $this->uprikaz.=" where ";
         $this->iprikaz.='('.$ip1.') values ('.$ip2.')'; 
-      }
-      $rc='';
-      /* construct bind content - for insert and update */
-      if (getpar('_ins') || getpar('_upd'))
-        for ($i=0;$i<count($this->pragma);$i++){
-          $name=$this->pragma[$i]['name'];
-          $this->bind[':'.$name]=getpar($name);
+        $rc='';
+        /* construct bind content - for insert and update */
+        if (getpar('_ins') || getpar('_upd'))
+          for ($i=0;$i<count($this->pragma);$i++){
+            $name=$this->pragma[$i]['name'];
+            $this->bind[':'.$name]=getpar($name);
         }  
-      /* construct aditional bind variables - for update nad delete */
-      if (getpar('_upd') || getpar('_del')){
-        for ($i=0;$i<count($this->pragma);$i++)
-          if (isset($this->pragma[$i]['pk'])){
-            $name=$this->pragma[$i]['name']; 
-            $rc.=($rc==''?'':' and ').($name.'='.':'.strtolower($name));
-            $this->bind[':'.strtolower($name)]=getpar(strtolower($name));
-          }
-        $this->uprikaz.=$rc;   
-        $this->rprikaz.=$rc;
-      }  
+        /* construct aditional bind variables - for update nad delete */
+        if (getpar('_upd') || getpar('_del')){
+          for ($i=0;$i<count($this->pragma);$i++)
+            if (isset($this->pragma[$i]['pk'])){
+              $name=$this->pragma[$i]['name']; 
+              $rc.=($rc==''?'':' and ').($name.'='.':'.strtolower($name));
+              $this->bind[':'.strtolower($name)]=getpar(strtolower($name));
+            }
+          $this->uprikaz.=$rc;   
+          $this->rprikaz.=$rc;
+        }  
+    }else{
+      if (getpar('_upd')){
+        $this->uprikaz=isset($param['uprikaz'])?$param['uprikaz'][0]:'';
+        $this->bind=$param['uprikaz'][1];
+      }elseif (getpar('_del')){
+        $this->rprikaz=isset($param['rprikaz'])?$param['rprikaz'][0]:'';
+        $this->bind=$param['rprikaz'][1];
+      }elseif (getpar('_ins')){
+        $this->iprikaz=isset($param['iprikaz'])?$param['iprikaz'][0]:'';
+        $this->bind=$param['iprikaz'][1];
+      }
     }
   }  
-  
-  function detail_form($data,$context){
+}
+
+function detail_form($context,$data=null){
     return tg('form','method="post" action="?'.$context.'"',
      para('_o',getpar('_o')).para('_flt',getpar('_flt')).para('_ofs',getpar('_ofs')).
      '[replace]');
-  }
+}
   
-  function detail($context,$custom=''){
+function detail($context,$custom=''){
     $eprikaz=$this->genfilter($this->dprikaz);
     $db=$this->db;
     if ($this->mode=='I'){
@@ -541,6 +553,9 @@ class EdiTab extends VisTab{
     }else{
       $r=$db->SqlFetchArray($eprikaz,[],1,getpar('_ofs',1));
       $data=$r[0];
+      if (isset($this->param['rowidcolumn'])){
+        $this->rowid=$data[$this->param['rowidcolumn']];
+      }
     }       
     //parent::detail($context,$this->detail_form($data,$context));
     $original_primary='';
@@ -568,7 +583,7 @@ class EdiTab extends VisTab{
               gl( ($this->mode=='I')?
                    gl(submit('_ins','Vložit','btn btn-primary')):
                    gl(submit('_upd','Uložit','btn btn-primary'),nbsp(5),
-                     submit('_del','Smazat','btn btn-primary'),
+                     submit('_del','Smazat','btn btn-secondary'),
                      $original_primary
     ), 
                  para('_o',getpar('_o')),
@@ -577,8 +592,9 @@ class EdiTab extends VisTab{
                  para('_det',1)) 
              ];
       $custom=tg('form','method="post" action="?'.$context.'"',
-         bt_container(['col-4','col-8'],$b));
-    }
+        ta('fieldset',
+         bt_container(['col-4','col-8'],$b)));
+   }
     
     /* pocet zaznamu a listovani po zaznamech */
     if ($this->mode=='I') setpar('_ofs',1); /* pri vkladani noveho zaznamu se listovani da na zacatek */
@@ -593,7 +609,7 @@ class EdiTab extends VisTab{
     }else{
       $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
         'Zpět',
-        'class="btn btn-primary"');
+        'class="btn btn-secondary"');
     }     
   
   
@@ -610,9 +626,9 @@ class EdiTab extends VisTab{
         );
     
     //htpr(print_r($r,false));
-  }
+}
   
-  function route($context){  
+function route($context){  
     if (getpar('_se')){
       $this->form_param($context);
     }elseif (getpar('_det')){
@@ -652,12 +668,12 @@ class EdiTab extends VisTab{
       $this->mode='i';
       return false;
     }     
-  }
+}
   
   /** update action
    * @return bool $result means to stay in detail - in case of update always
    */
-  function update(){
+function update(){
     $er=$this->db->Sql($this->uprikaz,$this->bind);
     if (!$er){
       htpr(bt_alert('Záznam byl uložen'));
@@ -665,12 +681,12 @@ class EdiTab extends VisTab{
       htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
     }
     return true;  
-  }
+}
   
   /** delete action
    * @return bool $result means to stay in detail - in case of update always
    */
-  function delete(){
+function delete(){
     //deb($this->rprikaz,false);deb($this->bind,false);
     $er=$this->db->Sql($this->rprikaz,$this->bind);
     if (!$er){
@@ -681,15 +697,15 @@ class EdiTab extends VisTab{
       htpr(bt_alert('Záznam nebyl smazán '.$this->db->Error,'alert-danger'));
       return false;
     }  
-  }
+}
   
   /** lister
    * @param string $context
    */
-  function lister($context){
+function lister($context){
     parent::lister($context);
     htpr(ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"'));    
-  }
+}
   
 }
    

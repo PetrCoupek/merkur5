@@ -800,9 +800,9 @@ function radio($label,$name,$list,$def='',$js=''){
   foreach ($list as $k=>$v){
     $r.=tg('input',
          'type="radio" name="'.$name.'" value="'.$k.'"'.
-         ' id="'.$name.'_'.$k.'" '.($k==$def?'checked="checked"':''),
+         ' id="'.$name.'_'.$k.'" style="display:inline;" '.($k==$def?'checked="checked"':''),
          'noslash').
-        $v.nbsp(6)."\n";
+        $v.nbsp(1)."\n";
   }
   return $r;  
 }
@@ -1223,5 +1223,15 @@ function postLink($link,$label,$params,$addpar=''){
 
   return $r;
 }
+
+/** sanitizer for non-existing variables call
+ *  @param $par - variable
+ *  @param $datault - when does not exists, return this
+ *  @return value of the existing variable or dafault
+ */
+function df($hash,$par,$default=''){
+  return isset($hash[$par])?$hash[$par]:$default;
+}
+
 
 ?>
