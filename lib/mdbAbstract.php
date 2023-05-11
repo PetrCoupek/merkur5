@@ -105,8 +105,7 @@ abstract class OpenDB {
     $h=array();
     if ($this->data) foreach ($this->data as $k=>$v){
       $h[$k]=isset($this->data[$k])?(
-       (gettype($this->data[$k])=="string")?$v:$this->data[$k]->load()
-       ):'';      
+       (gettype($this->data[$k])=="string")?$v:$this->data[$k]->load()):'';      
     }
     return $h;  
   }  

@@ -24,7 +24,7 @@ class Testform extends M5{
     })'));
 
    
-   htpr(
+   htpr(bt_tooltip('Test informační bubliny.','Info'.bt_icon('info')).
     tg('form','method="post" action="?" class="bg-light p-2 border" ',
      ta('h4','Hlavička formuláře').
      bt_container(['col-4','col-8'],

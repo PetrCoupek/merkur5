@@ -49,7 +49,7 @@ abstract class M5_core{
   static function iniset(){
     self::set('debug',false);  /* debug status */
     self::set('errors','');    /* erors area for debug mode */
-    tick('start');
+    //tick('start');
     self::set('header','');    /* header text */
     self::set('htfr','');      /* frontend content - scripts and styles */
     self::set('htpr','');      /* output text/html buffer */
@@ -731,7 +731,7 @@ function lov($label,$name,$connection,$sele,$def='',$js='',$limit=12000){
  
  /* dynamicky seznam generovany z databaze */
  if (is_string($connection)) {
-   $db=new OpenDB($connection);
+   $db=new OpenDB_Oracle($connection);
  }elseif(is_object($connection)){
    $db=$connection;
  }else{

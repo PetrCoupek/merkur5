@@ -6,6 +6,7 @@
 
 include_once '../lib/mlib.php';
 M5::set('header','Map test 4');
+M5::set('debug',true);
 M5::skeleton('../');
 M5::puthf(
  tg('link','rel="stylesheet" href="https://js.arcgis.com/4.25/esri/themes/light/main.css"').
@@ -18,9 +19,10 @@ M5::puthf(
     "esri/layers/MapImageLayer",
     "esri/Basemap",
     "esri/Graphic",
-    "esri/layers/GraphicsLayer"
+    "esri/layers/GraphicsLayer",
+    "esri/geometry/SpatialReference"
 
-    ], function(esriConfig,Map, MapView, MapImageLayer, Basemap, Graphic, GraphicsLayer) {
+    ], function(esriConfig,Map, MapView, MapImageLayer, Basemap, Graphic, GraphicsLayer, SpatialReference) {
 
   //esriConfig.apiKey = "YOUR_API_KEY";
  var podklad=new MapImageLayer({
@@ -33,17 +35,16 @@ M5::puthf(
     title: "basemap",
     id: "basemap"});
     
- var map= new Map({
+ var map = new Map({
    basemap: basemap
    });
 
   const view = new MapView({
       container: "viewDiv", // Reference to the view div created in step 5
       map: map, // Reference to the map object created before the view
-      zoom: 10
-      //, // Sets zoom level based on level of detail (LOD)
-      //center: [document.getElementById('X').value, 
-      //         document.getElementById('Y').value] // Sets center point of view using longitude,latitude
+      center: [document.getElementById('Y').value, 
+               document.getElementById('X').value], // Sets center point of view using longitude,latitude
+      zoom: 10  // Sets zoom level based on level of detail (LOD)         
     });
  
 
@@ -54,10 +55,13 @@ M5::puthf(
         
     const point = { //Create a point
      type: "point",
-     longitude: parseFloat(document.getElementById('X').value),
-     latitude: parseFloat(document.getElementById('Y').value),
-     x:parseFloat(document.getElementById('Y').value),
-     y:parseFloat(document.getElementById('X').value)
+     //longitude: 16,
+     //latitude: 49.5,
+     y:parseFloat(document.getElementById('Y').value),
+     x:parseFloat(document.getElementById('X').value),
+     spatialReference: {
+        wkid: 5514
+      }
     };
     
     console.log(point);
@@ -87,12 +91,16 @@ EOT
  'maptest');
          
 htpr(//tg('div','style="width: 300px; height: 300px;"',
-  textfield('X','X',15,15,'-600000','id="X"'), 
-  textfield('Y','Y',15,15,'-1100000','id="Y"'),
-  tg('div','id="viewDiv" style="width: 800px; height: 800px;"' ,'')
+  tg('form','method="post" action="?" class="bg-light p-2 border" ',
+    gl(textfield('x','X',10,10,getpar('X')?getpar('X'):'-600000','id="X"'), 
+      textfield(' y','Y',10,10,getpar('Y')?getpar('Y'):'-1100000','id="Y"'),
+      nbsp(1),submit("center",'OK',"btn btn-primary"),
+      tg('div','id="viewDiv" style="width: 800px; height: 800px;"' ,'')
+    )
+  )  
   //)
   );   
-
+deb(getpar('X').'; '.getpar('Y'));
 M5::done();
 
 ?>
