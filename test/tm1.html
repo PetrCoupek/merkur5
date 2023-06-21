@@ -1,0 +1,238 @@
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <title>
+      Test editor
+    </title>
+
+    <link
+      rel="stylesheet"
+      href="https://js.arcgis.com/4.26/esri/themes/light/main.css"
+    />
+    <script src="https://js.arcgis.com/4.26/"></script>
+
+    <style>
+      html,
+      body,
+      #viewDiv {
+        padding: 0;
+        margin: 0;
+        height: 100%;
+        width: 100%;
+      }
+
+      #instructions {
+        width: 300px;
+        background: #fff;
+        padding: 20px;
+      }
+    </style>
+    <script>
+      require([
+        "esri/widgets/Sketch/SketchViewModel",
+        "esri/Graphic",
+        "esri/Map",
+        "esri/views/MapView",
+        "esri/layers/GraphicsLayer",
+        "esri/geometry/Polygon",
+        "esri/geometry/geometryEngine",
+        
+        "esri/layers/MapImageLayer",
+        "esri/Basemap",
+        "esri/geometry/SpatialReference"
+        
+      ], (
+        SketchViewModel,
+        Graphic,
+        Map,
+        MapView,
+        GraphicsLayer,
+        Polygon,
+        geometryEngine,
+        
+        MapImageLayer, Basemap, SpatialReference
+        
+      ) => {
+        let sketchViewModel,
+          boundaryPolygon,
+          validSymbol,
+          invalidSymbol,
+          newDevelopmentGraphic;
+
+        let intersects = false;
+        let contains = true;
+
+        var podklad=new MapImageLayer({
+        url: "https://mapy.geology.cz/arcgis/rest/services/Topografie/ZABAGED_komplet/MapServer",
+        title: "Basemap" });
+     
+
+        var basemap = new Basemap({
+         baseLayers: [podklad],
+         title: "basemap",
+         id: "basemap"}); 
+
+        const graphicsLayer = new GraphicsLayer();
+
+        var map = new Map({
+                basemap: basemap
+         });
+         map.add(graphicsLayer);
+         //map.add(boundaryLayer);
+
+        const view = new MapView({
+          container: "viewDiv", // Reference to the view div created in step 5
+          map: map, // Reference to the map object created before the view
+          center: [-600000,  -1100000], // Sets center point of view using longitude,latitude
+          zoom: 10  // Sets zoom level based on level of detail (LOD)         
+        });
+            
+        setUpGraphicClickHandler();
+
+        view.when(() => {
+          
+          // Add the boundary polygon and new lot polygon graphics
+          addGraphics();
+
+          // Create a new instance of sketchViewModel
+          sketchViewModel = new SketchViewModel({
+            view: view,
+            layer: graphicsLayer,
+            updateOnGraphicClick: false,
+            defaultUpdateOptions: {
+              // set the default options for the update operations
+              toggleToolOnClick: false // only reshape operation will be enabled
+            }
+          });
+
+          // Listen to sketchViewModel's update event to do
+          // graphic reshape or move validation
+          sketchViewModel.on(["update", "undo", "redo"], onGraphicUpdate);
+        });
+
+        function onGraphicUpdate(event) {
+          // get the graphic as it is being updated
+          const graphic = event.graphics[0];
+          // check if the graphic is intersecting school buffers or is
+          // still contained by the boundary polygon as the graphic is being updated
+          //intersects = geometryEngine.intersects(buffers, graphic.geometry);
+          //contains = geometryEngine.contains(boundaryPolygon, graphic.geometry);
+          intersect=false;
+          contains=true;
+          
+          console.log('on update..');
+
+          // change the graphic symbol to valid or invalid symbol
+          // depending the graphic location
+          graphic.symbol =
+            intersects || !contains ? invalidSymbol : validSymbol;
+
+          // check if the update event's the toolEventInfo.type is move-stop or reshape-stop
+          // then it means user finished moving or reshaping the graphic, call complete method.
+          // this will change update event state to complete and we will check the validity of the graphic location.
+          if (
+            event.toolEventInfo &&
+            (event.toolEventInfo.type === "move-stop" ||
+              event.toolEventInfo.type === "reshape-stop")
+          ) {
+            if (contains && !intersects) {
+              sketchViewModel.complete();
+              console.log('complete');
+            }
+          } else if (event.state === "complete") {
+            // graphic moving or reshaping has been completed or cancelled (distinguish with aborted property)
+            // if the graphic is in an illegal spot, call sketchviewmodel's update method again
+            // giving user a chance to correct the location of the graphic
+            if (!contains || intersects) {
+              sketchViewModel.update([graphic], { tool: "reshape" });
+              console.log('update!');
+            }
+          }
+        }
+        // This function is called when a user clicks on the view.
+        function setUpGraphicClickHandler() {
+          view.on("click", (event) => {
+            // check if the sketch's state active if it is then that means
+            // the graphic is already being updated, no action required.
+            if (sketchViewModel.state === "active") {
+              console.log('state active');
+              return;
+            }
+            view.hitTest(event).then((response) => {
+              console.log('hit test..');
+              const results = response.results;
+              // Check if the new development graphic was clicked and pass
+              // the graphic to sketchViewModel.update() with reshape tool.
+              results.forEach((result) => {
+                if (
+                  result.graphic.layer === sketchViewModel.layer &&
+                  result.graphic.attributes &&
+                  result.graphic.attributes.newDevelopment
+                ) {
+                  sketchViewModel.update([result.graphic], { tool: "reshape" });
+                }
+              });
+            });
+          });
+        }
+
+        // Add new development polygon graphic and boundary polygon graphics
+        function addGraphics() {
+         
+          const polygon = {
+           type: "polygon", // autocasts as new Polyline()
+           rings: [
+            [-600000, -1100000],
+            [-600000, -1133000],
+            [-620000, -1133000],
+            [-630000, -1100000],
+            [-600000, -1100000]
+           ],
+           spatialReference: {
+             wkid: 5514
+           }
+          };
+           
+          validSymbol = createSymbol(
+            [0, 170, 255, 0.8], "solid", 2,  [255, 255, 255]
+          );
+          
+          newDevelopmentGraphic = new Graphic({
+            geometry: polygon,
+            symbol: validSymbol,
+            attributes: {
+              newDevelopment: "new store"
+            }
+          });        
+
+          graphicsLayer.addMany([newDevelopmentGraphic]);
+          console.log(newDevelopmentGraphic);
+          
+        }
+
+        function createSymbol(color, style, width, outlineColor) {
+          return {
+            type: "simple-fill",
+            style: style,
+            color: color,
+            outline: {
+              color: outlineColor,
+              width: width
+            }
+          };
+        }
+
+        
+      });
+    </script>
+  </head>
+
+  <body>
+    <div id="viewDiv"></div>
+    
+  </body>
+</html>
