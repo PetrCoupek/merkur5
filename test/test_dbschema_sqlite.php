@@ -6,7 +6,8 @@
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-define('DBFILE',"d:/Data/QGIS/vrty_k2.sqlite");
+//define('DBFILE',"d:/Data/QGIS/vrty_k2.sqlite");
+define('DBFILE',"d:/Data/sqlite/gdo_data.sqlite");
 
 class App extends M5{
   static $dbconnect="file=".DBFILE.",mode=1";

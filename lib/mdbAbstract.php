@@ -6,6 +6,7 @@
      
  /*  2014-2022
   *  add offset parameter
+  *  05.06.2023 - prepare for consistent treating possible BLOBS (=as strings) in databases (aka Oracle)
  */
  
 abstract class OpenDB {
@@ -120,8 +121,12 @@ abstract class OpenDB {
    */
   function SqlFetch($prikaz,$bind=array()){
     /* zjednoduseni nacteni hodnoty z db primo do promenne */
-    if (!$this->Sql($prikaz,$bind) && $this->FetchRowA()) {
-      return (string)($this->data[0]);
+    if (!$this->Sql($prikaz,$bind) && $this->FetchRowA() ) {
+      if (gettype($this->data[0])=="object"){
+        return (string)($this->data[0]->load()); /* Oracle BLOB */
+      }else{
+        return (string)($this->data[0]);
+      }  
     }else{
       return '';
     }  

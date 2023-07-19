@@ -19,7 +19,7 @@
  *  Special data searching instecting can be extended from this class
  *  18.10.2022 24.10.2022 09.01.2023 11.01.2023 27.01.2023 - viz M5::get('DATA')
  *  09.03.2023 
- * 
+ *  20.06.2023
  */ 
 include_once "mbt.php";
 
@@ -42,7 +42,8 @@ function __construct($param,$db){
     $this->pragma=$this->db->Pragma("table_info('$t')");
     $this->dprikaz=$this->sprikaz;
     /* primarni klic z pragma informace */
-    for($i=0,$pk='';$i<count($this->pragma);$i++)
+    if ($this->pragma)
+     for($i=0,$pk='';$i<count($this->pragma);$i++)
       if (isset($this->pragma[$i]['pk'])) 
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
@@ -472,7 +473,7 @@ function detail($context,$custom=''){
 
 class EdiTab extends VisTab{
 
-var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz,$rowid;
+var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz,$rowid,$eprikaz;
 
 function __construct($param,$db){
     parent::__construct($param,$db);
@@ -539,7 +540,7 @@ function detail_form($context,$data=null){
 }
   
 function detail($context,$custom=''){
-    $eprikaz=$this->genfilter($this->dprikaz);
+    $this->eprikaz=$this->genfilter($this->dprikaz);
     $db=$this->db;
     if ($this->mode=='I'){
       $data=[]; 
@@ -551,7 +552,7 @@ function detail($context,$custom=''){
       $data=M5::getparm();
       $this->mode='I'; /* dalsi pokus o ulozeni nove vety */
     }else{
-      $r=$db->SqlFetchArray($eprikaz,[],1,getpar('_ofs',1));
+      $r=$db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
       $data=$r[0];
       if (isset($this->param['rowidcolumn'])){
         $this->rowid=$data[$this->param['rowidcolumn']];
@@ -560,7 +561,7 @@ function detail($context,$custom=''){
     //parent::detail($context,$this->detail_form($data,$context));
     $original_primary='';
     if ($custom==''){
-      $r=$this->db->SqlFetchArray($eprikaz,[],1,getpar('_ofs',1));
+      $r=$this->db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
       /* popisy polozek mohou byt z popisu entity v databazi */
       $p=[];
       for($i=0;$i<count($this->pragma);$i++){

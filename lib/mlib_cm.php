@@ -2,7 +2,7 @@
 /**
  * Content Management System object
  * @author Petr Čoupek 
- * @version 0.00
+ * @version 1.00
  * 28.2.2020 , 23.03.2020, 30.03.2020, 31.03.2020,  6.5.2020, 14.5.2020, 15.5.2020
  * 27.5.2020, 11.6.2020 18.8.2020 - localtime SQLite
  * 17.09.2020
@@ -17,6 +17,7 @@
  * 17.10.2022 - merkur version
  * 02.12.2022 - refakturing na merkur5
  * 05.01.2023 - zotaveni z fatalnich chyb
+ * 27.06.2023 - implementace uzivatelskych nastaveni
  */
 define('MIC_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
 
@@ -66,7 +67,8 @@ class Cm{
          $this->sysdate="sysdate";
      }
      $this->debug=false;
-     $this->legacy=true; /* true when folder contains "old-fashioned" scripts */
+     $this->legacy=true; /* true when the folder contains "old-fashioned" scripts with using eval */
+                         /* false when only include_once directive is allowed */
      $this->default_node=1;
      /* login check   */
      if (getpar('__LOG')!=''){
@@ -516,7 +518,7 @@ class Cm{
         if ($deep==0){
           $s.= tg('div','',
                 ahref($value['href'],$value['name'],'class="list-group-item list-group-item-action bg-ligth'.
-                      ($current?' active':'').'"').                //tg('span','class="tree-toggler"','+').
+                      ($current?' active':'').'" ').                //tg('span','class="tree-toggler"','+').
                 self::sidebar_part($value,$item,$deep+1,$rootnode,$cms));
         }else{
            if ($cms->rootNode($it)==$rootnode) { /* rozbaluje se jen aktivni cast stromu od korene */
@@ -533,18 +535,19 @@ class Cm{
   }
   
   /** sidebar generator - left menu tree from the root
-   * @param array menu tree
-   * @param integer item 
-   * @param integer rootnode
-   * @param object cms
-   * @param string addings
-   *  */ 
-  function sidebar($t,$item,$rootnode,$cms,$addings=''){
+   * @param array $t menu tree
+   * @param integer $item 
+   * @param integer $rootnode
+   * @param object $cms
+   * @param string $addings
+   * @param string $add_style (f.e. 'style="background-color:#FAFFFA"' )
+   */ 
+  function sidebar($t,$item,$rootnode,$cms,$addings='',$add_style=''){
     $s=self::sidebar_part($t,$item,0,$rootnode,$cms); /* do prvni iterace se preda cely strom */
     
-    return tg('div','class="bg-light border-right" id="sidebar-wrapper"',"\n".
-            tg('div','class="sidebar-heading "',$cms->getUserInfo($this->user).$addings).
-            tg('div','class="list-group list-group-flush"',$s)
+    return tg('div','class="bg-light border-right" id="sidebar-wrapper" ',"\n".
+            tg('div','class="sidebar-heading" '.$add_style,$cms->getUserInfo($this->user).$addings).
+            tg('div','class="list-group list-group-flush" '.$add_style,$s)
            );
   } 
   
@@ -1356,16 +1359,17 @@ class Cm{
      
   }
 
-  /** get infor if can manage current item (folder, article)
+  /** get info if can manage current item (folder, article)
    *  @param $item
    *  @param $type ('FOLDER','ITEM')
    */
   function canManage($item,$type='ITEM'){
-    return true;
+    if ($item && $type) return true;
   }
   
+  /** prototype for overrriding */
   function itemToPath($item){
-  
+    if ($item) return '';
   }
   
   function folderAccessProp($sitem){
@@ -1580,6 +1584,62 @@ class Cm{
       return true;
     }
     return false;  
+  }
+
+  /** interface to database stored login-user parametres
+   *  @param string $key the parametr
+   *  @return string a value of the $key parametr, empty string if missing
+   */
+  function get_user_setting($key){
+    $value=$this->db->SqlFetch(
+      "select hodnota ".
+      "from ".$this->table."_unastav ".
+      "where ljmeno=:ljmeno and param=:param",
+      array(':ljmeno'=>$this->user,
+            ':param'=> $key));
+    return $value;
+  }
+  
+  /** check if the user-specific parametr was set in database
+   *  @param string $key the parametr
+   *  @return int 1 if the parametr is present in the database, 0 otherwise
+   */
+  function exists_user_setting($key){
+    $count=$this->db->SqlFetch(
+      "select count(hodnota) as pocet ".
+      "from ".$this->table."_unastav ".
+      "where ljmeno=:ljmeno and param=:param",
+      array(':ljmeno'=>$this->user,
+            ':param'=> $key));
+    return (int)$count;
+  }
+   
+  /** interface to database stored login-user parametres
+   *  @param string $key the parametr
+   *  @return string a value of the $key parametr, empty string if missing
+   */
+  function set_user_setting($key,$value){
+    if ($this->exists_user_setting($key)){
+       /* update */
+       $e=$this->db->Sql(
+         "update ".$this->table."_unastav ".
+         "set hodnota=:hodnota ".
+         "where ljmeno=:ljmeno and param=:param",
+         array(':ljmeno'=>$this->user,
+               ':param'=> $key,
+               ':hodnota'=>$value));
+    }else{
+       /* insert */
+       $e=$this->db->Sql(
+        "insert into  ".$this->table."_unastav ".
+        "(ljmeno, param, hodnota) values (:ljmeno, :param, :hodnota) ",
+        array(':ljmeno'=>$this->user,
+              ':param'=> $key,
+              ':hodnota'=>$value));
+    }
+    if ($e) {
+        htpr(bt_alert('Parametr '.$key.' se nenastavil na hodnotu '.$value),'alert-danger');  
+    }
   }
 }
 

@@ -7,11 +7,13 @@
  *  24.07.2019 - upravy 
  *  15.01.2020 - upravy
  *  22.01.2020 - import csv
+ *  22.06.2023 - upravy
  */
 
 include "lib/libdbSQLite.php"; 
 
 class lite_imp {
+  var $napojeni,$odkud,$oddelovac,$verbose,$textOnly,$db,$conv;
 
 function __construct($napojeni){
   $this->napojeni=$napojeni;  /* prazdny retezec vyvola jen vypis prikazu */
@@ -32,7 +34,7 @@ function __destruct(){
 }
 
 function importuj($soubor,$tabulka,$odkud=''){
-  /* provede ímport tabulky do schematu */
+  /* provede import tabulky do schematu */
   if ($odkud!='') $this->odkud=$odkud;
   /* definicni soubor */
   $info=$this->odkud.$soubor.'.inf';
@@ -104,13 +106,14 @@ function importuj($soubor,$tabulka,$odkud=''){
   $k=0; 
   $n=0;
   $this->konej('BEGIN');
+  $pole=[];
   while(true){
     $r=fgets($f);
     if ($r===false) break;
-    //$r=iconv("windows-1250","utf-8//TRANSLIT",$r);    
+    //$r=iconv("windows-1250","utf-8//TRANSLIT",$r);      
     if ($k==0){
       /* prvni radek obsahuje hlavicky */
-      $pole=explode($this->oddelovac,$r);
+      $pole=explode($this->oddelovac,$r);      
       /* pokud je hlavicka ve tvaru prevedene datumove polozky, pak se bere to, co je za 'as'*/
       for($i=0,$nn=count($pole);$i<$nn;$i++){
         if (preg_match("/^(.+)\s+as\s+(\w+)$/",$pole[$i],$m)){
@@ -140,14 +143,7 @@ function importuj($soubor,$tabulka,$odkud=''){
         }
       }
      
-      $prikaz="insert into $tabulka (".implode($pole,', ').') values ('.implode($hodnoty,', ').')';
-      /*if ($k==9621) {
-        echo $prikaz; 
-        print_r($hodnoty);
-        for ($i=0;$i<$nn;$i++) echo $i,' ',strlen($hodnoty[$i]),' ',implode(unpack("H*", $hodnoty[$i])),"\n";
-        print_r($pole);
-        break;
-      } */
+      $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
       if ($this->konej($prikaz)){
          $n++;
       }else{
@@ -171,7 +167,7 @@ function importuj_schema($odkud){
     if (preg_match("/^(\w+)\.(\w+)\.inf$/",$sou[$i],$m)){
       $schema=$m[1]; $tab=$m[2];
       $this->hlaseni("Soubor ".$sou[$i]." :");
-      $vysledek=$this->importuj($m[1].'.'.$m[2],$tab,$odkud);
+      $vysledek=$this->importuj($schema.'.'.$tab,$tab,$odkud);
       if (!$vysledek){
         $this->hlaseni("$tab - nenahrano");
         break;
@@ -181,7 +177,7 @@ function importuj_schema($odkud){
 }
 
 function pripoj_csv($soubor,$tabulka,$odkud=''){
-  /* jen provede ímport dat ze souboru csv do existujici tabulky ve schematu */
+  /* jen provede ï¿½mport dat ze souboru csv do existujici tabulky ve schematu */
   if ($odkud!='') $this->odkud=$odkud;
   $data=$this->odkud.$soubor.'.csv';
   if (!file_exists($data)){
@@ -201,6 +197,7 @@ function pripoj_csv($soubor,$tabulka,$odkud=''){
   $k=0; 
   $n=0;
   $this->konej('BEGIN');
+  $pole=[];
   while(true){
     $r=fgets($f);
     if ($r===false) break;
@@ -236,14 +233,7 @@ function pripoj_csv($soubor,$tabulka,$odkud=''){
           $hodnoty[$i]=str_replace('\"','"||char(34)||"',$hodnoty[$i]);
         }
       }      
-      $prikaz="insert into $tabulka (".implode($pole,', ').') values ('.implode($hodnoty,', ').')';
-      /*if ($k==9621) {
-        echo $prikaz; 
-        print_r($hodnoty);
-        for ($i=0;$i<$nn;$i++) echo $i,' ',strlen($hodnoty[$i]),' ',implode(unpack("H*", $hodnoty[$i])),"\n";
-        print_r($pole);
-        break;
-      } */
+      $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
       if ($this->konej($prikaz)){
          $n++;
       }else{

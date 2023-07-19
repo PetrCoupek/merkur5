@@ -5,6 +5,7 @@
  */  
  
  /*  29.10.2014-2021
+  * 21.06.2023 - 
   */
 include_once "mdbAbstract.php";
  
@@ -17,6 +18,7 @@ class OpenDB_SQLite extends OpenDB{
   var $com_kontr;  /* kontrola zda je zapnuty commit */
   var $Error;      /* retezec obsahujici chybu SQL. (kod, popis, ofset).. */
   var $typedb;
+  var $prepare;
   
   /** $db= new OpenDB_SQLite($connection_string)
    * 
@@ -120,7 +122,8 @@ class OpenDB_SQLite extends OpenDB{
   function Pragma($command){
     /* metoda vraci strukturu s udaji - napr. struktura tabulky a nebo false v pripade chyby*/
     /* duvodem teto metody je sjednoceni pristupu k datovemu katalogu napric databazemi */
-     $m=array(); $struktura=array();
+     $m=array(); 
+     $struktura=array();
      if (preg_match('/^\s*table_info\(\'(\w+)\'\)\s*$/',$command,$m)){
        $table_name=$m[1];
        /* vrat strukturu tabulky $m[1]*/
@@ -144,9 +147,13 @@ class OpenDB_SQLite extends OpenDB{
        if (!($this->parse=$this->conn->query("select * from sqlite_master order by name asc"))) return false;
        $n=0;
        while($this->data=$this->parse->fetchArray(SQLITE3_ASSOC)){
-         $struktura[$n++]=array(
-           'name'=>$this->data['name'],
-           'type'=>$this->data['type']           
+         if (($this->data['type']=='table' || $this->data['type']=='view') 
+              && !str_contains($this->data['sql'],'VIRTUAL TABLE' ))
+           $struktura[$n++]=array(
+            'name'=>$this->data['name'],
+            'type'=>$this->data['type'],
+            'tbl_name'=> $this->data['tbl_name'],
+            'sql'=>$this->data['sql']          
          );       
        }
        return ($struktura);

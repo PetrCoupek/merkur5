@@ -9,7 +9,9 @@
  * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
  * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022 06.12.2022
  * 07.12.2022 03.01.2023
- * 10.02.2023 
+ * 10.02.2023 30.05.2023 
+ * 16.06.2023 18.07.2023
+ * 
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -76,10 +78,11 @@ function bt_accordion($content,$id='accordion',$aria_exp=1){
  */
 function bt_autocomplete($label,$name,$url,$value='',$add=''){
   $path=M5::get('path_relative');
+  $placeholder=(isset($_SESSION['la']) && $_SESSION['la']=='en')?'enter text...':'zadejte text...';
   M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>'."\n",
   'autocomplete');
   $r=ta('span',$label).
-     tg('select','class="form-control basicAutoSelect'.$name.'" name="'.$name.'" id="'.$name.'" placeholder="zadejte text..." ',' ');
+     tg('select','class="form-control basicAutoSelect'.$name.'" name="'.$name.'" id="'.$name.'" placeholder="'.$placeholder.'" ',' ');
   $r.=ta('script',"$('.basicAutoSelect$name').autoComplete({
     resolverSettings: {
       url: '".$url."',     
@@ -393,7 +396,12 @@ function bt_icon($name='info-square',$add=''){
      tg('path','d="M5.255 5.786a.237.237 0 0 0 .241.247h.825c.138 0 .248-.113.266-.25.09-.656.54-1.134 1.342-1.134.686 0 1.314.343 1.314 1.168 0 .635-.374.927-.965 '.
      '1.371-.673.489-1.206 1.06-1.168 1.987l.003.217a.25.25 0 0 0 .25.246h.811a.25.25 0 0 0 .25-.25v-.105c0-.718.273-.927 1.01-1.486.609-.463 1.244-.977 1.244-2.056 '.
      '0-1.511-1.276-2.241-2.673-2.241-1.267 0-2.655.59-2.75 2.286zm1.557 5.763c0 .533.425.927 1.01.927.609 0 1.028-.394 1.028-.927 0-.552-.42-.94-1.029-.94-.584 0-1.009.388-1.009.94z"'.$add));      
-  
+  case 'list':
+  case 'menu':
+  case 'hamburger-menu':
+    return tg('svg',$p1,
+     tg('path','fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"'.$add));      
+   
   /* Moon icons */
   case 'floppy':  
   case 'floppy-disc':
@@ -544,7 +552,7 @@ function bt_lister($caption='',
                    $head=[],
                    $content=[[]],
                    $nodata_text='',
-                   $bt_class='',
+                   $bt_class='d-print-none',
                    $pagination='',
                    $context='',
                    $postlink=false,
@@ -591,7 +599,7 @@ function bt_lister($caption='',
      //$s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
      $s=bt_alert($nodata_text,'alert-warning');
    }else{
-    $s=tg('div','class="table-responsive"',
+    $s=tg('div','class="table-responsive '.$bt_class.'"',
        tg('table',$bt_class,
         ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
         (getpar('_whr')?(isset($filter)?$filter:  ('Filtrováno: '.urldecode(getpar('_flt'))  )):'')).
@@ -682,7 +690,7 @@ function bt_multiselect($lab,$id,$options,$data=[],
             "disableSelectAll"=>true, 
             "maxHeight"=> 200, 
             "search"=> true,
-            "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]]){
+            "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]]){
   $s='';
   M5::puthf(
     tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"')."\n".
@@ -716,7 +724,7 @@ function bt_select($lab,$id,$options,$data='',
             "disableSelectAll"=>true, 
             "maxHeight"=> 200, 
             "search"=> true,
-            "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]],
+            "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]],
             $colors=[]){
   $s='';
   M5::puthf(
