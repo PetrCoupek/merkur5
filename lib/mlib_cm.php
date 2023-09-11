@@ -18,6 +18,8 @@
  * 02.12.2022 - refakturing na merkur5
  * 05.01.2023 - zotaveni z fatalnich chyb
  * 27.06.2023 - implementace uzivatelskych nastaveni
+ * 02.08.2023 - pokud neni ve stromu odkaz href, polozka je bez rozbaleni = zakazani polozek v levem menu
+ * 15.08.2023 - oprava alert, oprava count_user_setting
  */
 define('MIC_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
 
@@ -517,8 +519,10 @@ class Cm{
         $current=($value['href']==('?item='.$item));
         if ($deep==0){
           $s.= tg('div','',
-                ahref($value['href'],$value['name'],'class="list-group-item list-group-item-action bg-ligth'.
-                      ($current?' active':'').'" ').                //tg('span','class="tree-toggler"','+').
+               ($value['href']!=''?ahref($value['href'],
+                                         $value['name'],'class="list-group-item list-group-item-action bg-ligth'.
+                                         ($current?' active':'').'" '):
+                                   tg('i','class="list-group-item list-group-item-action text-muted"',$value['name'])).                
                 self::sidebar_part($value,$item,$deep+1,$rootnode,$cms));
         }else{
            if ($cms->rootNode($it)==$rootnode) { /* rozbaluje se jen aktivni cast stromu od korene */
@@ -1007,7 +1011,7 @@ class Cm{
       ahref('?item='.getpar('item'),
             http_lan_text('Return to folder','Návrat do složky'))));
     if (getpar('U')!=''){
-       $this->update_article();
+       $saved=$this->update_article();
     }
     if (getpar('I')!=''){
        $nid=$this->insert_article();
@@ -1047,6 +1051,9 @@ class Cm{
       $this->db->Sql("select * from $table_polozky where id=$eitem");
       $this->db->FetchRow();
       $D=$this->db->DataHash();
+      if (getpar('U') && !$saved) {
+        $D=getpars();
+      }
       $typ=$D['TYP_POLOZKY'];
     }else{        
       if (getpar('type')==''){
@@ -1270,9 +1277,11 @@ class Cm{
      ':popisek_e'=>(string)getpar('POPISEK_E'),
      ':id'=>$eitem); 
     if ($this->db->Sql($sql,$bind)){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
+       htpr(bt_dialog('Chyba','Data nebyla uložena.'.$this->db->Error));
+       return false;
     }else{
        htpr(bt_dialog('Uloženo.','Data uložena.'));
+       return true;
     }
   }
   
@@ -1606,7 +1615,7 @@ class Cm{
    */
   function exists_user_setting($key){
     $count=$this->db->SqlFetch(
-      "select count(hodnota) as pocet ".
+      "select count(param) as pocet ".
       "from ".$this->table."_unastav ".
       "where ljmeno=:ljmeno and param=:param",
       array(':ljmeno'=>$this->user,
@@ -1628,6 +1637,7 @@ class Cm{
          array(':ljmeno'=>$this->user,
                ':param'=> $key,
                ':hodnota'=>$value));
+       //deb($e);        
     }else{
        /* insert */
        $e=$this->db->Sql(
@@ -1638,7 +1648,7 @@ class Cm{
               ':hodnota'=>$value));
     }
     if ($e) {
-        htpr(bt_alert('Parametr '.$key.' se nenastavil na hodnotu '.$value),'alert-danger');  
+      htpr(bt_alert('Parametr '.$key.' se nenastavil na hodnotu '.$value,'alert-danger'));  
     }
   }
 }

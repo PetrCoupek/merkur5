@@ -20,6 +20,7 @@
  *  18.10.2022 24.10.2022 09.01.2023 11.01.2023 27.01.2023 - viz M5::get('DATA')
  *  09.03.2023 
  *  20.06.2023
+ *  15.08.2023 - possibility to globally control the list page length
  */ 
 include_once "mbt.php";
 
@@ -32,7 +33,7 @@ var $db, $nastrane, $param, $sprikaz, $cprikaz, $pragma, $dprikaz, $header, $pos
 function __construct($param,$db){
 
   $this->db=$db;
-  $this->nastrane=15;
+  $this->nastrane=isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15;
   $this->param=$param;
   if (isset($param['table'])){
     $t=$param['table'];
@@ -88,7 +89,7 @@ function lister($context){
   $sprikaz=$this->genfilter($this->sprikaz);
   $cprikaz=$this->genfilter($this->cprikaz);
   
-  $a=$this->db->SqlFetchArray($sprikaz,[],15,getpar('_ofs',1));
+  $a=$this->db->SqlFetchArray($sprikaz,[],isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,getpar('_ofs',1));
   /* generovani linku pro prechod do detailu */
   if (count($a)>0 ){
     if (!isset($this->param['noDetail'])){
@@ -132,12 +133,14 @@ function lister($context){
         bt_pagination(
           getpar('_ofs',1),
           $this->db->SqlFetch($cprikaz),
-          15,
+          isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,
           $context.'&_o='.getpar('_o').'&_flt='.getpar('_flt'),
           $this->postlink
         ),
         $context.'&_flt='.getpar('_flt'),
-        $this->postlink)
+        $this->postlink,
+        null,
+        isset($this->param['text_button'])?$this->param['text_button']:'')
     );
   }else{
     htpr(bt_alert('Nejsou záznamy','alert-warning'));

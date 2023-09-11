@@ -6,11 +6,7 @@
  * @author Petr Čoupek
  * @package Merkur5
  * @version 1.3
- * date 11.05.2020 , 30.07.2020, 15.01.2021, 11.11.2021, 7.2.2022, 31.03.2022
- * 07.07.2022 27.07.2022 02.08.2022 01.09.2022 14.09.2022 16.11.2022 06.12.2022
- * 07.12.2022 03.01.2023
- * 10.02.2023 30.05.2023 
- * 16.06.2023 18.07.2023
+ * date 03.08.2023 18.08.2023
  * 
  */
 
@@ -350,6 +346,7 @@ function bt_icon($name='info-square',$add=''){
      tg('path','d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"'.$add).
      tg('path','d="M10.97 4.97a.235.235 0 0 0-.02.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-1.071-1.05z"'.$add));
   case 'geo-alt':
+  case 'location':  
     return tg('svg',$p1,
      tg('path','d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A31.493 31.493 0 0 1 8 14.58a31.481 31.481 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 '.
                '7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94zM8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10z"'.$add).
@@ -401,10 +398,15 @@ function bt_icon($name='info-square',$add=''){
   case 'hamburger-menu':
     return tg('svg',$p1,
      tg('path','fill-rule="evenodd" d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"'.$add));      
+  case 'geolocation':
+    return tg('svg',$p1,
+     tg('path','d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"'.$add));   
    
-  /* Moon icons */
+  /* Moon icons, https://icomoon.io/#preview-free */
   case 'floppy':  
   case 'floppy-disc':
+    return tg('svg','version="1.1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi floppy-disc" viewBox="0 0 16 16" fill="currentColor"',
+     tg('path','d="M14 0h-14v16h16v-14l-2-2zM8 2h2v4h-2v-4zM14 14h-12v-12h1v5h9v-5h1.172l0.828 0.828v11.172z"'.$add));
   case 'save':  
     return tg('svg',$p2,
      tg('path','d="M14 0h-14v16h16v-14l-2-2zM8 2h2v4h-2v-4zM14 14h-12v-12h1v5h9v-5h1.172l0.828 0.828v11.172z"'.$add));
@@ -537,16 +539,16 @@ function bt_tooltip($title,$text,$placement='top'){
 
 /** Table list - a page with structured (database origin) table
  * @param string $caption - table caption
- * @param array $head - a hash keys are table columns an valueas are table header labels. When key begins
+ * @param array  $head - a hash keys are table columns an valueas are table header labels. When key begins
  *                      with _ , ti means tah that column } without that _) is not orderable 
- * @param array $content
+ * @param array  $content
  * @param string $nodata_text
  * @param string $bt_class
  * @param string $pagination (result of the bt_pagination function) 
  * @param string $content
- * @param bool  $postlink - when true, generater links are POSTed
- * @param string filter -when not null, it prints this text as filter description
- * 
+ * @param bool   $postlink - when true, generater links are POSTed
+ * @param string $filter -when not null, it prints this text as filter description
+ * @param string $text_button Specify text for Search button 
  */
 function bt_lister($caption='',
                    $head=[],
@@ -556,7 +558,8 @@ function bt_lister($caption='',
                    $pagination='',
                    $context='',
                    $postlink=false,
-                   $filter=null){
+                   $filter=null,
+                   $text_button=''){
 
   $s=''; 
   if (!is_array($content)) return '';
@@ -601,7 +604,7 @@ function bt_lister($caption='',
    }else{
     $s=tg('div','class="table-responsive '.$bt_class.'"',
        tg('table',$bt_class,
-        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
+        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context, bt_icon('search').$text_button,'class="btn btn-primary"').
         (getpar('_whr')?(isset($filter)?$filter:  ('Filtrováno: '.urldecode(getpar('_flt'))  )):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
@@ -795,7 +798,89 @@ function bt_comboauto($lab,$id,$data=[],$val=''){
     return tg('button','name="'.$name.'" value="'.$value.'" class="'.$class.'"',$title!=''?$title:$value).para($name,$value);
  }
 
- 
+ /** The button with ability fill-in given inputs with current Krovak coordinates
+  * 
+ */
+
+ function bt_position_krovak($name_x, $name_y, $label=''){
+  M5::puthf(
+          tg('script','src="'.M5::get('path_relative').'/vendor/position/position.js"',' ').
+          tg('script','src="'.M5::get('path_relative').'/vendor/position/proj4.js"',' '),
+          'position'
+  );
 
 
+  $r=tg('button','type="button" class="btn btn-primary" '.
+                 'onclick="getLocation(\''.$name_x.'\',\''.$name_y.'\');"',$label!=''?$label:bt_icon('geolocation'));
+  //$r.=tg('span','id="status"','');
+  return $r;
+}
+
+/** Modal javascript window with the ability render server-controled content, and repeated interaction  
+ * @param string $name - element id for target field for returned response 
+ * @param string $id - element id
+ * @param string $text caller button text
+ * @param string $title - modal window title
+ * @param string $id_widnow - modal window elemnt id
+ * @param string $url_ajax - URL to the PHP script, which generate dynamicaly the Window content, on request
+ * @return string a HTML component to use it in page generation
+ * 
+*/
+function bt_modal_win($name,
+                      $id,
+                      $text='Click me',
+                      $title='Window',
+                      $id_window='empModal',
+                      $url_ajax='?ajax=1'){
+  
+  $r=tg('a','class="btn btn-secondary m-1" id="'.$id.'" ',$text);
+
+  $script=tg('script','type="text/javascript"',
+   "$(document).ready(function(){
+      $('#".$id."').click(function(){ $('#$id_window').modal('show');
+        /* action to fill the modal window */
+        var tmp=$('#$name').val();
+        /* zobraz obsah okna na zaklade url */
+        $.ajax({
+               url: '".$url_ajax."',
+               type: 'get',
+               data: {data: tmp, id_window: '$id_window', name: '$name' },
+               success: function(response){ 
+                        // Add response in Modal body
+                          //$('.modal-body').html(response);                            
+                          $('#".$id_window."_inner').html(response);
+                        }
+         });
+      });
+      
+      
+              
+   });
+   
+   /** volano v dodanych ajax datech, ale definovano na urovni dokumentu */
+   function href_$id_window(url,data){
+       $.ajax({
+        url: url,
+        type: 'get',
+        data: {data: data, id_window: '$id_window', name: '$name'},
+        success: function(response){ 
+                //$('.modal-body').html(response);                            
+                $('#".$id_window."_inner').html(response);
+               }
+       });}"     
+     
+  );
+
+  $modal=tg('div','class="modal fade" id="'.$id_window.'" role="dialog"',
+          tg('div','class="modal-dialog"',     
+           tg('div','class="modal-content"',
+            tg('div','class="modal-header"',
+               tg('h4','class="modal-title"',$title).
+               tg('button','type="button" class="close" data-dismiss="modal"','&times;')).
+            tg('div','class="modal-body" id="'.$id_window.'_inner"' , ' ').
+               tg('div','class="modal-footer"',
+               tg('button','type="button" class="btn btn-primary" data-dismiss="modal"','OK')))));
+
+  return $r.$script.$modal;
+}
 ?>
