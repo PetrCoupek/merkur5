@@ -7,7 +7,7 @@ include_once '../../lib/mlib.php';
                         
 getparm();
 
-$db = new OpenDB_Oracle('dsn=sdedb02;uid=app_dkb;pwd=jsdn*6343Jkjsedn*324');
+$db = new OpenDB_Oracle(CONN_APP_DKB_02);
 if (getpar('kod') && getpar('podkod')){
    
   $r=$db->SqlFetch(
