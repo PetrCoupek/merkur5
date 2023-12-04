@@ -7,6 +7,7 @@
  /*  2014-2022
   *  add offset parameter
   *  05.06.2023 - prepare for consistent treating possible BLOBS (=as strings) in databases (aka Oracle)
+  *  02.11.2023 - minor improvement in meta-doc (method data returnns generally object type)
  */
  
 abstract class OpenDB {
@@ -87,7 +88,7 @@ abstract class OpenDB {
    * This method returns current attribute value
    * @param string $attribute - the name of the attribute (in the view/table), 
    *   automatic case sensitivity detection 
-   * @return string with the attribute value
+   * @return object with the attribute value
    */
   function Data($sloupec){
     if (isset($this->data[$sloupec])) {

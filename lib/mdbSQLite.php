@@ -6,6 +6,7 @@
  
  /*  29.10.2014-2021
   * 21.06.2023 - 
+  * 04.12.2023 - oprava naplneni chybovaho stavu
   */
 include_once "mdbAbstract.php";
  
@@ -79,6 +80,7 @@ class OpenDB_SQLite extends OpenDB{
       ($this->conn->lastErrorCode().": ".$this->conn->lastErrorMsg()):'příkaz SQL nebyl zpracován';        
       $this->stav=true;
       error_reporting($errorReportingLevel); /* vraci uroven vypisovani chyb */
+      $this->Error=($this->conn->lastErrorCode().": ".$this->conn->lastErrorMsg());
       return $this->stav;
     }
     if (count($bind)){

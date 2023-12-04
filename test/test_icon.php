@@ -1,7 +1,7 @@
 <?php
 /** Merkur 5 zero application
  * @author Petr Coupek
- * @date 14.09.2022  15.11.2022 06.01.2023
+ * @date 14.09.2022  15.11.2022 06.01.2023 28.11.2023
  */
 
 include_once '../lib/mlib.php';
@@ -20,7 +20,7 @@ htpr(ta('h1','Icons'),
   br(2),  
   ikona_sekvence(
     'Moon',
-    ['floppy-disc','floppy-add','left','right','home','file-pdf','file-word','file-excel',
+    ['down','up','left','right','uptop','downbottom','floppy-disc','floppy-add','home','file-pdf','file-word','file-excel',
      'file-text','pencil','cross','plus','search','photo','lab','compass','droplet','hammer'
     ]));
 

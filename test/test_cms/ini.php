@@ -8,10 +8,11 @@
  */
 
 /* sekce pro ulozeni hesel, ktere se nahraji spolu s mlib.php */
-define('PASS_DAT_SUR','nu2sa*2420a');
+define('PASS_DAT_SUR','*******');
 /* ---------------------------------------------------------- */
 
 /* sekce pro d.php  */
+
 $dbconnect_cms='file=../../data/m5.sqlite3,mode=1';
 
 $verse='1.0';

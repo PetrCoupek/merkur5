@@ -6,7 +6,7 @@
  * @author Petr Čoupek
  * @package Merkur5
  * @version 1.3
- * date 03.08.2023 18.08.2023
+ * date 03.08.2023 18.08.2023 28.11.2023
  * 
  */
 
@@ -64,17 +64,18 @@ function bt_accordion($content,$id='accordion',$aria_exp=1){
 }
 
 
-/**The function returns an input HTML field with the autocomplete functionality based on Autocomplete plugin for Bootstrap 
+/** The function returns an input HTML field with the autocomplete functionality based on Autocomplete plugin for Bootstrap 
  * see https://docs-test-2.readthedocs.io/en/latest/
- *  * @param string  $label - label before the input
+ * @param string  $label - label before the input
  * @param string  $name - the identifier for the input area
  * @param integer $size - the size in chars
  * @param string  $value - default value (f.e. for the database)
+ * @param string  $placeholder - the initial hint at the text field position vanishing by typing
  * @return HTML string 
  */
-function bt_autocomplete($label,$name,$url,$value='',$add=''){
+function bt_autocomplete($label,$name,$url,$value='',$add='',$placeholder=''){
   $path=M5::get('path_relative');
-  $placeholder=(isset($_SESSION['la']) && $_SESSION['la']=='en')?'enter text...':'zadejte text...';
+  if ($placeholder=='') $placeholder=(isset($_SESSION['la']) && $_SESSION['la']=='en')?'enter text...':'zadejte text...';
   M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>'."\n",
   'autocomplete');
   $r=ta('span',$label).
@@ -420,6 +421,16 @@ function bt_icon($name='info-square',$add=''){
     return tg('svg',$p2,tg('path','d="M0.5 8l7.5 7.5v-4.5h8v-6h-8v-4.5z"'.$add));
   case 'right':
     return tg('svg',$p2,tg('path','d="M15.5 8l-7.5-7.5v4.5h-8v6h8v4.5z"'.$add));
+  case 'up':
+    return tg('svg',$p2,tg('path','d="M8 0.5l-7.5 7.5h4.5v8h6v-8h4.5z"'.$add));
+  case 'down':
+    return tg('svg',$p2,tg('path','d="M8 15.5l7.5-7.5h-4.5v-8h-6v8h-4.5z"'.$add));
+  case 'uptop':
+    return tg('svg',$p2,tg('path','d="M0 0h16v3h-16v-3zM0 "'.$add).
+           tg('path','d="M8 0.5l-7.5 7.5h4.5v8h6v-8h4.5z"'.$add));
+  case 'downbottom':
+    return tg('svg',$p2,tg('path','d="M0 13h16v3h-16v-3zM0 "'.$add).
+           tg('path','d="M8 15.5l7.5-7.5h-4.5v-8h-6v8h-4.5z"'.$add));            
   case 'home':
     return tg('svg',$p2,tg('path','d="M16 9.5l-3-3v-4.5h-2v2.5l-3-3-8 8v0.5h2v5h5v-3h2v3h5v-5h2z"'.$add));
   case 'file-pdf':
@@ -539,16 +550,16 @@ function bt_tooltip($title,$text,$placement='top'){
 
 /** Table list - a page with structured (database origin) table
  * @param string $caption - table caption
- * @param array  $head - a hash keys are table columns an valueas are table header labels. When key begins
+ * @param array $head - a hash keys are table columns an valueas are table header labels. When key begins
  *                      with _ , ti means tah that column } without that _) is not orderable 
- * @param array  $content
+ * @param array $content
  * @param string $nodata_text
  * @param string $bt_class
  * @param string $pagination (result of the bt_pagination function) 
  * @param string $content
- * @param bool   $postlink - when true, generater links are POSTed
- * @param string $filter -when not null, it prints this text as filter description
- * @param string $text_button Specify text for Search button 
+ * @param bool  $postlink - when true, generater links are POSTed
+ * @param string filter -when not null, it prints this text as filter description
+ * 
  */
 function bt_lister($caption='',
                    $head=[],
@@ -558,8 +569,7 @@ function bt_lister($caption='',
                    $pagination='',
                    $context='',
                    $postlink=false,
-                   $filter=null,
-                   $text_button=''){
+                   $filter=null){
 
   $s=''; 
   if (!is_array($content)) return '';
@@ -604,7 +614,7 @@ function bt_lister($caption='',
    }else{
     $s=tg('div','class="table-responsive '.$bt_class.'"',
        tg('table',$bt_class,
-        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context, bt_icon('search').$text_button,'class="btn btn-primary"').
+        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
         (getpar('_whr')?(isset($filter)?$filter:  ('Filtrováno: '.urldecode(getpar('_flt'))  )):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
@@ -831,7 +841,7 @@ function bt_modal_win($name,
                       $text='Click me',
                       $title='Window',
                       $id_window='empModal',
-                      $url_ajax='?ajax=1'){
+                      $url_ajax='?'){
   
   $r=tg('a','class="btn btn-secondary m-1" id="'.$id.'" ',$text);
 

@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.41 - 221122 011222 021222 120123
+ * @version 0.44 - 041223
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -775,12 +775,19 @@ function dblov($label,$name,$napojeni,$sele,$js='',$limit=1200){
  * @param array $list - the key/value array of given options, use to_hash function to convert SQL result for this input
  * @param string $def - initial selected value in the list
  * @param string $js - other added parametres in the tag (useful for javascript client-side functionality or styling)
+ * @param bool $null_value - when false, null value is not in the options, default value is true
+ * @param array $styling - the possibility to kontrol style of individual items
  * @return string HTML*/
  
-function combo($label,$name,$list,$def='',$js=''){
-  $r=tg('option','value=""'.($def==''?' selected ':''),'[]');
+function combo($label,$name,$list,$def='',$js='',$null_value=true,$styling=[]){
+  if ($null_value) {
+    $r=tg('option','value=""'.($def==''?' selected ':''),'[]');
+  }else{
+    $r='';
+  }  
   foreach ($list as $k=>$v){
-    $r.=tg('option','value="'.$k.'"'.($k==$def?' selected':''),$v);
+    $style=(isset($styling[$k]))?(' '.$styling[$k]):'';
+    $r.=tg('option','value="'.$k.'"'.($k==$def?' selected':'').$style,$v);
   }  
   $r=$label.tg('select','name="'.$name.'" '.$js,$r);
   return $r;
@@ -1104,35 +1111,36 @@ function helptext($text){
 function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
   $s=''; 
   if (!is_array($content)) return '';
-
+  
   $is_head=is_array($head)&&(count($head)>0);
   $is_content=(count($content)>0);
-  if (!isset($content[0])) return '';
-  for ($hlav='',
+  if (!isset($content[0]) ){
+    if ($nodata=='') return '';
+    $s=ta('tr',tg('td','colspan="1"',$nodata.nbsp()));
+  }else{
+    for ($hlav='',
         $L=$is_head?array_keys($head):
         ($is_content?array_keys($content[0]):array('0'=>nbsp())),
         $i=0;
        $i<count($L);
        $i++) 
       $hlav.=ta('th',isset($head[$L[$i]])?$head[$L[$i]]:$L[$i]);
-  $n=0;          
-  foreach ($content as $row){
-    $rkapsa='';
-    for ($i=0;$i<count($L);$i++){
-       $ktisku=$row[$L[$i]];
-       if (gettype($ktisku)=="object" && gettype($ktisku)!="NULL")
-         $ktisku=$ktisku->load();
-       if ($ktisku=='') $ktisku=nbsp(1);  
-       $rkapsa.=ta('td',$ktisku);
-     }
-     $s.=tg('tr',$n%2?' class="sudy"':'',$rkapsa);
-     $n++; 
-   }
-   if (!$is_content){
-     $s=ta('tr',tg('td','colspan='.count($L),$nodata.nbsp()));
+    $n=0;          
+    foreach ($content as $row){
+      $rkapsa='';
+      for ($i=0;$i<count($L);$i++){
+        $ktisku=$row[$L[$i]];
+        if (gettype($ktisku)=="object" && gettype($ktisku)!="NULL")
+          $ktisku=$ktisku->load();
+        if ($ktisku=='') $ktisku=nbsp(1);  
+        $rkapsa.=ta('td',$ktisku);
+      }
+      $s.=tg('tr',$n%2?' class="sudy"':'',$rkapsa);
+      $n++; 
+    }
    }
    $s=tg('table',$class,
-       ta('caption',$caption).
+       (isset($caption)?ta('caption',$caption):'').
         ta('thead',
           ta('tr',$hlav))
        .ta('tbody',$s));
@@ -1233,5 +1241,13 @@ function df($hash,$par,$default=''){
   return isset($hash[$par])?$hash[$par]:$default;
 }
 
+/** detects mobile device 
+ *  @return bool true when mobile
+*/
+function isMobDev() {
+  return preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo
+|fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i"
+, $_SERVER["HTTP_USER_AGENT"]);
+}
 
 ?>
