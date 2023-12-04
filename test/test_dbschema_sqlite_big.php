@@ -1,20 +1,20 @@
 <?php
-/** Merkur 5 application test : test browsing all tables in Oracle schema (user) with data filtering
+/** Merkur 5 application test : test browsing all tables in SQLIte database with data filtering
  * @author Petr Coupek
- * @date 16.11.2022
+ * @date 04.12.2023
  */
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-define('SCHEMA',"dat_sur");
+define('DBFILE',"../data/m5.sqlite3");
 
 class App extends M5{   
-  static $dbconnect=CONN_APP_DKB_02;
+  static $dbconnect="file=".DBFILE.",mode=1";
   static $db;
 
   static function route(){
      getparm();
-     self::$db=new OpenDB_Oracle(self::$dbconnect);
+     self::$db=new OpenDB_SQLite(self::$dbconnect);
      if (getpar('table')){
        self::view_table(); 
      }else{
@@ -33,7 +33,7 @@ class App extends M5{
   }*/
 
   static function view_table(){
-     $tt= new VisTab(
+     $tt= new EdiTab(
           ['table'=>getpar('table')],
           /* AKA ['sprikaz'=>"select * from ".getpar('table'), 
            'cprikaz'=>'select count(*) as pocet from '.getpar('table'),
@@ -46,18 +46,14 @@ class App extends M5{
   }
 
   static function home(){ 
-     $a=self::$db->SqlFetchArray(
-          "select table_name, num_rows,last_analyzed ".
-          "from tabs order by table_name");     
+     $a=self::$db->Pragma("catalog"); 
      for($i=0;$i<count($a);$i++) 
-       $a[$i]['TABLE_NAME']=ahref('?table='.$a[$i]['TABLE_NAME'],$a[$i]['TABLE_NAME']); 
-     htpr(ta('h2',SCHEMA),
-     ht_table('List of entities in the schema',[],$a,'no ',
-      'class="table table-bordered table-hover table-sm"')
-     );
+       $a[$i]['name']=ahref('?table='.$a[$i]['name'],$a[$i]['name']); 
+
+     htpr(ht_table('List of entities in the schema',[],$a));
   }
 }
-App::set('header','Browsing the schema '.SCHEMA.' (bigger version)');
+App::set('header','Browsing the database '.DBFILE.' (bigger version)');
 App::set('debug',true);
 App::skeleton('../');
 
