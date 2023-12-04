@@ -1,4 +1,4 @@
-# merkur5 ![M5](img/m5.png)
+# merkur5 ![M5](img/m5.svg)
 
 A set of PHP helpers and utilities to make the web database-driven applications easier.
 Minimalistic and primitive.
