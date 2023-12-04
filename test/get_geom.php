@@ -7,10 +7,9 @@
 error_reporting(E_ALL);
 include_once '../lib/mlib.php';
 
-                        
 getparm(); /* processing id or q parameter */
 
-$db = new OpenDB_Oracle("dsn=sdedb02;uid=APP_DKB;pwd=jsdn*6343Jkjsedn*324");
+$db = new OpenDB_Oracle(CONN_APP_DKB_02);
 
 if (getpar('kod')){
    $geom=$db->SqlFetch(

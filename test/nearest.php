@@ -1,17 +1,21 @@
 <?php
 /** Nearest documentation
  * @author Petr Coupek
- * @date 13.10.2023
+ * @date 13.10.2023 04.12.2023
  */
 
 include_once '../lib/mlib.php';
-define('CONN_APP_DKB_02','dsn=sdedb02;uid=APP_DKB;pwd=jsdn*6343Jkjsedn*324');
+include_once 'ini.php';
+
 
 M5::set('debug',true);
 M5::skeleton('../');
 M5::set('htptemp','#BODY#');
 
-htpr(get_nearest(getpar('x'),getpar('y')));
+if (getpar('x') && getpar('y') )
+  htpr(get_nearest(getpar('x'),getpar('y')));
+else
+  htpr('x and y are required.');
                  
 M5::done();
 

@@ -5,15 +5,12 @@
  */
 
 include_once '../lib/mlib.php';
-//include_once '../lib/mbt.php';
-//  include_once '../lib/vistab.php';
-include_once 'ini.php';
 
 M5::set('header','Test Editab');
 M5::set('debug',true);
 M5::skeleton('../');
 
-$db= new OpenDB_Oracle('dsn=sdedb02;uid=app_dkb;pwd='.PASS_DAT_DKB);
+$db= new OpenDB_Oracle(CONN_APP_DKB_02);
 $tt= new EdiTab(['table'=>'DKB_SKUP'],$db); 
 $tt->route("&item=1");
 $db->Close();   

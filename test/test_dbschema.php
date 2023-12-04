@@ -9,7 +9,7 @@ include_once '../lib/mbt.php';
 define('SCHEMA',"dat_sur");
 
 class App extends M5{
-  static $dbconnect="dsn=sdedb02;uid=".SCHEMA.";pwd=".PASS_DAT_SUR;
+  static $dbconnect=CONN_APP_DKB_02;
   static $db;
 
   static function route(){

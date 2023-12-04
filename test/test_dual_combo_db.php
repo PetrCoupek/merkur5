@@ -5,7 +5,6 @@
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-include_once "ini.php";
 M5::set('debug',true);
 
 class Myform extends M5{
@@ -20,7 +19,7 @@ class Myform extends M5{
  
  static function form(){
 
-   $db=new OpenDB_Oracle("dsn=sdedb02;uid=APP_DKB;pwd=".PASS_DAT_DKB);
+   $db=new OpenDB_Oracle(CONN_APP_DKB_01);
    $list_1=to_hash(
     "select distinct kod,nazev ". 
     "from dat_dkb.kod_s_typ ".
