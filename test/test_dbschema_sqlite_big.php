@@ -33,7 +33,7 @@ class App extends M5{
   }*/
 
   static function view_table(){
-     $tt= new EdiTab(
+     $tt= new VisTab(
           ['table'=>getpar('table')],
           /* AKA ['sprikaz'=>"select * from ".getpar('table'), 
            'cprikaz'=>'select count(*) as pocet from '.getpar('table'),

@@ -6,7 +6,7 @@
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-define('SCHEMA',"dat_sur");
+define('SCHEMA',"app_dkb @ 02");
 
 class App extends M5{   
   static $dbconnect=CONN_APP_DKB_02;

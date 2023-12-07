@@ -4,7 +4,9 @@
  *  @author Petr Čoupek
  */ 
      
- /*  29.10.2014-2021
+ /* 29.10.2014-2021
+  * 19.10.2023 - implementace select offset
+  * 06.12.2023 - profiling
   */
 include_once "mdbAbstract.php";
  
@@ -202,25 +204,25 @@ class OpenDB_Oracle extends OpenDB{
         $col=$this->Data('COLUMN_NAME');
         $struktura[$prevod[$col]]['pk']=$this->Data('POSITION');
       }
-      //htpr(print_r($struktura,false));   
-      return($struktura);
+      return $struktura;
     }
     
     if (preg_match('/^\s*catalog\s*$/',$command,$m)){
       /* vraci seznam tabulek - pohledu */
       $this->parse=@ociparse($this->conn,"select table_name from tabs order by table_name asc");
-      $x=@ociexecute($this->parse,OCI_DEFAULT);
-      $n=0;
-      while ($this->data=@oci_fetch_array($this->parse,OCI_ASSOC+OCI_RETURN_NULLS)) {
-        $struktura[$n++]=array(
+      if (@ociexecute($this->parse,OCI_DEFAULT)) {
+        $n=0;
+        while ($this->data=@oci_fetch_array($this->parse,OCI_ASSOC+OCI_RETURN_NULLS)) {
+          $struktura[$n++]=array(
            'name'=>$this->data['TABLE_NAME'],
            'type'=>'table');      
+        }
+        return $struktura;
       }
-      return($struktura);
     }     
     
     $this->stav=false;
-    return($this->stav);
+    return $this->stav;
   }
   
   /** $result = $db->FetchRowA();
@@ -236,6 +238,32 @@ class OpenDB_Oracle extends OpenDB{
     }   
   }
  
+ /** $array = $db->SqlFetchArray($sql_command,$limit=0)
+   * 
+   * combine Sql and FetchRow method into one step and returns data array
+   * @param string  $sql_command - and sql command
+   * @param array   $bind - list of bind parameters
+   * @param integer $limit - max. count of resuts , 0= no limit
+   * @param integer $offset - start position in the select, default=1, has sense only if select is ordered
+   * @return array  with the data content
+   */
+  function SqlFetchArray($prikaz,$bind=array(),$limit=0,$offset=1){
+    /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
+    $a=array();
+    if ($offset>1){
+      $prikaz.=" offset $offset rows";
+    }
+    if (!$this->Sql($prikaz,$bind)){
+      while ($this->FetchRow()){
+        array_push($a,$this->DataHash());
+        if ($limit && $limit<=count($a)) break;
+      }
+    }
+    return $a;    
+  }
+  
+
+
   /** $db->Close();
    * 
    * It closes the database connection

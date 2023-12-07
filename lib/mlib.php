@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.44 - 041223
+ * @version 0.45 - 081223
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -1234,8 +1234,9 @@ function postLink($link,$label,$params,$addpar=''){
 
 /** sanitizer for non-existing variables call
  *  @param $par - variable
- *  @param $datault - when does not exists, return this
- *  @return value of the existing variable or dafault
+ *  @param $default - when does not exist, return this.
+ *   It can be another type, f.e. array: df($hash,$par,['KEY'=>'nothing'])['KEY']
+ *  @return value if exists or default
  */
 function df($hash,$par,$default=''){
   return isset($hash[$par])?$hash[$par]:$default;
