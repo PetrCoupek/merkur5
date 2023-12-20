@@ -15,11 +15,12 @@ M5::skeleton('../');
 $db = new OpenDB_Oracle(CONN_APP_DKB_02);
 //deb($db->Pragma("table_info('dat_lok1.lok')") );
 $tt= new VisTab(
-  ['sprikaz'=>"select id, nazev, ochrana_stup_kod, ochrana_kat_kod, ochrana_dop from dat_lok1.lok", 
+  ['header'=>'Hlavička',
+   'sprikaz'=>"select id, nazev, ochrana_stup_kod, ochrana_kat_kod, ochrana_dop from dat_lok1.lok", 
    'cprikaz'=>'select count(*) as pocet from dat_lok1.lok',
    'pragma'=>[['name'=> 'ID',  'comment' => 'Identifikátor záznamu'],
               ['name'=> 'NAZEV','comment' => 'Název lokality'],
-              ['name'=> 'OCHRANA_STUP_KOD','comment' => 'Ocharna stup kód'],
+              ['name'=> 'OCHRANA_STUP_KOD','comment' => 'Ochrana stup kód'],
               ['name'=> 'OCHRANA_KAT_KOD','comment' => 'Ochrana kat kód'],
               ['name'=> 'OCHRANA_DOP','comment' => 'Doporučení ochrany']],
    'dprikaz'=>'select * from dat_lok1.lok '],$db); 

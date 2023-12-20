@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.45 - 081223
+ * @version 0.46-201223
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -144,6 +144,8 @@ abstract class M5_core{
    * @return void
    */
   static function htpr_all(){
+   static $done=false; 
+   if ($done) return 0;   
    if (self::get('sapi_name')=='cli'){
       if (self::get('header')!='' && !M5::get('immediate')) 
         echo self::get('header')."\n".str_repeat("=",80)."\n";
@@ -167,9 +169,11 @@ abstract class M5_core{
      }else{
        self::set('htptemp',
         str_replace('#ERRORS#','',self::get('htptemp')));
-     }   
+     }
      echo self::get('htptemp');
-   }  
+   }
+   $done=true;
+   return 0;  
   }
 
   /** Replace something in the output buffer

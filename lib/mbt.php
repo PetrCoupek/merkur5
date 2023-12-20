@@ -558,7 +558,7 @@ function bt_tooltip($title,$text,$placement='top'){
  * @param string $pagination (result of the bt_pagination function) 
  * @param string $content
  * @param bool  $postlink - when true, generater links are POSTed
- * @param string filter -when not null, it prints this text as filter description
+ * @param string filter - when not null, it prints this text as filter description
  * 
  */
 function bt_lister($caption='',
@@ -612,10 +612,11 @@ function bt_lister($caption='',
      //$s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
      $s=bt_alert($nodata_text,'alert-warning');
    }else{
+    /* $filter muze obahovat napr. texove vyjadreni - musi byr predano pri volani */
     $s=tg('div','class="table-responsive '.$bt_class.'"',
        tg('table',$bt_class,
         ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
-        (getpar('_whr')?(isset($filter)?$filter:  ('Filtrováno: '.urldecode(getpar('_flt'))  )):'')).
+        (getpar('_whr')?tg('span','class="alert alert-success"',isset($filter)?$filter:('Filtrováno: '.urldecode(getpar('_flt')))):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
    }

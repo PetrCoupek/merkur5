@@ -49,7 +49,7 @@ function __construct($param,$db){
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
   }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){
-    $this->header=(isset($param['header'])?$param['header']:'[head]');
+    $this->header=(isset($param['header'])?$param['header']:'');
     $this->sprikaz=$param['sprikaz'];
     $this->cprikaz=$param['cprikaz'];
     $this->pragma=$param['pragma'];
@@ -64,7 +64,6 @@ function __construct($param,$db){
 
   /* generovani where probiha vzdy */
   setpar('_whr',$this->genwhere()); /* interne se parametr odkazuje pomoci getpar('_whr') */
-  //deb(M5::getparm());
 }
 
 function route($context){
@@ -79,6 +78,8 @@ function route($context){
 
 }
 
+/** list table of rows
+ */
 function lister($context){
   /* zpracovani potvrzeneho formulare pro omezeni - filtrovani */
   if (getpar('_sg')) {     
@@ -95,11 +96,11 @@ function lister($context){
     if (!isset($this->param['noDetail'])){
       for($i=0,$j=getpar('_ofs',1);$i<count($a);$i++,$j++){
         if ($this->postlink){
-          $a[$i]['detail']=postLink('?'.$context,bt_icon('pencil'),
+          $a[$i]['detail']=postLink('?'.$context,bt_icon('file-text'),
            ['_det'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
         }else{
           $l='?_det=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
-          $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));
+          $a[$i]['detail']=ahref($l.$context,bt_icon('file-text'));
         }        
       }
     }    
@@ -120,7 +121,6 @@ function lister($context){
         }  
       }
     }
-
 
     /* tisk tabulky a listovani */
     htpr(
@@ -145,7 +145,6 @@ function lister($context){
   }else{
     htpr(bt_alert('Nejsou záznamy','alert-warning'));
     $this->form_param($context);
-
   }
 }
 
@@ -153,11 +152,13 @@ function lister($context){
  *  to be overriden in extented class based on VisTab
 */
 function form_param($context){
-  
   //$this->dewhere(base64_decode(getpar('_whr')));
   /*$a=$this->db->Pragma("table_info('$t')");*/
   $a=$this->pragma;
-  if (!is_array($a)) {deb('wrong pragma'); return 0;}
+  if (!is_array($a)) {
+    deb('wrong pragma'); 
+    return 0;
+  }
   $b=array();
   for ($i=0;$i<count($a);$i++){
     if (isset($a[$i]['name'])){
@@ -174,7 +175,6 @@ function form_param($context){
   htpr(tg('form',
           'method="post" action="?'.$context.'&_o='.getpar('_o').'"',
            bt_container(['col-4','col-2','col-6'],$b))); 
-
 }
 
 /** based on pragma, it constructs the labels fo columns needed by bt_lister
@@ -412,6 +412,13 @@ function dewhere($where){
   } 
 }
 
+/** This method is to be overvrited with "inteligent" from attribute filter to text conversion 
+ * @return string Textual form of filter
+*/
+function text_filter(){
+  return urldecode(getpar('_flt'));
+}
+
 /** Stranka s detailem zaznamu
  * 
  */
@@ -457,7 +464,7 @@ function detail($context,$custom=''){
       'class="btn btn-primary"');
   }
 
-  htpr(//ta('h3','Detail'),
+  htpr((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filter: '.$this->text_filter())):''),
        bt_pagination(
             getpar('_ofs',1),
             $this->db->SqlFetch($cprikaz),
@@ -588,8 +595,7 @@ function detail($context,$custom=''){
                    gl(submit('_ins','Vložit','btn btn-primary')):
                    gl(submit('_upd','Uložit','btn btn-primary'),nbsp(5),
                      submit('_del','Smazat','btn btn-secondary'),
-                     $original_primary
-    ), 
+                     $original_primary), 
                  para('_o',getpar('_o')),
                  para('_flt',getpar('_flt')),
                  para('_ofs',getpar('_ofs')),
@@ -616,20 +622,18 @@ function detail($context,$custom=''){
         'class="btn btn-secondary"');
     }     
   
-  
-    htpr(//ta('h3','Detail'),
-         bt_pagination(
-              getpar('_ofs',1),
-              $this->db->SqlFetch($cprikaz),
-              1,
-              $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
-              $this->postlink
-            ),
-         $custom,
-         $back
-        );
+    htpr(
+      (getpar('_whr')?bt_alert('Filter: '.$this->text_filter()):''),
+       bt_pagination(
+        getpar('_ofs',1),
+        $this->db->SqlFetch($cprikaz),
+        1,
+        $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
+        $this->postlink
+       ),
+       $custom,
+       $back);
     
-    //htpr(print_r($r,false));
 }
   
 function route($context){  

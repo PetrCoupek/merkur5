@@ -7,6 +7,8 @@
  /* 29.10.2014-2021
   * 19.10.2023 - implementace select offset
   * 06.12.2023 - profiling
+  * 14.12.2023 - oprava offset select
+  * 20.12.2023 - oprava offset select
   */
 include_once "mdbAbstract.php";
  
@@ -251,7 +253,8 @@ class OpenDB_Oracle extends OpenDB{
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
     $a=array();
     if ($offset>1){
-      $prikaz.=" offset $offset rows";
+      //$prikaz.=" offset $offset rows";
+        $prikaz="$prikaz offset $offset-1 rows fetch next $limit rows only";
     }
     if (!$this->Sql($prikaz,$bind)){
       while ($this->FetchRow()){

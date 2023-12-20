@@ -1,2 +1,3 @@
-RewriteEngine Off
+RewriteEngine On
 
+DirectoryIndex test_test.php
