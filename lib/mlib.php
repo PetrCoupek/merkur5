@@ -23,7 +23,7 @@ if (!defined('__DIR__')){
 ini_set('default_charset','utf-8');
 set_time_limit(0);
 M5_core::iniset();
-spl_autoload_register("autoload_function"); /* $errcontext=null pro PHP8 */
+spl_autoload_register("m5_autoload"); /* $errcontext=null pro PHP8 */
 set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext=null) {
     /* error was suppressed with the @-operator */
     /* $errcontext is attached object with all the details - do not print_r it ! */
@@ -379,7 +379,7 @@ abstract class M5 extends M5_core{
   * @param $class Class 
   * @return none */
 
-function autoload_function($class){
+function m5_autoload($class){
   /* rizeny autoload jednotlivych modulu  zakladni knihovny */
   $path=__DIR__; /* $path by mel obsahovat cestu z zakladni knihovne lib, ktera je nactena jeko prvni */
   //echo $path,";";  //puvodne $path='lib';
