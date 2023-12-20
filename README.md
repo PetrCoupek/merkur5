@@ -67,7 +67,7 @@ include_once "../lib/mlib.php";
 M5::set('header',,'Minimal application'); 
 M5::skeleton(); 
 htpr(ta('h1','Minimal application'),ta('p','That\'s it !')); 
-htpr_all();                  
+M5:done();                  
 ```
 notice: this 5 lines of code generate a complex HTML/CSS styled page
   with one header and one paragraph of text based on default frontend template
@@ -98,6 +98,6 @@ htpr(
        'Nejsou záznamy.','',
        bt_pagination(getpar('_ofs',1),$total,15)));
    
-htpr_all();
+M5:done;
 ```
 
