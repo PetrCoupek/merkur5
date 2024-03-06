@@ -21,6 +21,7 @@
  *  09.03.2023 
  *  20.06.2023
  *  15.08.2023 - possibility to globally control the list page length
+ *  08.01.2024 - genfilter - remove order by in count select by default 
  */ 
 include_once "mbt.php";
 
@@ -49,12 +50,13 @@ function __construct($param,$db){
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
   }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){
-    $this->header=(isset($param['header'])?$param['header']:'');
+    $this->header=(isset($param['header'])?$param['header']:'[head]');
     $this->sprikaz=$param['sprikaz'];
     $this->cprikaz=$param['cprikaz'];
-    $this->pragma=$param['pragma'];
+    $this->pragma=$param['pragma']; 
     $this->dprikaz=$param['dprikaz'];
-  }
+  }  
+
   if (isset($param['postlink']) && $param['postlink']){
     $this->postlink=true;  
   }else{
@@ -78,8 +80,9 @@ function route($context){
 
 }
 
-/** list table of rows
- */
+/** Tabulka pro listovani mnozinou vybranych zaznamu
+ * 
+*/
 function lister($context){
   /* zpracovani potvrzeneho formulare pro omezeni - filtrovani */
   if (getpar('_sg')) {     
@@ -88,7 +91,7 @@ function lister($context){
   }
   
   $sprikaz=$this->genfilter($this->sprikaz);
-  $cprikaz=$this->genfilter($this->cprikaz);
+  $cprikaz=$this->genfilter($this->cprikaz,false);
   
   $a=$this->db->SqlFetchArray($sprikaz,[],isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,getpar('_ofs',1));
   /* generovani linku pro prechod do detailu */
@@ -96,31 +99,40 @@ function lister($context){
     if (!isset($this->param['noDetail'])){
       for($i=0,$j=getpar('_ofs',1);$i<count($a);$i++,$j++){
         if ($this->postlink){
-          $a[$i]['detail']=postLink('?'.$context,bt_icon('file-text'),
+          $a[$i]['detail']=postLink('?'.$context,bt_icon('pencil'),
            ['_det'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
         }else{
           $l='?_det=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
-          $a[$i]['detail']=ahref($l.$context,bt_icon('file-text'));
+          $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));
         }        
       }
     }    
-    /* modifikace nactene tabulky pred jejim zobrazenim - doplneni odkazu */
-    //deb($a);
-    if (isset($this->param['pragma'])){
-      $t=$this->param['pragma'];
+    /* modifikace nactene tabulky pred jejim zobrazenim - doplneni odkazu kamkoliv */
+    if (isset($this->pragma)){
+      $t=$this->pragma;
       for($i=0;$i<count($t);$i++){
-        if (isset($t[$i]['paralink'])){
-          $tt=$t[$i]['paralink'];
-          for($j=0;$j<count($a);$j++){
-            $link='?';
-            foreach ($tt as $k=>$v){
-              $link.=($link==''?'':'&').$k.'='.(is_array($v)?$a[$j][$v[0]]:$v);
+        /* zpracuj, jen pokud je to definovano */
+        if (isset($t[$i]['replace']) && isset($t[$i]['replace']['temp']) && isset($t[$i]['replace']['pars'])){
+          $pars=$t[$i]['replace']['pars'];
+          for($j=0,$o=getpar('_ofs',1);$j<count($a);$j++,$o++){
+            $temp=$t[$i]['replace']['temp'];
+            for($k=0;$k<count($t[$i]['replace']['pars']);$k++){
+              $temp=str_replace($pars[$k],$a[$j][$pars[$k]],$temp);
+              $temp=str_replace('_OFS_',$o,$temp);
+              $temp=str_replace('_FLT_',getpar('_flt'),$temp);
+              $temp=str_replace('_O_',getpar('_o'),$temp);
             }
-            $a[$j][$t[$i]['name']]=ahref($link,$a[$j][$t[$i]['name']]);
-          }
+            /* osetreni vraceni prazdneho pole, pokud je i datovy atribut nevyplaneny - napr. chybi nahled snimku */
+            if (isset($t[$i]['replace']['temp_cond']) && $t[$i]['replace']['temp_cond'] && $a[$j][$t[$i]['name']]==''){
+              continue; // toto neni potreba: $a[$j][$t[$i]['name']]='';   
+            }else{
+              $a[$j][$t[$i]['name']]=$temp;         
+            }  
+          }  
         }  
       }
     }
+
 
     /* tisk tabulky a listovani */
     htpr(
@@ -152,6 +164,7 @@ function lister($context){
  *  to be overriden in extented class based on VisTab
 */
 function form_param($context){
+  
   //$this->dewhere(base64_decode(getpar('_whr')));
   /*$a=$this->db->Pragma("table_info('$t')");*/
   $a=$this->pragma;
@@ -176,6 +189,7 @@ function form_param($context){
           'method="post" action="?'.$context.'&_o='.getpar('_o').'"',
            bt_container(['col-4','col-2','col-6'],$b))); 
 }
+
 
 /** based on pragma, it constructs the labels fo columns needed by bt_lister
  * attributes not listed in table have set attribute 'nolist' to true in pragma.
@@ -352,11 +366,11 @@ function getfilter(){
  * @return string 
  * 
 */
-function genfilter($sprikaz){
+function genfilter($sprikaz,$order_by=true){
   $where=getpar('_whr');
   $sprikaz=preg_replace("/\x0d/",' ',$sprikaz);
   $sprikaz=preg_replace("/\x0a/",' ',$sprikaz); //odstran odradkovani, aby fungoval r. vyraz
-  $oby=(getpar('_o')!='')?(' '.getpar('_o')):'';
+  $oby=(getpar('_o')!='' && $order_by)?(' '.getpar('_o')):'';
   $whr=(getpar('_whr')!='')?(' where '.$where):'';
   $whradd=(getpar('_whr')!='')?(' and '.$where):'';
   
@@ -419,6 +433,7 @@ function text_filter(){
   return urldecode(getpar('_flt'));
 }
 
+
 /** Stranka s detailem zaznamu
  * 
  */
@@ -426,9 +441,9 @@ function detail($context,$custom=''){
 
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */
   
-  $cprikaz=$this->genfilter($this->cprikaz);
-  $dprikaz=$this->genfilter($this->dprikaz);
+  $cprikaz=$this->genfilter($this->cprikaz,false);
   if ($custom==''){
+    $dprikaz=$this->genfilter($this->dprikaz);
     $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
     /* popisy polozek mohou byt z popisu entity v databazi */
     $p=[];
@@ -450,7 +465,7 @@ function detail($context,$custom=''){
   }
   
   /* pocet zaznamu a listovani po zaznamech */
-  $cprikaz=$this->genfilter($this->cprikaz);
+  $cprikaz=$this->genfilter($this->cprikaz,false);
   $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
   if ($this->postlink){
     $back=postLink('?'.$context,'Zpět',
@@ -477,6 +492,14 @@ function detail($context,$custom=''){
       );
 
 
+}
+
+/** vraci parametry pro udrzeni kontextu tridy Vistab 
+ * @param string $method - bud GET pro odkazy nebo POST pro formulare
+*/
+function vistab_params($method='GET'){
+  if ($method=='GET') return '_ofs='.getpar('_ofs').'&_o='.getpar('_o').'&_flt='.getpar('_flt');
+  if ($method=='POST') return para('_ofs',getpar('_ofs')).para('_o',getpar('_o')).para('_flt',getpar('_flt'));
 }
 
 } /* class Editab is the VisTab listing/filtering/sorting functionality with editable detail */
@@ -595,7 +618,8 @@ function detail($context,$custom=''){
                    gl(submit('_ins','Vložit','btn btn-primary')):
                    gl(submit('_upd','Uložit','btn btn-primary'),nbsp(5),
                      submit('_del','Smazat','btn btn-secondary'),
-                     $original_primary), 
+                     $original_primary
+    ), 
                  para('_o',getpar('_o')),
                  para('_flt',getpar('_flt')),
                  para('_ofs',getpar('_ofs')),
@@ -623,17 +647,18 @@ function detail($context,$custom=''){
     }     
   
     htpr(
-      (getpar('_whr')?bt_alert('Filter: '.$this->text_filter()):''),
-       bt_pagination(
-        getpar('_ofs',1),
-        $this->db->SqlFetch($cprikaz),
-        1,
-        $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
-        $this->postlink
-       ),
-       $custom,
-       $back);
+      $this->mode!='I'?bt_pagination(
+              getpar('_ofs',1),
+              $this->db->SqlFetch($cprikaz),
+              1,
+              $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
+              $this->postlink
+            ):'',/* nekresli listovani pro novy zaznam */
+            $custom, 
+         $back
+        );
     
+    //htpr(print_r($r,false));
 }
   
 function route($context){  
@@ -660,11 +685,10 @@ function route($context){
     }
   }
   
-  /** insert action
-   * @return bool $result means to stay in detail - in case of update always
-   */
-  
-   function insert(){
+/** insert action
+ * @return bool $result means to stay in detail - in case of update always
+ */  
+function insert(){
     //deb($this->iprikaz,false);deb($this->bind,false);
     $er=$this->db->Sql($this->iprikaz,$this->bind);
     if (!$er){

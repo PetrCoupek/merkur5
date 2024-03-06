@@ -7,7 +7,8 @@
  * @package Merkur5
  * @version 1.3
  * date 03.08.2023 18.08.2023 28.11.2023
- * 
+ * 08.01.2024 - bt_pagination robusteness
+ * 11.01.2024 - english with fnc la() for bt_pagination
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -282,14 +283,15 @@ function bt_container($colrules,$rows,$rowclass='row'){
  * @param string $docid - unique document ID }for javascript functionality)
  * @param string $content - internal HMTL content
  * @param string $addlabel additional parameters in the tabel tag, f.e class="text-decoration-none" class="btn: etc.
+ * @param bool   $hide - if it is hidden at the start
  */
 
-function bt_hidable_area($label, $docid, $content, $addlabel=''){
+function bt_hidable_area($label, $docid, $content, $addlabel='', $hide=true){
   return 
    tg('div','id="'.$docid.'_o" ',
    ta('h5',tg('a','id="'.$docid.'_c" href="#" '.$addlabel, $label.nbsp(2).bt_icon('caret-down'))).
   
-   tg('div','id="'.$docid.'_i" style="display:none" ', $content.
+   tg('div','id="'.$docid.'_i" '.($hide?'style="display:none"':''), $content.
      tg('a','id="'.$docid.'_d" href="#" ',bt_icon('caret-up')))).
    ta('script',
     '$(document).ready(function(){'.
@@ -558,8 +560,8 @@ function bt_tooltip($title,$text,$placement='top'){
  * @param string $pagination (result of the bt_pagination function) 
  * @param string $content
  * @param bool  $postlink - when true, generater links are POSTed
- * @param string filter - when not null, it prints this text as filter description
- * 
+ * @param string $filter - when not null, it prints this text as filter description
+ * @param string $text_button Specify text for Search button
  */
 function bt_lister($caption='',
                    $head=[],
@@ -569,7 +571,8 @@ function bt_lister($caption='',
                    $pagination='',
                    $context='',
                    $postlink=false,
-                   $filter=null){
+                   $filter=null,
+                   $text_button=''){
 
   $s=''; 
   if (!is_array($content)) return '';
@@ -612,10 +615,10 @@ function bt_lister($caption='',
      //$s=ta('tr',tg('td','colspan='.count($L),$nodata_text.nbsp()));
      $s=bt_alert($nodata_text,'alert-warning');
    }else{
-    /* $filter muze obahovat napr. texove vyjadreni - musi byr predano pri volani */
-    $s=tg('div','class="table-responsive '.$bt_class.'"',
+    /* $filter can include textual expression */
+    $s=tg('div','class="table-responsive"',
        tg('table',$bt_class,
-        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search'),'class="btn btn-primary"').
+        ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search').$text_button,'class="btn btn-primary"').
         (getpar('_whr')?tg('span','class="alert alert-success"',isset($filter)?$filter:('Filtrováno: '.urldecode(getpar('_flt')))):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
@@ -636,6 +639,7 @@ function bt_lister($caption='',
 function bt_pagination($current,$total,$step,$context='',$postlink=false){
   $s='';
   $offset='_ofs';
+  if (!$total) return '';
 
   /* posun o stranku zpet */
   if ($current>$step) $s.=tg('li','class="page-item"',
@@ -659,7 +663,7 @@ function bt_pagination($current,$total,$step,$context='',$postlink=false){
     }
   }
 
-  /* posun o stranku vpred */  
+  /* posun o stranku vpred */
   if ($total-$current>=$step) $s.=tg('li','class="page-item"',
      $postlink?postLink('?'.$context,bt_icon('right'),[$offset=>$current+$step,'_o'=>getpar('_o')],'class="page-link"'):
        tg('a','class="page-link" href="?'.$offset.'='.($current+$step).$context.'"',bt_icon('right')));
@@ -669,7 +673,8 @@ function bt_pagination($current,$total,$step,$context='',$postlink=false){
   $stran=($nstran>4?'stran':($nstran>1?'strany':($nstran==1?'strana':'stran'))); 
   $zaznamu=($total>4?'záznamů':($total>1?'záznamy':($total==1?'záznam':'záznamů')));       
   $s=tg('nav','aria-label="..."',
-      "Celkem $total $zaznamu ($nstran $stran) ".
+      la("Celkem $total $zaznamu ($nstran $stran) ",
+         "Total $total record".($total>1?'s':'')." ($nstran page".($nstran>1?'s':'').") ").
       (($total>$step)?tg('ul','class="pagination"',$s):''));
 
   return $s;
@@ -842,7 +847,7 @@ function bt_modal_win($name,
                       $text='Click me',
                       $title='Window',
                       $id_window='empModal',
-                      $url_ajax='?'){
+                      $url_ajax='?ajax=1'){
   
   $r=tg('a','class="btn btn-secondary m-1" id="'.$id.'" ',$text);
 

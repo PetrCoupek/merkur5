@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.46-201223
+ * @version 0.47-050324
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -1146,7 +1146,7 @@ function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
    $s=tg('table',$class,
        (isset($caption)?ta('caption',$caption):'').
         ta('thead',
-          ta('tr',$hlav))
+          ta('tr',$head))
        .ta('tbody',$s));
    return $s;
 }
@@ -1253,6 +1253,18 @@ function isMobDev() {
   return preg_match("/(android|avantgo|blackberry|bolt|boost|cricket|docomo
 |fone|hiptop|mini|mobi|palm|phone|pie|tablet|up\.browser|up\.link|webos|wos)/i"
 , $_SERVER["HTTP_USER_AGENT"]);
+}
+
+/** language selector according to the sesson la parameter
+ * @param string $r1 text in default language
+ * @param string $r2 text in the second language
+ * @return string  - appropriate string 
+*/
+function la($r1,$r2=''){
+  if (isset($_SESSION['la'])){
+    return $_SESSION['la']=='cz'?$r1:$r2;
+  }
+  return $r1; 
 }
 
 ?>

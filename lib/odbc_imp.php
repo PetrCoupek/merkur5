@@ -2,31 +2,30 @@
 /** SQLite import - funkcionalita importu databazovych tabulek - protikus oraexp
  *  @author Petr Coupek
  *  @date 02.07.2019
- *  je cten csv a inf soubor a po prevodu do UTF8 je to vlozeno do SQLITE databaze
+ *  je cten csv a inf soubor a po prevodu do UTF8 je to vlozeno do ODBC databaze
  *  16.07.2019 - upravy
  *  24.07.2019 - upravy 
  *  15.01.2020 - upravy
  *  22.01.2020 - import csv
  *  22.06.2023 - upravy
  *  29.01.2024 - upravy
- *  08.02.2024 - zmena generovani cilove tabulky
  */
 
 
-class Lite_imp {
-  var $napojeni,$odkud,$oddelovac,$verbose,$textOnly,$db,$conv,$create;
+class ODBC_imp {
+  var $napojeni,$odkud,$oddelovac,$verbose,$textOnly,$db,$conv,$vytvaret;
 
-function __construct($napojeni,$pars=[]){
+function __construct($napojeni){
   $this->napojeni=$napojeni;  /* prazdny retezec vyvola jen vypis prikazu */
   $this->odkud='export/';
   $this->oddelovac=';';
   $this->verbose=true;  /* vydava echo pri importu */
   $this->textOnly=($napojeni=='');  /* true zpusobi jen tisk prikazu, nejsou vykonany */
   if (!$this->textOnly){
-    $this->db = new OpenDB_SQLite($napojeni);
+    $a=$this->db = new OpenDB_ODBC($napojeni);
   }                                                    
-  $this->conv=isset($pars['conv'])&&$pars['conv'];  /* zda provadet konverzi do UTF-8 Pokud FALSE, jiz je zdroj v UTF-8*/  
-  $this->create=isset($pars['create'])&&$pars['create'];
+  $this->conv=true;  /* zda provadet konverzi do UTF-8 Pokud FALSE, jiz je zdroj v UTF-8*/  
+  $this->vytvaret=true;
 }
 
 function __destruct(){
@@ -35,7 +34,7 @@ function __destruct(){
   }  
 }
 
-/** generovani DDL SQL příkazu create table na základě předané struktury
+/** generovani prikazu create table na zaklade predane struktury
  */ 
 function generuj($def){
   $a1=[]; /*pole radku definice entity */
@@ -44,15 +43,15 @@ function generuj($def){
     if (substr($k,0,1)=='-') continue;
     $t=$k.' ';
     if ($v[0]=='VARCHAR' || $v[0]=='VARCHAR2' || $v[0]=='NVARCHAR' || $v[0]=='NVARCHAR2' || $v[0]=='CHAR') {
-      //if ($v[1]>255) {
-      //  $t.='text '.$v[2];
-      //}else{
-      //  if ($v[1]=='') $v[1]=100;
+      if ($v[1]>255) {
+        $t.='memo '.$v[2];
+      }else{
+        if ($v[1]=='') $v[1]=100;
         $t.='text('.$v[1].')'.$v[2];
-      //}
+      }
     }
     if ($v[0]=='CLOB' || $v[0]=='NCLOB' || $v[0]=='ST_GEOMETRY' || $v[0]=='LONG') {
-      $t.='text'.$v[2];
+      $t.='memo'.$v[2];
     }
     if ($v[0]=='TIMESTAMP' || $v[0]=='DATETIME' || $v[0]=='DATE' ) {
       $t.='datetime'.$v[2];
@@ -73,29 +72,25 @@ function generuj($def){
   }else{
     $pk="primary key (".$def['-primary'].")";
   }
-  /* slepeni poli definice a poznamky do viceradkoveho retezce */ 
+  /* slepeni poli do viceradkoveho retezce - poznamky v poli $a2 se u ACCESS zahazuji */ 
   for($i=0,$r='';$i<count($a1);$i++){
-    $r.=$a1[$i].$a2[$i]."\n"; 
+    $r.=$a1[$i]."\n"; 
   }
-  if (isset($def['-comment'])){
-    $comment=$def['-comment']."\n";
-  }else{
-    $comment='';
-  }
-  $r="create table ".$def['-table']."(\n".$comment.$r.$pk.")"; 
+  
+  $r="create table ".$def['-table']."(\n".$r.$pk.")"; 
   return $r;
 }
 
 
-/** importuje jednu entitu ze souboru .inf a souboru .csv do schematu
- * @param string $soubor - jmeno souboru, zpravidla shodne se jmenem tabulby
- * @param string $tabulka - jmeno tabulky, pokud neni uvedeno, predpoklada se jmeno souboru 
- *                ve tavru SCHEMA.TABLE
- * @param string $odkud - $dokud je slozka, ve ktere se soubor nachazi
+/** importuje jednu entitu ze souboru .inf a souboru .csv
+ * @param $soubor - jmeno souboru, bud SCHEMA.TABULKA nebo TABULKA
+ * @param $tabulka - jmeno tabulky, pokud je prazdny retezec, ma se za to, ze je soucasni jmena souboru SCHEMA.TABULKA
+ * @param $odkud - $dokud je slozka, ve ktere se soubor nachazi
  */ 
 function importuj($soubor,$tabulka,$odkud=''){
+  /* provede import tabulky do schematu */
   if ($odkud!='') $this->odkud=$odkud;
-  /* definicni soubor, datovy soubor */
+  /* definicni soubor */
   $info=$this->odkud.$soubor.'.inf';
   $data=$this->odkud.$soubor.'.csv';
   if (!file_exists($info)){
@@ -122,12 +117,7 @@ function importuj($soubor,$tabulka,$odkud=''){
     $r=fgets($f);
     if ($r===false) break;
     $r=str_replace(["\r", "\n"], '', $r);
-    if ($this->conv) $r=iconv("windows-1250","utf-8//TRANSLIT",$r);
-    if (substr($r,0,3)==' --' || substr($r,0,2)=='--' ) {
-      /* poznamka k entite */
-      $def['-comment']=$r;
-      continue;
-    } 
+    if (substr($r,0,3)==' --' || substr($r,0,2)=='--' ) continue; /* pozn. k ent se zahodi */
     if (preg_match("/^table\s+(.*)\($/",$r,$m)){
       $def['-table']=$m[1];
     }elseif($r=='primary key ()'){
@@ -135,8 +125,9 @@ function importuj($soubor,$tabulka,$odkud=''){
     }elseif( preg_match("/primary key\s*\((.*)\)/",$r,$m) ){
       $def['-primary']=$m[1];
     }elseif($r==')'){
-      /* konec tabulky, nedelej nic */  
+      /* konec tabulky, nedelej nic */    
     }else{
+      /* parsovani definice tabulky */
       /* parsovani definice tabulky */
       if (preg_match("/^(\w+) (\w+)\((\d+)\)( NOT NULL,|,) (.*)$/",$r,$m)){
         $def[$m[1]]=[$m[2],$m[3],$m[4],$m[5]];
@@ -152,25 +143,20 @@ function importuj($soubor,$tabulka,$odkud=''){
     }   
   }
   $prikaz=$this->generuj($def);
-  //echo "$prikaz\n---------\n";
-  //return 0;
-  $this->konej('BEGIN');
-  if (!$this->konej($prikaz)){  
+  //echo "$prikaz";   
+  if ($this->vytvaret) if (!$this->konej($prikaz)){  
     $this->hlaseni("Chyba SQL: / ".$prikaz);
-    $this->konej('COMMIT');
     return 0;
   }
-  $this->konej('COMMIT');
   fclose($f);
   $f=fopen($data,"r");
   $k=0; 
   $n=0;
-  $this->konej('BEGIN');
   $pole=[];
   while(true){
     $r=fgets($f);
     if ($r===false) break;
-    //$r=iconv("windows-1250","utf-8//TRANSLIT",$r);      
+    $r=str_replace(array("\r", "\n"), '', $r);
     if ($k==0){
       /* prvni radek obsahuje hlavicky */
       $pole=explode($this->oddelovac,$r);      
@@ -181,35 +167,29 @@ function importuj($soubor,$tabulka,$odkud=''){
         }
       }
     }else{
-      $hodnoty=explode($this->oddelovac,$r);
+      $hodnoty=explode($this->oddelovac,$r);     
       $nenul=true;
-      for($i=0;$i<count($hodnoty);$i++){
+      for($i=0;$i<count($hodnoty);$i++){    
         $type=$def[$pole[$i]][0];
+        //echo 'Type='.$type; 
         if ($hodnoty[$i]=='' || ($hodnoty[$i]=='""' && ($type=='TIMESTAMP' || $type=='DATETIME' || $type=='DATE'))) {
           $hodnoty[$i]='null'; 
           $nenul=false;
         }else{
           $nenul=true;
-        }  
-         /* pokud je posledni hodnota na radku numericka a neni uvedena, 
-          * do promenne hodnoty[i] se dostane x0a */
-        if ($i==count($hodnoty)-1 && $hodnoty[$i]==chr(10)){
-           $hodnoty[$i]='null';
         } 
-
-        if ($this->conv) $hodnoty[$i]=iconv("windows-1250","utf-8//TRANSLIT",$hodnoty[$i]);
-
-        if ($hodnoty[$i]=='' && $nenul){
-           $hodnoty[$i]='"-"'; /*tj. konverze se nepovedla */
-           $this->hlaseni('radek '.$k.' hodnotu nelze prevest do UTF-8');
-        }   
-        
-        /* uvozovky uvnitr textu nahrad posloupnosti s funkci chr */
-        if (strstr($hodnoty[$i],'\"')){
-          $hodnoty[$i]=str_replace('\"','"||char(34)||"',$hodnoty[$i]);
+        /* pro ODBC Access je treba prehodit dvojite uvozovky obsahujici retezce za jednoduche
+         * test, zda atribut zacina a konci dvojitymi uvozovkami 
+         */ 
+        if (substr($hodnoty[$i],0,1)=='"' && substr($hodnoty[$i],-1,1)=='"'){
+          $vnitrek=substr($hodnoty[$i],1,-1);
+          /* pokud jsou uvnitr textu jednoduche uvozovky, je potreba zmenit je do insertu 
+           * za poslouponost '+chr(39)+' 
+           */
+          $vnitrek=str_replace("'","'+chr(39)+'",$vnitrek);    
+          $hodnoty[$i]="'".$vnitrek."'";
         }
-
-        /* pro vychozi typ TIMESTAMP je treba prehodit tvar vstupniho datoveho vstupniho pole, aby slo o datum */
+        /* pro vychozi typ TIMESTAMP je treba prehodit tvar vstupniho datoveho vstupniho pole, aby je Access nacetl */
         if ($type=='TIMESTAMP'){
           if(preg_match("/(\d{2})\.(\d{2})\.(\d{2}) (\d{2}):(\d{2}):(\d{2})/",$hodnoty[$i],$m)){
             $hodnoty[$i]="'20".$m[3].'-'.$m[2]."-".$m[1]." ".$m[4].":".$m[5].":".$m[6]."'";
@@ -219,20 +199,32 @@ function importuj($soubor,$tabulka,$odkud=''){
           }
         }
         
-
+        
+        /* pokud je posledni hodnota na radku numericka a neni uvedena, do promenne hodnoty[i] se dostane x0a */
+        if ($i==count($hodnoty)-1 && $hodnoty[$i]==chr(10)){
+           $hodnoty[$i]='null';
+        } 
+        //if ($this->conv) $hodnoty[$i]=iconv("utf-8//TRANSLIT","windows-1250",$hodnoty[$i]);
+        
+        //if ($hodnoty[$i]=='' && $nenul){
+        //   $hodnoty[$i]='"-"'; /*tj. konverze se nepovedla */
+        //   $this->hlaseni('radek '.$k.' hodnotu nelze prevest do UTF-8');
+        //}   
+        
       }
      
       $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
       if ($this->konej($prikaz)){
          $n++;
       }else{
-        $this->hlaseni('radek '.$k.' '.$prikaz);
+        //$this->hlaseni('radek '.$k.' '.$prikaz);
+        //return 0;
       }
       if ($this->verbose && !($n%100) ) echo "$n\r";       
     }
     $k++;
   }
-  $this->konej('COMMIT');
+  
   if (!$this->textOnly){
     $this->hlaseni("Importovano $n zaznamu do $tabulka.");
   }
@@ -267,7 +259,7 @@ function importuj_schema($odkud){
 }
 
 function pripoj_csv($soubor,$tabulka,$odkud=''){
-  /* jen provede �mport dat ze souboru csv do existujici tabulky ve schematu */
+  /* jen provede import dat ze souboru csv do existujici tabulky ve schematu */
   if ($odkud!='') $this->odkud=$odkud;
   $data=$this->odkud.$soubor.'.csv';
   if (!file_exists($data)){
@@ -286,7 +278,6 @@ function pripoj_csv($soubor,$tabulka,$odkud=''){
   $f=fopen($data,"r");
   $k=0; 
   $n=0;
-  $this->konej('BEGIN');
   $pole=[];
   while(true){
     $r=fgets($f);

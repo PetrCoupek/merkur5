@@ -9,6 +9,7 @@
   * 06.12.2023 - profiling
   * 14.12.2023 - oprava offset select
   * 20.12.2023 - oprava offset select
+  * 24.01.2024 - sql error diagnostic, debug attr.
   */
 include_once "mdbAbstract.php";
  
@@ -23,6 +24,7 @@ class OpenDB_Oracle extends OpenDB{
   var $charset="AL32UTF8"; //"EE8MSWIN1250"
   var $commit=true;
   var $typedb='oracle';
+  var $debug=false;  // true nastavi vypis SQL pri chybe
   //var $charset="UTF-8";
   //var $utf8=false; /* zde bude probihat konverze dat do a z UTF-8 */
   
@@ -81,7 +83,13 @@ class OpenDB_Oracle extends OpenDB{
     $x=@oci_execute($this->parse,OCI_DEFAULT);
     if(!$x){
       $em=@oci_error($this->parse);
-      $this->Error=$em['code'].'; '.$em['message'];  //.'; '.$em['offset'].'; '.$em['sqltext'];
+      $ofst=$em['offset'];
+      if ($this->debug) {
+        $txt='; code:'.$em['code'].'; SQL: '.substr($em['sqltext'],0,$ofst).'|err|'.substr($em['sqltext'],$ofst);
+      }else{
+        $txt='';
+      }  
+      $this->Error='; '.$em['message'].'; pozice '.$ofst.$txt.'.';  //.'; '.$em['offset'].'; '.$em['sqltext'];
       $this->stav=true;
       return $this->stav;
     }
@@ -218,8 +226,8 @@ class OpenDB_Oracle extends OpenDB{
           $struktura[$n++]=array(
            'name'=>$this->data['TABLE_NAME'],
            'type'=>'table');      
-        }
-        return $struktura;
+        }  
+      return $struktura;
       }
     }     
     
@@ -239,8 +247,8 @@ class OpenDB_Oracle extends OpenDB{
       return false;
     }   
   }
- 
- /** $array = $db->SqlFetchArray($sql_command,$limit=0)
+  
+   /** $array = $db->SqlFetchArray($sql_command,$limit=0)
    * 
    * combine Sql and FetchRow method into one step and returns data array
    * @param string  $sql_command - and sql command
@@ -264,8 +272,6 @@ class OpenDB_Oracle extends OpenDB{
     }
     return $a;    
   }
-  
-
 
   /** $db->Close();
    * 

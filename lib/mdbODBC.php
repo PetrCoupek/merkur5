@@ -71,7 +71,7 @@ class OpenDB_ODBC extends OpenDb{
     }
     $this->parse=@odbc_exec($this->conn,$dotaz);
     if(!$this->parse){
-      $this->Error=(@odbc_error($this->conn)).'; '.(@odbc_errormsg($this->conn)).'; SQL:'.$dotaz; 
+      $this->Error=(@odbc_error($this->conn)).'; '.(@odbc_errormsg($this->conn)).'; SQL:['.$dotaz.']'; 
       $this->stav=true;
       return $this->stav;
     }
