@@ -1146,7 +1146,7 @@ function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
    $s=tg('table',$class,
        (isset($caption)?ta('caption',$caption):'').
         ta('thead',
-          ta('tr',$head))
+          ta('tr',$hlav))
        .ta('tbody',$s));
    return $s;
 }

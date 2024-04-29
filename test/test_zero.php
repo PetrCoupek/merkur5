@@ -22,6 +22,7 @@ htpr(ta('h1','Hello'),
        ['SCRIPT_NAME',$_SERVER['SCRIPT_NAME']],
        ['DOCUMENT_ROOT',$_SERVER['DOCUMENT_ROOT']],
        ['PHP_SELF',$_SERVER['PHP_SELF']],
+       ['getcwd()',getcwd()],
        ['M5::$ent',ta('code',str_replace("\n",'<br>',htmlspecialchars(print_r(M5::$ent,true))))]
       ])
 );
