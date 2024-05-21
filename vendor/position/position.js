@@ -53,7 +53,9 @@ function listNearest(x,y,id){
           success: function(r){document.getElementById(id).innerHTML=r;}
           }
         );
+}
 
-  //document.getElementById(id).innerHTML=x+' '+y; 
-
+function getMap(x,y,id){
+  x=-x; y=-y;
+  document.getElementById(id).innerHTML='<img src="msm.php?x='+x+'&y='+y+'" >';
 }

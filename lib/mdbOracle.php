@@ -10,6 +10,7 @@
   * 14.12.2023 - oprava offset select
   * 20.12.2023 - oprava offset select
   * 24.01.2024 - sql error diagnostic, debug attr.
+  * 21.05.2024 - parametr version + osetreni starsich verzi Oracle
   */
 include_once "mdbAbstract.php";
  
@@ -25,6 +26,7 @@ class OpenDB_Oracle extends OpenDB{
   var $commit=true;
   var $typedb='oracle';
   var $debug=false;  // true nastavi vypis SQL pri chybe
+  var $version=12;
   //var $charset="UTF-8";
   //var $utf8=false; /* zde bude probihat konverze dat do a z UTF-8 */
   
@@ -43,7 +45,7 @@ class OpenDB_Oracle extends OpenDB{
     $m=array();
     if (preg_match('/^dsn=(.+);uid=(.+);pwd=(.+)$/i',$connect,$m)){  
       $this->conn=@oci_connect($m[2],$m[3],$m[1],$this->charset);
-      $this->com_kontr=true; //nastav natrue autocomit je implicitne zaply
+      $this->com_kontr=true; //nastav na true autocomit je implicitne zaply
       if (!$this->conn){
         $this->Error='Oracle connect failed.';
         //print($this->Error);
@@ -51,6 +53,7 @@ class OpenDB_Oracle extends OpenDB{
       }else{
         $this->stav=true;
         $this->Error='';  
+        $this->version=$this->SqlFetch("select version from product_component_version where product like 'Oracle Database%'");
       }
       return $this->stav;
     }else{
@@ -259,17 +262,21 @@ class OpenDB_Oracle extends OpenDB{
    */
   function SqlFetchArray($prikaz,$bind=array(),$limit=0,$offset=1){
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
-    $a=array();
-    if ($offset>1){
+    $a=[];
+    if ($offset>1 && (int)$this->version>12){
       //$prikaz.=" offset $offset rows";
-        $prikaz="$prikaz offset $offset-1 rows fetch next $limit rows only";
-    }
-    if (!$this->Sql($prikaz,$bind)){
-      while ($this->FetchRow()){
-        array_push($a,$this->DataHash());
-        if ($limit && $limit<=count($a)) break;
+      $prikaz="$prikaz offset $offset-1 rows fetch next $limit rows only";
+      if (!$this->Sql($prikaz,$bind)){
+        while ($this->FetchRow()){
+          array_push($a,$this->DataHash());
+          if ($limit && $limit<=count($a)) break;
+        }
       }
+    }else{
+      /* postaru pro nizsi verzi databaze - proved select a odroluj */
+      return parent::SqlFetchArray($prikaz,$bind,$limit,$offset);
     }
+    
     return $a;    
   }
 

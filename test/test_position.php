@@ -20,6 +20,15 @@ htpr(tg('button','type="button" class="btn btn-primary" '.
                  bt_icon('geolocation').tg('span','id="status2"','')),
                  
      tg('div','id="result"',' .. '));
+     
+htpr(hr());
+
+htpr(tg('button','type="button" class="btn btn-primary" '.
+                 'onclick="processLocation(getMap,\'status3\',\'mapbox\');"',
+                 bt_icon('geolocation').tg('span','id="status3"','')),
+                 
+     tg('div','id="mapbox"',' .. '));
+
                  
 M5::done();
 
