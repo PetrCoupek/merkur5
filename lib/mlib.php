@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.47-050324
+ * @version 0.49-080724
  */
  /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -24,14 +24,16 @@ ini_set('default_charset','utf-8');
 set_time_limit(0);
 M5_core::iniset();
 spl_autoload_register("m5_autoload"); /* $errcontext=null pro PHP8 */
-set_error_handler(function($errno, $errstr, $errfile, $errline, $errcontext=null) {
+set_error_handler(
+  function($errno, $errstr, $errfile, $errline, $errcontext=null) {
     /* error was suppressed with the @-operator */
     /* $errcontext is attached object with all the details - do not print_r it ! */
     if (0 === error_reporting()) {
         return false;
     }
-    M5::set('errors',M5::get('errors')."$errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n");
-});
+    M5::set('errors',M5::get('errors')."M5: $errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n");
+    return true;
+  });
 
 /* the attempt to load global parametres stored in $GLOBALS or defined constants ..*/
 if (file_exists('ini.php')) include_once 'ini.php';
@@ -62,7 +64,17 @@ abstract class M5_core{
     self::set('title',''); /* title text */
     self::set('version','(c) SmallM 2022'); /* version text */
     self::set('DATA',self::getparm());
+
+    register_shutdown_function( "M5_core::m5_shutdown_handler" );
   }
+
+  static function m5_shutdown_handler() {
+    deb('M5 shutdown: '.print_r(error_get_last(),true),false);
+    if (error_get_last()!=NULL) {
+       self::done();
+    }   
+  }
+  
      
   /** see global function ta() 
    * @param string $tagname
@@ -1121,6 +1133,7 @@ function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
   if (!isset($content[0]) ){
     if ($nodata=='') return '';
     $s=ta('tr',tg('td','colspan="1"',$nodata.nbsp()));
+    $hlav='';
   }else{
     for ($hlav='',
         $L=$is_head?array_keys($head):

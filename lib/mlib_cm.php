@@ -20,18 +20,12 @@
  * 27.06.2023 - implementace uzivatelskych nastaveni
  * 02.08.2023 - pokud neni ve stromu odkaz href, polozka je bez rozbaleni = zakazani polozek v levem menu
  * 15.08.2023 - oprava alert, oprava count_user_setting
- */
-define('MIC_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
-
-register_shutdown_function( "fatal_handler" );
-function fatal_handler() {
-    deb(error_get_last());
-    htpr('Něco se pokazilo.');
-    if (error_get_last()!=NULL) {
-       htpr_all(); 
-       die;
-    }   
-}
+ * 16.10.2023 - zruseni registrace funkce fatal_handler
+ * 11.06.2024 - zmena vracene hodnoty v get_groups
+ * 08.07.2024 - vyvojova verze, revize kodu, odstraneni registr shutdown function
+ *  */
+define('M5_CM_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
+define('M5_CM_ERROR_HANDLER',false);
 
 class Cm{
 
@@ -137,7 +131,7 @@ class Cm{
   function check_login($ldap=false){
     
     /* v pripade spravne vyplneneho hesla vrati identifikacni cookie, ktery slouzi pro autorizaci */
-    $ldap_server=MIC_LDAP_SERVER; /* server autorit hesel IP: 11-nts1 ,28-devkl nebo false */   
+    $ldap_server=M5_CM_LDAP_SERVER; /* server autorit hesel IP: 11-nts1 ,28-devkl nebo false */   
    
     if ($ldap){
       /* try LDAP */
@@ -446,17 +440,16 @@ class Cm{
       }
       switch ($D['TYP_POLOZKY']){
         case 'app':
-          set_error_handler("Cm::errorHandler", E_ALL ); /*E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED); #E_STRICT);*/
+          if (M5_CM_ERROR_HANDLER) set_error_handler("Cm::errorHandler", E_ALL ); /*E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED); #E_STRICT);*/
           try{
-            //deb($D['POPISEK']);
             $D['POPISEK']=str_replace('require','include',$D['POPISEK']); /* require hands pre-compile PHP system core */
             eval($D['POPISEK']);
             /* neni @eval($D['POPISEK']) */
           }catch (Exception $e){
-            /*return false;*/
-            deb($e);
+            deb('CM Eval error',false);
+            //deb($e,false);
           }  
-          //restore_error_handler();
+          if (M5_CM_ERROR_HANDLER) restore_error_handler();
           break;
         case 'text': htpr($D['NAZEV']!=''?ta('h3',$D['NAZEV']):'',$D['POPISEK']);
           break;
@@ -470,20 +463,21 @@ class Cm{
   }
 
   static function errorHandler($errno, $errstr, $errfile, $errline=null, $errcontext=null){ 
-    $e_notice=false; /* e-notice level errors are not printed */
-    $e_general=false; /* general errors are not printed */
+
+    $e_notice=true; /* e-notice level errors are not printed */
+    $e_general=true; /* general errors are printed */
     if (!is_string($errcontext)){
       $errcontext=preg_replace("/pwd\=(.+)/",'pwd=****',print_r($errcontext,true));
     }
     switch ($errno) {
       case E_NOTICE:
         if ($e_notice) {
-          deb("[Error:$errno:$errstr; file:$errfile; column:$errline \n");
+          deb("[Cm/Error:$errno:$errstr; file:$errfile; column:$errline \n",false);
         } 
         break; 
       default:
         if ($e_general) {  
-          deb("[Error:$errno:$errstr; file:$errfile; column:$errline context:$errcontext]\n");
+          deb("[Cm/Error:$errno:$errstr; file:$errfile; column:$errline \n",false);
         }
         break;
     }  
@@ -1572,9 +1566,9 @@ class Cm{
     
   function get_groups(){
     $table_uskup=$this->table.'_uskup';
-    return to_array("select skupina from $table_uskup where uzivatel=:uzivatel",
-                    $this->db,
-                    array(':uzivatel'=>$this->user));
+    return $this->db->SqlFetchList(
+             "select skupina from $table_uskup where uzivatel=:uzivatel",
+             array(':uzivatel'=>$this->user),0,',');
   }
 
   /** Check whether the current user is in the given group
