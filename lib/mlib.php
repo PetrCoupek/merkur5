@@ -9,9 +9,9 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.49-080724
+ * @version 0.50-1080724
  */
- /* compatability  */
+/* compatability  */
 if (!defined('PHP_VERSION_ID')) {
   $_version = explode('.', PHP_VERSION);
   define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
@@ -19,10 +19,11 @@ if (!defined('PHP_VERSION_ID')) {
 if (!defined('__DIR__')){
   define('__DIR__',dirname(__FILE__));
 }
+
 /* executable part */
+
 ini_set('default_charset','utf-8');
 set_time_limit(0);
-M5_core::iniset();
 spl_autoload_register("m5_autoload"); /* $errcontext=null pro PHP8 */
 set_error_handler(
   function($errno, $errstr, $errfile, $errline, $errcontext=null) {
@@ -32,11 +33,14 @@ set_error_handler(
         return false;
     }
     M5::set('errors',M5::get('errors')."M5: $errstr, $errno, $errfile, $errline ".gettype($errcontext)."\n");
-    return true;
+    return true; /* stop error propagation at this moment */ 
   });
+
+M5_core::iniset();
 
 /* the attempt to load global parametres stored in $GLOBALS or defined constants ..*/
 if (file_exists('ini.php')) include_once 'ini.php';
+
 /* done.. */
 
 /** Abstract class with the core functionality */
@@ -72,6 +76,7 @@ abstract class M5_core{
     deb('M5 shutdown: '.print_r(error_get_last(),true),false);
     if (error_get_last()!=NULL) {
        self::done();
+       //exit(); /* this simply not to stop the script in all situations by division a zero in eval function, see done method */      
     }   
   }
   
@@ -1146,7 +1151,7 @@ function ht_table($caption,$head,$content,$nodata='',$class='class="table"'){
     foreach ($content as $row){
       $rkapsa='';
       for ($i=0;$i<count($L);$i++){
-        $ktisku=$row[$L[$i]];
+        $ktisku=isset($row[$L[$i]])?$row[$L[$i]]:'';
         if (gettype($ktisku)=="object" && gettype($ktisku)!="NULL")
           $ktisku=$ktisku->load();
         if ($ktisku=='') $ktisku=nbsp(1);  
