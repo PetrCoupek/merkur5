@@ -10,6 +10,7 @@
   * 14.12.2023 - oprava offset select
   * 20.12.2023 - oprava offset select
   * 24.01.2024 - sql error diagnostic, debug attr.
+  * 11.03.2024 - repair bug in pragma 
   * 21.05.2024 - parametr version + osetreni starsich verzi Oracle
   */
 include_once "mdbAbstract.php";
@@ -196,7 +197,7 @@ class OpenDB_Oracle extends OpenDB{
           'datalength'=>$this->Data('DATA_LENGTH'),
           'precision'=>$this->Data('DATA_PRECISION'),
           'datename'=>($this->Data('DATA_TYPE')=='date'?
-            ("to_char(".$this->db->Data('COLUMN_NAME').",'DD.MM.YYYY HH24:MI:SS') as ".$this->db->Data('COLUMN_NAME')):''));
+            ("to_char(".$this->Data('COLUMN_NAME').",'DD.MM.YYYY HH24:MI:SS') as ".$this->Data('COLUMN_NAME')):''));
         /* vazba cislo sloupce nazev pro nasledne doplneni comment */  
         $prevod[$this->Data('COLUMN_NAME')]=$this->Data('COLUMNID');   		    
 	    }

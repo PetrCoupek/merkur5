@@ -1,5 +1,5 @@
 <?php
-/** lib_bt.php  - MicroBe core library
+/** mbt.php  - Merkur 5 core library
  * 
  * Framework library for simplified use the selected Boostrap components 
  *  
@@ -12,6 +12,7 @@
  * 21.05.2024 - new SVG icons
  * 15.07.2024 - extension for bt_modal_win
  * 09.08.2024 - bt_container robustenes
+ * 01.10.2024 - m-2 bt_container
  */
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
@@ -276,7 +277,7 @@ function bt_container($colrules,$rows,$rowclass='row'){
     }
     $r.=tg('div','class="'.$rowclass.'"',$t.' '); /*mezera*/  
   }
-  $r=tg('div','class="container"',$r.' '); /*mezera*/
+  $r=tg('div','class="container m-2"',$r.' '); /*mezera*/
   return $r;
 }
 

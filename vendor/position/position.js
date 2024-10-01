@@ -1,4 +1,8 @@
-
+/** funkce pro vraceni polohy ve S-JTSK Krovak pomoci vestaveneho objektu navigator
+ * 
+ * @param {*} namex 
+ * @param {*} namey 
+ */
 function getLocation(namex, namey) {
     if (navigator.geolocation) {
       var idstatus="position_status";
@@ -18,13 +22,18 @@ function getLocation(namex, namey) {
        document.getElementById(idstatus).innerHTML = "Určení polohy prohlížeč nepodporuje.";
     }
 }
-
-function processLocation(fun,idstatus,id) {
+/** funkce pro nasledne zpracovani polohy pomoc vestaveneho objektu navigator, s prepocetne do S-JTSK
+ * 
+ * @param {*} fun funkce, ktera 
+ * @param {*} idstatus 
+ * @param {*} id 
+ */
+function processLocation(fun,idstatus,id,nearest_script) {
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition((position) => {
         if (position.coords.latitude && position.coords.longitude){ 
           var krovak = wgs84ToKrovak([position.coords.latitude, position.coords.longitude]);
-          fun(Math.round(krovak.x),Math.round(krovak.y),id);
+          fun(Math.round(krovak.x),Math.round(krovak.y),id,nearest_script);
         }else{
           document.getElementById(idstatus).innerHTML="Určení polohy není dostupné.";
         }
@@ -48,14 +57,12 @@ function wgs84ToKrovak(point) {
   return rt;
 }
 
-function listNearest(x,y,id){
-  $.ajax({url: "nearest.php?x="+x+"&y="+y,
+function listNearest(x,y,id,nearest_script='nearest.php'){
+  $.ajax({url: nearest_script+"?x="+x+"&y="+y,
           success: function(r){document.getElementById(id).innerHTML=r;}
           }
         );
-}
 
-function getMap(x,y,id){
-  x=-x; y=-y;
-  document.getElementById(id).innerHTML='<img src="msm.php?x='+x+'&y='+y+'" >';
+  //document.getElementById(id).innerHTML=x+' '+y; 
+
 }

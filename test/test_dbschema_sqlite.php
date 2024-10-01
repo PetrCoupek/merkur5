@@ -2,11 +2,11 @@
 /** Merkur 5 application test : test browsing all tables in Oracle schema (user) with data filtering
  * @author Petr Coupek
  * @date 16.11.2022
+ * 01.10.2024
  */
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-//define('DBFILE',"d:/Data/QGIS/vrty_k2.sqlite");
 define('DBFILE',"d:/Data/sqlite/gdo_data.sqlite");
 
 class App extends M5{

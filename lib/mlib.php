@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.50-1080724
+ * @version 0.51-011024
  */
 /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -66,7 +66,7 @@ abstract class M5_core{
     self::set('routes',[]);    /* initial route rules */
     self::set('sapi_name',php_sapi_name()); /* when =='cli' command line script is running */
     self::set('title',''); /* title text */
-    self::set('version','(c) SmallM 2022'); /* version text */
+    self::set('version','(c) SmallM 2024'); /* version text */
     self::set('DATA',self::getparm());
 
     register_shutdown_function( "M5_core::m5_shutdown_handler" );
@@ -220,9 +220,9 @@ abstract class M5_core{
     /* command-line params are in form p1=val1 p2=val2 ..etc delimiter is blank char
        when no = is present, then the param is set to '' (but not null) */
     if (self::get('sapi_name')=='cli'){
-      $sep='=';
-      if (isset($_SERVER['argv'])){
-        for($i=1;$i<count($_SERVER['argv']);$i++) {
+      $sep='=';  /* see also https://www.php.net/manual/en/reserved.variables.argv.php */
+      if (isset($_SERVER['argv']) && is_array($_SERVER['argv'])){
+        for($i=1;$i<count((array)$_SERVER['argv']);$i++) {
           if (strpos($_SERVER['argv'][$i],$sep)){
             $t=explode($sep,$_SERVER['argv'][$i]);
             $DATA[$t[0]]=$t[1];
@@ -232,9 +232,6 @@ abstract class M5_core{
         }  
       }
     }else{  
-      /*if (count($_POST)>0 && count($_GET)==0 ){$DATA=$_POST;}
-      if (count($_GET)>0 && count($_POST)==0 ){$DATA=$_GET;}
-      if (count($_GET)>0 && count($_POST)>0 ){$DATA=array_merge($_GET,$_POST);}*/
       $DATA=array_merge($_GET,$_POST);
     }  
     return $DATA;
@@ -587,7 +584,7 @@ function tg($tagname,$params='',$content='',$nopack=false){
 /* dalsi flobalni funkce */
 
 /** The function returns HTML non-breaking spaces. 
- * @param number $count - how many, default=1 
+ * @param int $count - how many, default=1 
  * @return string */
 
 function nbsp($count=1){
@@ -595,7 +592,7 @@ function nbsp($count=1){
 }
 
 /** The function returns the HTML tag for the page-break.  
- * @param number $count - number of page-braks, default=1 
+ * @param int $count - number of page-braks, default=1 
  * @return string 
  */ 
 function br($count=1){

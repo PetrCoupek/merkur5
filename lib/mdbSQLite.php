@@ -74,7 +74,11 @@ class OpenDB_SQLite extends OpenDB{
     $errorCode=0;
     $errorReportingLevel = error_reporting(); /* poznamena uroven vypisovani chyb*/
     //error_reporting(0);
-    $this->prepare=$this->conn->prepare($command);
+    try{
+    $this->prepare=@$this->conn->prepare($command);
+    }catch (Exception $e){
+      $this->prepare=false;
+    }
     if (!$this->prepare){
       $this->conn->lastErrorCode()!=0?
       ($this->conn->lastErrorCode().": ".$this->conn->lastErrorMsg()):'příkaz SQL nebyl zpracován';        

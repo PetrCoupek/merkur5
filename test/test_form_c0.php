@@ -36,8 +36,8 @@ class Myform extends M5{
  }
 
  static function result(){
-   htpr(getpar('TXTFLD')?
-    bt_alert('Result is '.getpar('TXTFLD')):bt_alert('Result is empty','alert-danger'));   
+   htpr(getpar('NAZEV')?
+    bt_alert('Result is '.getpar('NAZEV').';'.getpar('NAZEV_slave')):bt_alert('Result is empty','alert-danger'));   
  }
 
 }
@@ -47,7 +47,7 @@ Myform::skeleton(); /* volani skriptu */
 
 function combo_dual($label,$name,$list_master,$list_slave,$def='',$js=''){
   $s=combo($label,$name,$list_master,$def,$js.' id="'.$name.'_master"');
-  $s.=tg('select','id="'.$name.'_slave" disabled="disabled"',' ');
+  $s.=tg('select','id="'.$name.'_slave" name="'.$name.'_slave" disabled="disabled"',' ');
   $s.=ta('script',
    ' var opt_'.$name.'='.json_encode($list_slave,JSON_UNESCAPED_UNICODE).';'."\n".
    '$(document).ready(function(){

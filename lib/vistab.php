@@ -16,26 +16,41 @@
  *   $tt= new EdiTab(['table'=>$t],$db);
  *   $tt->route("&vyhl=1&ROL_=1"); 
  * 
- *  Special data searching instecting can be extended from this class
  *  18.10.2022 24.10.2022 09.01.2023 11.01.2023 27.01.2023 - viz M5::get('DATA')
  *  09.03.2023 
  *  20.06.2023
  *  15.08.2023 - possibility to globally control the list page length
  *  08.01.2024 - genfilter - remove order by in count select by default 
+ *  21.06.2024 - parametric form should contain a submit button named as _sg 
+ *  12.09.2024 - podpora metody zobrazeni filtru, metoda filter_to_array
+ *  30.09.2024 - vychozi obsluha datumoveho typu podle cilove databaze
  */ 
 include_once "mbt.php";
 
 class VisTab {
 
-var $separator='~';
-var $db, $nastrane, $param, $sprikaz, $cprikaz, $pragma, $dprikaz, $header, $postlink, $pk,
- $filter;
+var $separator='~', /* char(s) used as separator for where condition among PUT/GET reuests */
+    $db,            /* connected database objects */
+    $nastrane,      /* no of rows on lister page */
+    $param,         /* hash of parameters for class */
+    $sprikaz,       /* intrinsic select command for list of records */
+    $cprikaz,       /* intrinsic count command */
+    $pragma,        /* meta infromation about a database entity */
+    $dprikaz,       /* intrinsic select command for detail page */ 
+    $header,        /* table header for listing */
+    $postlink,      /* POST */
+    $pk,            /* primary key of the entity - an attribute or list of attributes */
+    $filter;        /* generater filter based on .. */
 
+ /** @param array $param - array of parametres
+  *  @param object $db - opened DB connextion
+  */
 function __construct($param,$db){
 
   $this->db=$db;
   $this->nastrane=isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15;
   $this->param=$param;
+  /* the display object is either a table or a select command */
   if (isset($param['table'])){
     $t=$param['table'];
     $this->header=$t;
@@ -43,10 +58,10 @@ function __construct($param,$db){
     $this->cprikaz="select count(*) as pocet from $t";
     $this->pragma=$this->db->Pragma("table_info('$t')");
     $this->dprikaz=$this->sprikaz;
-    /* primarni klic z pragma informace */
+    /* primary key taken from pragma */
     if ($this->pragma)
      for($i=0,$pk='';$i<count($this->pragma);$i++)
-      if (isset($this->pragma[$i]['pk'])) 
+      if (isset($this->pragma[$i]['pk']) && $this->pragma[$i]['pk']) 
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
   }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){
@@ -61,35 +76,39 @@ function __construct($param,$db){
     $this->postlink=true;  
   }else{
     $this->postlink=false;
-  } 
-  $this->getfilter(); /* rozbaleni filtru podle parametru flt */
-
-  /* generovani where probiha vzdy */
-  setpar('_whr',$this->genwhere()); /* interne se parametr odkazuje pomoci getpar('_whr') */
-}
-
-function route($context){
-  
-  if (getpar('_se')){
-    $this->form_param($context);
-  }elseif (getpar('_det')){
-    $this->detail($context);   
-  }else{
-    $this->lister($context);
   }
 
+  /* filter expansion according to the flt parameter, if new conditions are not searched for */
+  $this->getfilter(); 
+
+  /* the generation of "where condition" is always based on the parameter wrapped in _flt*/
+  /* internally is referred as getpar('_whr') */
+  setpar('_whr',$this->genwhere()); 
+
+}
+
+/** starting point for the component 
+ * 
+*/
+function route($context){
+  if (getpar('_se')){
+    htpr($this->form_param($context));
+  }elseif (getpar('_det')){
+    htpr($this->detail($context));
+  }else{
+    htpr($this->lister($context));
+  }
 }
 
 /** Tabulka pro listovani mnozinou vybranych zaznamu
  * 
 */
 function lister($context){
-  /* zpracovani potvrzeneho formulare pro omezeni - filtrovani */
+  /* zpracovani potvrzeneho parametrickeho formulare - zde je nutne vygenerovat _flt pro omezeni - filtrovani */
+  $r='';
   if (getpar('_sg')) {     
-    setpar('_whr',$this->genwhere());
     setpar('_flt',urlencode($this->packfilter()));
-  }
-  
+  }  
   $sprikaz=$this->genfilter($this->sprikaz);
   $cprikaz=$this->genfilter($this->cprikaz,false);
   
@@ -99,14 +118,15 @@ function lister($context){
     if (!isset($this->param['noDetail'])){
       for($i=0,$j=getpar('_ofs',1);$i<count($a);$i++,$j++){
         if ($this->postlink){
-          $a[$i]['detail']=postLink('?'.$context,bt_icon('pencil'),
+          $a[$i]['detail']=postLink('?'.$context,bt_icon('menu'),
            ['_det'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
         }else{
           $l='?_det=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
-          $a[$i]['detail']=ahref($l.$context,bt_icon('pencil'));
+          $a[$i]['detail']=ahref($l.$context,bt_icon('menu'));
         }        
       }
-    }    
+    }
+    
     /* modifikace nactene tabulky pred jejim zobrazenim - doplneni odkazu kamkoliv */
     if (isset($this->pragma)){
       $t=$this->pragma;
@@ -133,14 +153,19 @@ function lister($context){
       }
     }
 
+    /* modifikace volanim metody modify_row */
+    for($i=0;$i<count($a);$i++){
+      $a[$i]=$this->modify_row_before_print($a[$i]);
+    }
+     
 
     /* tisk tabulky a listovani */
-    htpr(
+    $r.=gl(
       bt_lister(
         $this->header,
         $this->column_labels(),
         $a,
-        'Nejsou záznamy.',
+        (isset($this->param['no_data'])?$this->param['no_data']:'Nejsou záznamy.'),
         '',
         bt_pagination(
           getpar('_ofs',1),
@@ -151,17 +176,28 @@ function lister($context){
         ),
         $context.'&_flt='.getpar('_flt'),
         $this->postlink,
-        null,
+        $this->text_filter()!=''?('Filtrováno: '.$this->text_filter()):'',
         isset($this->param['text_button'])?$this->param['text_button']:'')
     );
   }else{
-    htpr(bt_alert('Nejsou záznamy','alert-warning'));
-    $this->form_param($context);
+    $r.=gl(bt_alert(isset($this->param['no_data'])?$this->param['no_data']:'Nejsou záznamy.','alert-warning'));
+    $r.=$this->form_param($context);
   }
+  return $r;
+}
+
+/** to be overriden
+ * @param array $row - input roww
+ * @return array $row - modified row
+ */
+function modify_row_before_print($row){
+  return $row;
 }
 
 /** parametric form for filtering the table view 
  *  to be overriden in extented class based on VisTab
+ * @param array $context - all the nesessary parametres for contrucct the whole page
+ * @return string - a HTML content of the query (parametric) form
 */
 function form_param($context){
   
@@ -184,17 +220,17 @@ function form_param($context){
       $b[$i][2]=textfield('',$a[$i]['name'],20,40,getpar($a[$i]['name']));
     }                  
   }
-  $b[$i]=[nbsp(1),submit('_st','Storno','btn btn-secondary'),submit('_sg','Vyhledej','btn btn-primary')];
-  htpr(tg('form',
-          'method="post" action="?'.$context.'&_o='.getpar('_o').'"',
-           bt_container(['col-4','col-2','col-6'],$b))); 
+  $b[$i]=[nbsp(1),submit('_st','Storno podmínky','btn btn-secondary m-1'),
+   submit('_sg','Vyhledej','btn btn-primary m-1')];
+  return tg('form',
+          'method="post" action="?'.$context.'&_o='.getpar('_o').'" class="m-2" ',
+           bt_container(['col-4','col-3','col-5'],$b)); 
 }
 
-
-/** based on pragma, it constructs the labels fo columns needed by bt_lister
+/** based on pragma, it constructs the labels for columns needed by bt_lister
  * attributes not listed in table have set attribute 'nolist' to true in pragma.
  */ 
-function column_labels(){
+private function column_labels(){
   $a=$this->pragma;
   if (!is_array($a)) {
     return []; // ['detail'=>'Detail'];
@@ -210,20 +246,20 @@ function column_labels(){
   return $b;
 }
 
-/** genwhere - generovani podminky where z parametrickeho formulare 
- * 
+/** genwhere - generate the SQL querystring form the parametric form
+ * @return string - the SQL WHERE part
 */
 function genwhere(){
  
   $DAT=M5::get('DATA');
-  //$DAT=$GLOBALS['DATA'];
   $where='';
   $find_ascii=false;
   if (getpar('GPA_')){
     /* generovani where u sestavovane podminky */
     $spojka=''; $zav=0;
     
-    foreach ($DAT as $pol => $value){
+    //foreach ($DAT as $pol => $value){
+    foreach (array_keys($DAT) as $pol){
       if (preg_match("/^par_(\d+)$/", $pol, $match)){
         if ($DAT[$pol]!=''){
           if (strpos($DAT[$pol.'_g'],'(')!==false) {$zav++;}
@@ -258,7 +294,8 @@ function genwhere(){
     }
   }else{
     /* klasicky parametricky formular */
-    foreach ($DAT as $pol => $value){
+    foreach (array_keys($DAT) as $pol){
+    //foreach ($DAT as $pol => $value){
       if (preg_match("/^(.+)_par$/",$pol, $match)){ /* prochazej dvojice ATTR a ATTR_par*/       
         $bezpar = $match[1];
         $atribut=$bezpar;     /* $atribut obsahuje jmeno atributu, ktery je dotazovan */
@@ -312,11 +349,10 @@ function genwhere(){
  * 
 */
 function packfilter(){  
-  //$DAT=M5::getparm();
-  //$DAT=$GLOBALS['DATA'];
   $DAT=M5::get('DATA');
   $s='';
-  foreach ($DAT as $pol => $value){
+  //foreach ($DAT as $pol => $value){
+  foreach (array_keys($DAT) as $pol){   
     if (preg_match("/^(.+)_par$/",$pol, $m)){
       $a= $m[1];
       if (isset($DAT[$a]) && $DAT[$a]!=''){
@@ -328,42 +364,22 @@ function packfilter(){
   return $s;
 }
 
-/** packs filter params as one param named _flt  
- * @return string
-*/
-function packfilter0(){ 
-  $s='';
-  foreach ($this->filter as $k=>$v) if (preg_match("/^(.+)_par$/",$k, $m)){
-    $ka=$m[1];
-    $s.=($s==''?'':$this->separator).$ka.$this->separator.($this->filter[$k]).
-     $this->separator.($this->filter[$ka]); 
-  }
-  return $s;
-}
-
 /** retrieve the flt parameter and stores it to the normal params */
 function getfilter(){
   $flt=getpar('_flt');
-  //deb('Rozbaleni',false);
   if ($flt!=''){
      $flt=urldecode($flt);
-     //deb($flt,false);
      $F=explode($this->separator,$flt);
-     //deb($F,false);
      for($i=0;$i<count($F);$i=$i+3){
        setpar($F[$i],$F[$i+2]);
        setpar($F[$i].'_par',$F[$i+1]);
-       //deb($F[$i],false);
      }
   }
-  //deb($GLOBALS['DATA'],false);
-  //deb(M5::get('DATA'),false);
 }
 
-
-/** sestaveni podminky where a serazeni do zadaneho prikazu  
+/** generate WHERE condition and complete the final select command for the required data  
  * @param  string $prikaz
- * @return string 
+ * @return string - the SQL select command
  * 
 */
 function genfilter($sprikaz,$order_by=true){
@@ -395,14 +411,14 @@ function genfilter($sprikaz,$order_by=true){
       $sprikaz.=' '.$whr;
     }
   }
-  //deb($sprikaz);
   return $sprikaz;  
 }
 
-/** dewhere - pro formular parametru provede zpetne prevedeni where na parametry
+/** dewhere - convert where condition back to the attribute parametres values
  *  pokud je where ve tvaru konjukce podminek AND, prevod se povede
  *  @param $where
  *  result - set of M5 script parametres
+ *  @return bool true
  */
 function dewhere($where){
   if ($where!=''){
@@ -423,47 +439,44 @@ function dewhere($where){
       setpar($b[0],$b[2]);
       setpar($b[0].'_par',trim($b[1]));
     } 
-  } 
+  }
+  return true; 
 }
 
-/** This method is to be overvrited with "inteligent" from attribute filter to text conversion 
- * @return string Textual form of filter
+/** This method is intended to be overrided with "inteligent" from attribute filter to text conversion 
+ * @return string - textual form of filter
 */
 function text_filter(){
   return urldecode(getpar('_flt'));
 }
 
-
-/** Stranka s detailem zaznamu
- * 
+/**
+ * @return array - it returns an array - key is the parameter name and content is relation operator + value
  */
-function detail($context,$custom=''){
-
-  /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */
-  
-  $cprikaz=$this->genfilter($this->cprikaz,false);
-  if ($custom==''){
-    $dprikaz=$this->genfilter($this->dprikaz);
-    $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
-    /* popisy polozek mohou byt z popisu entity v databazi */
-    $p=[];
-    for($i=0;$i<count($this->pragma);$i++)
-      if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
-        $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
-      else 
-        $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
-
-    $b=[[]];$i=0;
-    foreach ($r[0] as $k=>$v){
-      if (isset($p[$k])){
-        $b[$i][0]=ta('b',$p[$k]);
-        $b[$i][1]=$v; 
-        $i++;
-      }  
+function filter_to_array(){
+  $flt=getpar('_flt');
+  $par=[];
+  if ($flt!=''){
+    $flt=urldecode($flt);
+    /* converting the filter into an array where the key is a parameter and the content is a relational operator and a value */
+    $F=explode($this->separator,$flt);
+    for($i=0;$i<count($F);$i=$i+3){
+      if ($F[$i+1]=='*') $F[$i+1]='=';
+      $par[$F[$i]]=array($F[$i+1],$F[$i+2]);    
     }
-    $custom=bt_container(['col-4','col-8'],$b);
   }
+  return $par;
+}
+
+/** The detail page
+ * @param string $context
+ */
+function detail($context){
+  /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */  
+  $cprikaz=$this->genfilter($this->cprikaz,false);
   
+  $custom=$this->detail_single($context);
+
   /* pocet zaznamu a listovani po zaznamech */
   $cprikaz=$this->genfilter($this->cprikaz,false);
   $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
@@ -479,7 +492,7 @@ function detail($context,$custom=''){
       'class="btn btn-primary"');
   }
 
-  htpr((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filter: '.$this->text_filter())):''),
+  return gl((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filtrováno: '.$this->text_filter())):''),
        bt_pagination(
             getpar('_ofs',1),
             $this->db->SqlFetch($cprikaz),
@@ -490,8 +503,32 @@ function detail($context,$custom=''){
        $custom,
        $back
       );
+}
 
+/** detail of the page with the single record
+ * 
+ */
+function detail_single($context){
+  $dprikaz=$this->genfilter($this->dprikaz);
+  $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
+  /* popisy polozek mohou byt z popisu entity v databazi */
+  $p=[];
+  for($i=0;$i<count($this->pragma);$i++)
+    if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
+      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
+    else 
+      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
 
+  $b=[[]];$i=0;
+  foreach ($r[0] as $k=>$v){
+    if (isset($p[$k])){
+      $b[$i][0]=ta('b',$p[$k]);
+      $b[$i][1]=$v; 
+      $i++;
+    }  
+  }
+  return bt_container(['col-4','col-8'],$b);
+    
 }
 
 /** vraci parametry pro udrzeni kontextu tridy Vistab 
@@ -502,11 +539,22 @@ function vistab_params($method='GET'){
   if ($method=='POST') return para('_ofs',getpar('_ofs')).para('_o',getpar('_o')).para('_flt',getpar('_flt'));
 }
 
-} /* class Editab is the VisTab listing/filtering/sorting functionality with editable detail */
 
+} 
+
+/** class Editab is the VisTab + listing/filtering/sorting functionality with editable detail 
+ * 
+*/
 class EdiTab extends VisTab{
 
-var $mode='',$bind=[],$iprikaz,$uprikaz,$rprikaz,$rowid,$eprikaz;
+var $mode='',
+    $bind=[],
+    $iprikaz,
+    $uprikaz,
+    $rprikaz,
+    $rowid,
+    $eprikaz,
+    $data;
 
 function __construct($param,$db){
     parent::__construct($param,$db);
@@ -521,7 +569,12 @@ function __construct($param,$db){
         for ($i=0;$i<count($this->pragma);$i++){
           $name=$this->pragma[$i]['name']; 
           if ($this->pragma[$i]['type']=='DATE'){
-            $pole="to_date(:".$name.",'DD.MM.YYYY HH24:MI:SS') ";
+            if ($this->db->typedb=='oracle'){
+              $pole="to_date(:".$name.",'DD.MM.YYYY HH24:MI:SS') ";
+            }
+            if ($this->db->typedb=='sqlite'){
+              $pole=":".$name;
+            }
           }else{
             $pole=":".$name;
           }  
@@ -572,63 +625,29 @@ function detail_form($context,$data=null){
      '[replace]');
 }
   
-function detail($context,$custom=''){
+function detail($context){
     $this->eprikaz=$this->genfilter($this->dprikaz);
     $db=$this->db;
     if ($this->mode=='I'){
-      $data=[]; 
+      $this->data=[]; 
       foreach($this->pragma as $k=>$v){
-        $data[$v['name']]=''; /* empty form fields */
+        $this->data[$v['name']]=''; /* empty form fields */
       }
     }elseif ($this->mode=='i'){
       /* navrat z neuspesneho pokusu o ulozeni - zopakuj POST polozky do editacnich poli */
-      $data=M5::getparm();
+      $this->data=M5::getparm();
       $this->mode='I'; /* dalsi pokus o ulozeni nove vety */
     }else{
       $r=$db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
-      $data=$r[0];
+      $this->data=$r[0];
       if (isset($this->param['rowidcolumn'])){
-        $this->rowid=$data[$this->param['rowidcolumn']];
+        $this->rowid=$this->data[$this->param['rowidcolumn']];
       }
     }       
     //parent::detail($context,$this->detail_form($data,$context));
-    $original_primary='';
-    if ($custom==''){
-      $r=$this->db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
-      /* popisy polozek mohou byt z popisu entity v databazi */
-      $p=[];
-      for($i=0;$i<count($this->pragma);$i++){
-        if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
-          $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
-        else 
-          $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
-        if (isset($this->pragma[$i]['pk'])) 
-          $original_primary.=para(strtolower($this->pragma[$i]['name']),$r[0][$this->pragma[$i]['name']]); 
-      }
-      $b=[[]];$i=0;
-      foreach ($data as $k=>$v){
-        if (isset($p[$k])){
-          $b[$i][0]=ta('b',$p[$k]);
-          $b[$i][1]=textfield('',$k,40,40,$v); 
-          $i++;
-        }  
-      }
-      $b[$i]=[nbsp(1),
-              gl( ($this->mode=='I')?
-                   gl(submit('_ins','Vložit','btn btn-primary')):
-                   gl(submit('_upd','Uložit','btn btn-primary'),nbsp(5),
-                     submit('_del','Smazat','btn btn-secondary'),
-                     $original_primary
-    ), 
-                 para('_o',getpar('_o')),
-                 para('_flt',getpar('_flt')),
-                 para('_ofs',getpar('_ofs')),
-                 para('_det',1)) 
-             ];
-      $custom=tg('form','method="post" action="?'.$context.'"',
-        ta('fieldset',
-         bt_container(['col-4','col-8'],$b)));
-   }
+   
+    $custom=$this->detail_single($context); /* it uses $this->data */
+    
     
     /* pocet zaznamu a listovani po zaznamech */
     if ($this->mode=='I') setpar('_ofs',1); /* pri vkladani noveho zaznamu se listovani da na zacatek */
@@ -646,7 +665,7 @@ function detail($context,$custom=''){
         'class="btn btn-secondary"');
     }     
   
-    htpr(
+    return gl(
       $this->mode!='I'?bt_pagination(
               getpar('_ofs',1),
               $this->db->SqlFetch($cprikaz),
@@ -658,12 +677,50 @@ function detail($context,$custom=''){
          $back
         );
     
-    //htpr(print_r($r,false));
+    
+}
+
+function detail_single($context){
+  $original_primary='';
+  $r=$this->db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
+  /* popisy polozek mohou byt z popisu entity v databazi */
+  $p=[];
+  for($i=0;$i<count($this->pragma);$i++){
+    if (isset($this->pragma[$i]['comment']) && $this->pragma[$i]['comment']!='')
+      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['comment'];
+    else 
+      $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
+    if (isset($this->pragma[$i]['pk'])) 
+      $original_primary.=para(strtolower($this->pragma[$i]['name']),htmlentities($r[0][$this->pragma[$i]['name']],ENT_QUOTES)); 
+  }
+  $b=[[]];$i=0;
+  foreach ($this->data as $k=>$v){
+    if (isset($p[$k])){
+      $b[$i][0]=ta('b',$p[$k]);
+      $b[$i][1]=textfield('',$k,40,40,$v); 
+      $i++;
+    }  
+  }
+  $b[$i]=[nbsp(1),
+          gl(($this->mode=='I')?
+              gl(submit('_ins','Vložit','btn btn-primary m-2')):
+              gl(submit('_upd','Uložit','btn btn-primary m-2'),nbsp(5),
+                 submit('_del','Smazat','btn btn-secondary m-2'),
+                 $original_primary), 
+              para('_o',getpar('_o')),
+              para('_flt',getpar('_flt')),
+              para('_ofs',getpar('_ofs')),
+              para('_det',1)) 
+         ];
+  return tg('form','method="post" action="?'.$context.'"',
+    ta('fieldset',
+     bt_container(['col-4','col-8'],$b)));
+
 }
   
 function route($context){  
     if (getpar('_se')){
-      $this->form_param($context);
+      htpr($this->form_param($context));
     }elseif (getpar('_det')){
       $result=false;      
       if (getpar('_upd')){
@@ -676,17 +733,22 @@ function route($context){
         $this->mode='I';
       }
       if ($result){
-        $this->lister($context);
+        htpr($this->lister($context));
       }else{
-        $this->detail($context);
+        htpr($this->detail($context));
       }
+    }elseif(getpar('_st')){
+      /* it is necessary to clear the param content */
+      setpar('_whr','');
+      htpr(bt_alert('Podmínka nulována.'));
+      htpr($this->lister($context));
     }else{
-      $this->lister($context);
+      htpr($this->lister($context));
     }
   }
   
 /** insert action
- * @return bool $result means to stay in detail - in case of update always
+ * @return bool $result means 'to stay in detail' - in case of update always
  */  
 function insert(){
     //deb($this->iprikaz,false);deb($this->bind,false);
@@ -703,7 +765,7 @@ function insert(){
 }
   
   /** update action
-   * @return bool $result means to stay in detail - in case of update always
+   * @return bool $result means 'to stay in detail' - in case of update always
    */
 function update(){
     $er=$this->db->Sql($this->uprikaz,$this->bind);
@@ -735,8 +797,8 @@ function delete(){
    * @param string $context
    */
 function lister($context){
-    parent::lister($context);
-    htpr(ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"'));    
+   return parent::lister($context).
+          ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"');    
 }
   
 }
