@@ -23,9 +23,12 @@
  * 16.10.2023 - zruseni registrace funkce fatal_handler
  * 11.06.2024 - zmena vracene hodnoty v get_groups
  * 08.07.2024 - vyvojova verze, revize kodu, odstraneni registr shutdown function
+ * 14.10.2024 - sidebar d-print none
+ * 06.11.2024 - M5_ERROR_CLASS
  *  */
 define('M5_CM_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
 define('M5_CM_ERROR_HANDLER',false);
+define('M5_ERROR_CLASS','m5-errors'); /* class for edit interface in edit mode in CM system */
 
 class Cm{
 
@@ -543,8 +546,8 @@ class Cm{
   function sidebar($t,$item,$rootnode,$cms,$addings='',$add_style=''){
     $s=self::sidebar_part($t,$item,0,$rootnode,$cms); /* do prvni iterace se preda cely strom */
     
-    return tg('div','class="bg-light border-right" id="sidebar-wrapper" ',"\n".
-            tg('div','class="sidebar-heading" '.$add_style,$cms->getUserInfo($this->user).$addings).
+    return tg('div','class="bg-light border-right d-print-none" id="sidebar-wrapper" ',"\n".
+            tg('div','class="sidebar-heading d-print-none" '.$add_style,$cms->getUserInfo($this->user).$addings).
             tg('div','class="list-group list-group-flush" '.$add_style,$s)
            );
   } 
@@ -582,7 +585,7 @@ class Cm{
    */
   function editBar($item,$type,$D=array()){
     if ($type=='FOLDER'){
-      htpr(tg('div','class="errors"',
+      htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
        http_lan_text('Folder','Složka').' '.$item.',['.$this->user.']: '.
        ahref('?eD=1&amp;f=1&amp;item='.$item,
         bt_icon('pencil').http_lan_text('Folder properties','Vlastnosti této složky')).nbsp(2).
@@ -593,7 +596,7 @@ class Cm{
        ));
     }
     if ($type=='ITEM'){
-      htpr(tg('div','class="errors"',
+      htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
          ahref('?eD=1&amp;i=1&amp;eitem='.$D['ID'].'&amp;item='.$item,
          bt_icon('pencil').
          $D['ID'].':'.$D['ZKR_NAZEV'].'['.$D['TYP_POLOZKY'].']' //.
@@ -606,7 +609,7 @@ class Cm{
    * @return bool true
    */
   function edit_folder(){
-    htpr(tg('div','class="errors"',
+    htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
       ahref('?item='.getpar('item'),
             http_lan_text('Return to folder','Návrat do složky')))
     );
@@ -1001,7 +1004,7 @@ class Cm{
      'POPISEK_E'=>'', 
      'ZAROVNANI'=>'');
    
-    htpr(tg('div','class="errors"',
+    htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
       ahref('?item='.getpar('item'),
             http_lan_text('Return to folder','Návrat do složky'))));
     if (getpar('U')!=''){

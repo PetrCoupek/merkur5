@@ -41,6 +41,9 @@ vanillaSelectBox : v0.26 : Corrected bug in stayOpen mode with disable() functio
 vanillaSelectBox : v0.25 : New option stayOpen, and the dropbox is no longer a dropbox but a nice multi-select
 previous version : v0.24 : corrected bug affecting options with more than one class
 https://github.com/PhilippeMarcMeyer/vanillaSelectBox
+
+18.07.2023 : uprava pozadavku, aby se hned po prvnim znaku napovidaly hodnoty - radek 523 , 530
+25.10.2024 : uprava pozadavku, aby slo hned psat do vyhledavaciho pole po rozbaleni
 */
 
 let VSBoxCounter = function () {
@@ -61,6 +64,11 @@ let VSBoxCounter = function () {
             instances.forEach(function (x) {
                 if (x.offset != instanceNr) {
                     x.ptr.closeOrder();
+                }else{
+                  /* pridano 25.10.2024. : po rozbaleni se kurzor presune na pole */
+                  var policko=x.ptr.inputBox.id;
+                  document.getElementById(policko).focus();
+                  document.getElementById(policko).select();
                 }
             });
         }
@@ -91,7 +99,7 @@ function vanillaSelectBox(domSelector, options) {
     this.inputBox = null;
     this.disabledItems = [];
     this.ulminWidth = 140;
-    this.ulmaxWidth = 280;
+    this.ulmaxWidth = 600;
     this.ulminHeight = 25;
     this.maxOptionWidth = Infinity;
     this.maxSelect = Infinity;
@@ -103,7 +111,7 @@ function vanillaSelectBox(domSelector, options) {
     this.forbidenAttributes = ["class", "selected", "disabled", "data-text", "data-value", "style"];
     this.forbidenClasses = ["active", "disabled"];
     this.userOptions = {
-        maxWidth: 500,
+        maxWidth: 600,
         minWidth: -1,
         maxHeight: 400,
         translations: { "all": "All", "item": "item","items": "items", "selectAll": "Select All", "clearAll": "Clear All" },
@@ -518,14 +526,14 @@ function vanillaSelectBox(domSelector, options) {
                 if (self.isSearchRemote) {
                     if (searchValueLength == 0) {
                         self.remoteSearchIntegrate(null);
-                    } else if (searchValueLength >= 3) {
+                    } else if (searchValueLength >= 1) {   /* 18.07.2023 upraveno puvodne 3 */
                         self.onSearch(searchValue)
                             .then(function (data) {
                                 self.remoteSearchIntegrate(data);
                             });
                     }
                 } else {
-                    if (searchValueLength < 3) {
+                    if (searchValueLength < 1) {  /* 18.07.2023 upraveno puvodne 3 */
                         Array.prototype.slice.call(self.listElements).forEach(function (x) {
                             if (x.getAttribute('data-value') === 'all') {
                                 selectAll = x;

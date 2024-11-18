@@ -41,26 +41,26 @@ function init_table(){
     $hlav.=tg('th','title="'.$this->h[$i]['title'].'" ',$this->h[$i]['head'] );
   }
   $th=json_encode($this->h);
-  $script=
- <<<EOT
+  
+  $script= '
   document.addEventListener("paste", function (event) {
     window.clipText = event.clipboardData.getData("Text");
-    render_form(window.clipText,$th); 
+    render_form(window.clipText,#TH#); 
   });
 
 
   function render_form(cb,h){
      ncol=h.length;
      if (cb==""){
-        document.querySelector("#$this->idform").innerHTML = "Neni zvolena vybrana oblast."+cb;
+        document.querySelector("##IDFORM#").innerHTML = "Neni zvolena vybrana oblast."+cb;
            return 0;
      }
      //console.log(cb);
-     var a=cb.split('\\n');
+     var a=cb.split("\\n");
      for (var i=0;i<a.length;i++){
       if(a[i]){
        if (a[i].split("\\t").length!==ncol){
-           document.querySelector("#$this->idform").innerHTML = "Pocet sloupcu vybrane oblasti musi byt "+ncol+" .";
+           document.querySelector("##IDFORM#").innerHTML = "Pocet sloupcu vybrane oblasti musi byt "+ncol+" .";
            return 0;
         }
       }
@@ -73,20 +73,21 @@ function init_table(){
     cb.split("\\n").forEach(function(line,index){
       if(line){
         html += "<tr><td>"+ccol+"</td>";
-        var a=line.split('\\t');
+        var a=line.split("\\t");
         for(i=0;i<ncol;i++){
-          html += '<td><input type="text" name="'+h[i].name+index+'" size="'+h[i].size+'" maxlength="'+h[i].maxlength+'" value="'+ a[i] +'"></td>';
+          html += "<td><input type=\"text\" name=\""+h[i].name+index+"\" size=\""+h[i].size+"\" maxlength=\""+h[i].maxlength+"\" value=\""+ a[i] +"\"></td>";
         }
         html += "</tr>";
         ccol++;
       }
     });
     html += "</table>";
-    html +='<input type="hidden" name="$this->idform'+'_POST'+'" value="1">';
-    document.querySelector("#$this->idform").innerHTML = html;
-  }
-  EOT
-  ;
+    html +="<input type=\"hidden\" name=\"#IDFORM#"+"_POST"+"\" value=\"1\">";
+    document.querySelector("##IDFORM#").innerHTML = html;
+  }';
+  $script=str_replace('#TH#',$th,$script);
+  $script=str_replace('#IDFORM#',$this->idform,$script);
+
   $r.=ta('script',$script).
     tg('div','id="'.$this->idform.'"',ta('table',$hlav).'[místo pro vložení dat Ctrl + v ] ');
   return $r;
@@ -99,7 +100,8 @@ function post_table(){
   for ($i=0;$i<count($this->h);$i++){
     $hlav.=tg('th','title="'.$this->h[$i]['title'].'" ',$this->h[$i]['head'] );
   }
-  $hlav.=ta('th','pozn.');
+  $hlav.=tg('th','style="width:40%;"','pozn.');
+  $hlav=ta('tr',$hlav);
   $telo='';
   $pov=$this->count_rows();
   if ($pov>0){
@@ -118,11 +120,11 @@ function post_table(){
                          'value="'.getpar($this->h[$j]['name'].$i).'" '.  
                          $add,'noslash'));
       }
-      $pom.=tg('td',$rowc!=''?'style="background-color:pink"':'',$rowc);
+      $pom.=tg('td',$rowc!=''?'style="background-color:pink; width:40%; "':'',$rowc);
       $telo.=ta('tr',$pom);
     } 
   } 
-  $r=tg('div','id="'.$this->idform.'"',tg('table','class="tabe"',$hlav.$telo)).
+  $r=tg('div','id="'.$this->idform.'"',tg('table','style="width: 100%;"',$hlav.$telo)).
      para($this->idform.'_POST','1');      
   return $r;      
 } 
@@ -141,4 +143,5 @@ function count_rows(){
 } 
 
 }
+
 ?>

@@ -1,0 +1,10 @@
+div.m5_ts_nabidka{
+  background-color:#e0e0e0;
+  border: 2px solid black;
+  border-radius: 5px;
+  padding: 5px;
+  margin: 5px;
+  position: relative; /* absolute */
+  z-index: 9;
+}
+       

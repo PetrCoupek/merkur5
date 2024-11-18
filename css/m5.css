@@ -46,3 +46,12 @@ div.m5-errors{
   overflow: auto; 
 } 
 
+/* tlacitka pro CM editacni oblasti */ 
+.m5-errors a {
+  border: 1px solid transparent;
+  border-radius: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-color:  #fd7e14;
+  line-height: 1.5;
+  margin: 2px;
+}

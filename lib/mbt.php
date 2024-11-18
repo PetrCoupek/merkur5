@@ -13,7 +13,12 @@
  * 15.07.2024 - extension for bt_modal_win
  * 09.08.2024 - bt_container robustenes
  * 01.10.2024 - m-2 bt_container
- */
+ * 09.10.2024 - vanilaselect default width 400
+ * 09.10.2024 - new inputs boxes for graphics
+ * 06.11.2024 - new icons
+ * 11.11.2024 - new bt_lister parameter
+ * 14.11.2024 - bt_datefield input noslash
+ * /
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
  * @param string $label - label before the tag
@@ -42,7 +47,7 @@ function bt_datefield($label,$name,$value,$add='',$f=''){
           '   $( "#'.$id.'" ).datepicker({'.$options.'});'.
           '  } );').
         $label.($label!=''?nbsp(1):'').
-        tg('input','type="text" name="'.$name.'" id="'.$id.'" value="'.$value.'" size="10" '.$add);
+        tg('input','type="text" name="'.$name.'" id="'.$id.'" value="'.$value.'" size="10" '.$add,'noslash');
 }
 
 /** The function provides a page splitter / divider into sections based on the bootstrap css library
@@ -176,7 +181,6 @@ function bt_fdialog($title,$body,$commit=''){
  */ 
 
 function bt_panels($sections,$contents){
- 
   $sh='';
   foreach ($sections as $k=>$v){
     /* $link='?item='.getpar('item').'&amp;KLIC_GDO='.getpar('KLIC_GDO').
@@ -284,7 +288,7 @@ function bt_container($colrules,$rows,$rowclass='row'){
 
 /** The bt_hideable area on the page - Bootstrap container helper
  * @param string $label - always visible and clicable label
- * @param string $docid - unique document ID }for javascript functionality)
+ * @param string $docid - unique document ID (for javascript functionality)
  * @param string $content - internal HMTL content
  * @param string $addlabel additional parameters in the tabel tag, f.e class="text-decoration-none" class="btn: etc.
  * @param bool   $hide - if it is hidden at the start
@@ -409,13 +413,50 @@ function bt_icon($name='info-square',$add=''){
     return tg('svg',$p1,
      tg('path','d="M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10zm0-7a3 3 0 1 1 0-6 3 3 0 0 1 0 6z"'.$add));   
   case 'alarm':
-      return tg('svg',$p1,
+    return tg('svg',$p1,
         tg('path','d="M8.5 5.5a.5.5 0 0 0-1 0v3.362l-1.429 2.38a.5.5 0 1 0 .858.515l1.5-2.5A.5.5 0 0 0 8.5 9z"'.$add).
         tg('path','d="M6.5 0a.5.5 0 0 0 0 1H7v1.07a7.001 7.001 0 0 0-3.273 12.474l-.602.602a.5.5 0 0 0 .707.708l.746-.746A6.97 6.97 0 0 0 8 16a6.97 6.97 0 0 0 3.422-.892l.746.746a.5.5 0 0 0 .707-.708l-.601-.602A7.001 7.001 0 0 0 9 2.07V1h.5a.5.5 0 0 0 0-1zm1.038 3.018a6 6 0 0 1 .924 0 6 6 0 1 1-.924 0M0 3.5c0 .753.333 1.429.86 1.887A8.04 8.04 0 0 1 4.387 1.86 2.5 2.5 0 0 0 0 3.5M13.5 1c-.753 0-1.429.333-1.887.86a8.04 8.04 0 0 1 3.527 3.527A2.5 2.5 0 0 0 13.5 1"'.$add));
   case 'dash-circle':
-      return
-      tg('svg',$p1,
-       tg('path','d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1z"'));       
+    return tg('svg',$p1,
+       tg('path','d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M4.5 7.5a.5.5 0 0 0 0 1h7a.5.5 0 0 0 0-1z"'));
+  case 'hourglass':
+    return tg('svg',$p1,
+       tg('path','d="M2 1.5a.5.5 0 0 1 .5-.5h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1h-11a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1-.5-.5m2.5.5v1a3.5 3.5 0 0 0 1.989 3.158c.533.256 1.011.791 1.011 1.491v.702c0 .7-.478 1.235-1.011 1.491A3.5 3.5 0 0 0 4.5 13v1h7v-1a3.5 3.5 0 0 0-1.989-3.158C8.978 9.586 8.5 9.052 8.5 8.351v-.702c0-.7.478-1.235 1.011-1.491A3.5 3.5 0 0 0 11.5 3V2z"'));
+  case 'hourglass-split':
+    return tg('svg',$p1,
+       tg('path','d="M2.5 15a.5.5 0 1 1 0-1h1v-1a4.5 4.5 0 0 1 2.557-4.06c.29-.139.443-.377.443-.59v-.7c0-.213-.154-.451-.443-.59A4.5 4.5 0 0 1 3.5 3V2h-1a.5.5 0 0 1 0-1h11a.5.5 0 0 1 0 1h-1v1a4.5 4.5 0 0 1-2.557 4.06c-.29.139-.443.377-.443.59v.7c0 .213.154.451.443.59A4.5 4.5 0 0 1 12.5 13v1h1a.5.5 0 0 1 0 1zm2-13v1c0 .537.12 1.045.337 1.5h6.326c.216-.455.337-.963.337-1.5V2zm3 6.35c0 .701-.478 1.236-1.011 1.492A3.5 3.5 0 0 0 4.5 13s.866-1.299 3-1.48zm1 0v3.17c2.134.181 3 1.48 3 1.48a3.5 3.5 0 0 0-1.989-3.158C8.978 9.586 8.5 9.052 8.5 8.351z"'));
+  case 'exclamation-circle':
+    return tg('svg',$p1,
+       tg('path','d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16"').
+       tg('path','d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"'));
+  case 'exclamation-octagon':
+    return tg('svg',$p1,
+       tg('path','d="M4.54.146A.5.5 0 0 1 4.893 0h6.214a.5.5 0 0 1 .353.146l4.394 4.394a.5.5 0 0 1 .146.353v6.214a.5.5 0 0 1-.146.353l-4.394 4.394a.5.5 0 0 1-.353.146H4.893a.5.5 0 0 1-.353-.146L.146 11.46A.5.5 0 0 1 0 11.107V4.893a.5.5 0 0 1 .146-.353zM5.1 1 1 5.1v5.8L5.1 15h5.8l4.1-4.1V5.1L10.9 1z"').
+       tg('path','d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0M7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0z"'));
+  case 'bug-fill':
+    return tg('svg',$p1,
+       tg('path','d="M4.978.855a.5.5 0 1 0-.956.29l.41 1.352A5 5 0 0 0 3 6h10a5 5 0 0 0-1.432-3.503l.41-1.352a.5.5 0 1 0-.956-.29l-.291.956A5 5 0 0 0 8 1a5 5 0 0 0-2.731.811l-.29-.956z"').
+       tg('path','d="M13 6v1H8.5v8.975A5 5 0 0 0 13 11h.5a.5.5 0 0 1 .5.5v.5a.5.5 0 1 0 1 0v-.5a1.5 1.5 0 0 0-1.5-1.5H13V9h1.5a.5.5 0 0 0 0-1H13V7h.5A1.5 1.5 0 0 0 15 5.5V5a.5.5 0 0 0-1 0v.5a.5.5 0 0 1-.5.5zm-5.5 9.975V7H3V6h-.5a.5.5 0 0 1-.5-.5V5a.5.5 0 0 0-1 0v.5A1.5 1.5 0 0 0 2.5 7H3v1H1.5a.5.5 0 0 0 0 1H3v1h-.5A1.5 1.5 0 0 0 1 11.5v.5a.5.5 0 1 0 1 0v-.5a.5.5 0 0 1 .5-.5H3a5 5 0 0 0 4.5 4.975"'));
+  case 'bug':
+    return tg('svg',$p1,
+       tg('path','d="M4.355.522a.5.5 0 0 1 .623.333l.291.956A5 5 0 0 1 8 1c1.007 0 1.946.298 2.731.811l.29-.956a.5.5 0 1 1 .957.29l-.41 1.352A5 5 0 0 1 13 6h.5a.5.5 0 0 0 .5-.5V5a.5.5 0 0 1 1 0v.5A1.5 1.5 0 0 1 13.5 7H13v1h1.5a.5.5 0 0 1 0 1H13v1h.5a1.5 1.5 0 0 1 1.5 1.5v.5a.5.5 0 1 1-1 0v-.5a.5.5 0 0 0-.5-.5H13a5 5 0 0 1-10 0h-.5a.5.5 0 0 0-.5.5v.5a.5.5 0 1 1-1 0v-.5A1.5 1.5 0 0 1 2.5 10H3V9H1.5a.5.5 0 0 1 0-1H3V7h-.5A1.5 1.5 0 0 1 1 5.5V5a.5.5 0 0 1 1 0v.5a.5.5 0 0 0 .5.5H3c0-1.364.547-2.601 1.432-3.503l-.41-1.352a.5.5 0 0 1 .333-.623M4 7v4a4 4 0 0 0 3.5 3.97V7zm4.5 0v7.97A4 4 0 0 0 12 11V7zM12 6a4 4 0 0 0-1.334-2.982A3.98 3.98 0 0 0 8 2a3.98 3.98 0 0 0-2.667 1.018A4 4 0 0 0 4 6z"'));
+  case 'wrench':
+    return tg('svg',$p1,
+       tg('path','d="M.102 2.223A3.004 3.004 0 0 0 3.78 5.897l6.341 6.252A3.003 3.003 0 0 0 13 16a3 3 0 1 0-.851-5.878L5.897 3.781A3.004 3.004 0 0 0 2.223.1l2.141 2.142L4 4l-1.757.364zm13.37 9.019.528.026.287.445.445.287.026.529L15 13l-.242.471-.026.529-.445.287-.287.445-.529.026L13 15l-.471-.242-.529-.026-.287-.445-.445-.287-.026-.529L11 13l.242-.471.026-.529.445-.287.287-.445.529-.026L13 11z"'));
+  case 'wrench-adjustable':
+    return tg('svg',$p1,
+       tg('path','d="M16 4.5a4.5 4.5 0 0 1-1.703 3.526L13 5l2.959-1.11q.04.3.041.61"').
+       tg('path','d="M11.5 9c.653 0 1.273-.139 1.833-.39L12 5.5 11 3l3.826-1.53A4.5 4.5 0 0 0 7.29 6.092l-6.116 5.096a2.583 2.583 0 1 0 3.638 3.638L9.908 8.71A4.5 4.5 0 0 0 11.5 9m-1.292-4.361-.596.893.809-.27a.25.25 0 0 1 .287.377l-.596.893.809-.27.158.475-1.5.5a.25.25 0 0 1-.287-.376l.596-.893-.809.27a.25.25 0 0 1-.287-.377l.596-.893-.809.27-.158-.475 1.5-.5a.25.25 0 0 1 .287.376M3 14a1 1 0 1 1 0-2 1 1 0 0 1 0 2"'));
+  case 'trash-fill':
+    return tg('svg',$p1,
+       tg('path','d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"'));                
+  case 'magic':
+    return tg('svg',$p1,
+       tg('path','d="M9.5 2.672a.5.5 0 1 0 1 0V.843a.5.5 0 0 0-1 0zm4.5.035A.5.5 0 0 0 13.293 2L12 3.293a.5.5 0 1 0 .707.707zM7.293 4A.5.5 0 1 0 8 3.293L6.707 2A.5.5 0 0 0 6 2.707zm-.621 2.5a.5.5 0 1 0 0-1H4.843a.5.5 0 1 0 0 1zm8.485 0a.5.5 0 1 0 0-1h-1.829a.5.5 0 0 0 0 1zM13.293 10A.5.5 0 1 0 14 9.293L12.707 8a.5.5 0 1 0-.707.707zM9.5 11.157a.5.5 0 0 0 1 0V9.328a.5.5 0 0 0-1 0zm1.854-5.097a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L8.646 5.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0l1.293-1.293Zm-3 3a.5.5 0 0 0 0-.706l-.708-.708a.5.5 0 0 0-.707 0L.646 13.94a.5.5 0 0 0 0 .707l.708.708a.5.5 0 0 0 .707 0z"'));
+  case 'gear-fill':
+    return tg('svg',$p1,
+       tg('path','d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"'));
+         
     
   /* Moon icons, https://icomoon.io/#preview-free */
   case 'floppy':  
@@ -573,8 +614,9 @@ function bt_tooltip($title,$text,$placement='top'){
  * @param string $content
  * @param bool  $postlink - when true, generater links are POSTed
  * @param string $filter - when not null, it prints this text as filter description
- * @param string $text_button Specify text for Search button
- */
+ * @param string $text_button Specify the text for Search button
+ * @param string $toolbar_buttons - a place for additional
+ * */
 function bt_lister($caption='',
                    $head=[],
                    $content=[[]],
@@ -584,7 +626,8 @@ function bt_lister($caption='',
                    $context='',
                    $postlink=false,
                    $filter=null,
-                   $text_button=''){
+                   $text_button='',
+                   $toolbar_buttons=''){
 
   $s=''; 
   if (!is_array($content)) return '';
@@ -631,6 +674,7 @@ function bt_lister($caption='',
     $s=tg('div','class="table-responsive"',
        tg('table',$bt_class,
         ta('caption',$caption.nbsp(2).ahref('?_se=1'.$context,bt_icon('search').$text_button,'class="btn btn-primary"').
+        $toolbar_buttons.
         (getpar('_whr')?tg('span','class="alert alert-success"',isset($filter)?$filter:('Filtrováno: '.urldecode(getpar('_flt')))):'')).
         tg('thead','class="thead-light"',ta('tr',$hlav)).
         ta('tbody',$s)).$pagination);
@@ -719,7 +763,7 @@ function bt_range($label,$name,$min=0,$max=100,$step=1,$value=0,$add=''){
 function bt_multiselect($lab,$id,$options,$data=[],
           $settings=[
             "disableSelectAll"=>true, 
-            "maxHeight"=> 200, 
+            "maxHeight"=> 400, 
             "search"=> true,
             "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]]){
   $s='';
@@ -753,7 +797,7 @@ function bt_multiselect($lab,$id,$options,$data=[],
 function bt_select($lab,$id,$options,$data='',
           $settings=[
             "disableSelectAll"=>true, 
-            "maxHeight"=> 200, 
+            "maxHeight"=> 400, 
             "search"=> true,
             "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]],
             $colors=[]){
@@ -790,7 +834,7 @@ function bt_getoptions($db,$sql){
  * this compoment is independent on Bootstrap CSS !
  * @param string $lab label
  * @param string $id field identifier
- * @param array list of available options, use function to_hash() to generate it from an SQL command
+ * @param array $data list of available options, use function to_hash() to generate it from an SQL command
  * @param string $val default value
  */
 function bt_comboauto($lab,$id,$data=[],$val=''){
@@ -863,7 +907,7 @@ function bt_modal_win($name,
                       $url_ajax='?ajax=1',
                       $r=''){
   
-  if ($r=='') $r=tg('a','class="btn btn-secondary m-1" id="'.$id.'" ',$text);
+  if ($r=='') $r=tg('a','class="btn btn-info m-1" id="'.$id.'" ',$text);
 
   $script=tg('script','type="text/javascript"',
    "$(document).ready(function(){
@@ -913,4 +957,141 @@ function bt_modal_win($name,
 
   return $r.$script.$modal;
 }
+/** box for input a text list with prepared items (list of shorcuts..)
+ * @param string $lab - a text label
+ * @param string $id - a form identifier
+ * @param array $list - list of possibilities (value in POST/ visible text item)
+ * @param string $value - a text divided by a comma
+ * @param string $add - other added parametres
+ */
+function bt_text_select($lab,$id,$list,$value,$add=''){
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/specselect/specselect.css" rel="stylesheet"')."\n".
+    tg('script','src="'.M5::get('path_relative').'/vendor/specselect/specselect.js"',' '),
+    'specselect'
+  );
+ 
+  for($i=0,$nab='';$i<count($list);$i++){ 
+    $nab.=tg('span','class="btn btn-sm btn-secondary m-1" onclick="m5_ts_pridej(\''.$id.'\',\''.$list[$i].'\');"',$list[$i]);
+  } 
+  
+  $r=textfield($lab,$id,30,100,$value,'id="'.$id.'"'.$add).
+   tg('span','onclick="m5_ts_switchContent(\''.$id.'_div\');" class="btn btn-lg"',bt_icon('caret-down')).
+   tg('div','id="'.$id.'_div" style="display:none" class="m5_ts_nabidka"', //class="alert alert-info rounded border-dark"
+    tg('span','style="float:right;font-size: 25px;" alt="X" class="btn btn-sm" onclick="m5_ts_switchContent(\''.$id.'_div\');"','&times;').
+    $nab).
+   tg('div','id="'.$id.'_alert" style="display:none"',''); 
+
+  return $r;
+}
+
+/** box for input a set of prepared graphic symbols
+ * @param string $lab - a text label
+ * @param string $id - a form identifier
+ * @param string $value - a set of id's to graphics symbols divided by a comma (stored in DB )
+ * @param array $list - array of graphic symbols (id/ visible text item)
+ * @param string $add - other added parametres
+ */
+function bt_icon_multiselect($lab,$id,$list,$value){
+  $separator=';';
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/specselect/specselect.css" rel="stylesheet"')."\n".
+    tg('script','src="'.M5::get('path_relative').'/vendor/specselect/specselect.js"',' '),
+    'specselect'
+  );
+
+  $nab='';
+  foreach($list as $k=>$v){ 
+    $nab.=tg('span','class="btn btn-sm btn-secondary m-1" onclick="m5_ic_pridej(\''.$id.'\',\''.$k.'\');"',
+            tg('span','id="'.$id.'_item_'.$k.'"',$v));
+  }
+  $nab.=tg('span','class="btn btn-sm btn-primary m-1" onclick="m5_ic_zrus(\''.$id.'\');"','Smazat');
+  $view=nbsp();
+  if ($value!=''){
+    $data=explode($separator,$value);
+    foreach($data as $k){
+      $view.=$list[$k].nbsp();
+    }
+  }  
+    
+  $r=$lab.tg('input','type="hidden" id="'.$id.'" name="'.$id.'" value="'.$value.'" ','noslash').
+   tg('span','id="'.$id.'_view"',$view).
+   tg('span','onclick="m5_ts_switchContent(\''.$id.'_div\');" class="btn btn-lg"',bt_icon('caret-down')).
+   tg('div','id="'.$id.'_div" style="display:none" class="m5_ts_nabidka"', //class="alert alert-info rounded border-dark"
+    tg('span','style="float:right;font-size: 25px;" alt="X" class="btn btn-sm" '.
+              'onclick="m5_ts_switchContent(\''.$id.'_div\');"','&times;').
+      $nab).
+   tg('div','id="'.$id.'_alert" style="display:none"',''); 
+
+  return $r;
+}
+
+/** box for input one of the prepared graphics symbols
+ * @param string $lab - a text label
+ * @param string $id - a form identifier
+ * @param string $value - a set of id's to graphics symbols divided by a comma (stored in DB )
+ * @param array $list - array of graphic symbols (id/ visible text item)
+ * @param string $add - other added parametres
+ */
+function bt_icon_select($lab,$id,$list,$value){
+  $separator=';';
+  M5::puthf(
+    tg('link','href="'.M5::get('path_relative').'/vendor/specselect/specselect.css" rel="stylesheet"')."\n".
+    tg('script','src="'.M5::get('path_relative').'/vendor/specselect/specselect.js"',' '),
+    'specselect'
+  );
+
+  $nab='';
+  foreach($list as $k=>$v){ 
+    $nab.=tg('span','class="btn btn-sm btn-secondary m-1" onclick="m5_ic_nahrada(\''.$id.'\',\''.$k.'\');"',
+            tg('span','id="'.$id.'_item_'.$k.'"',$v));
+  }
+  $nab.=tg('span','class="btn btn-sm btn-primary m-1" onclick="m5_ic_zrus(\''.$id.'\');"','Smazat');
+  $view=nbsp();
+  if ($value!=''){
+    $data=explode($separator,$value);
+    foreach($data as $k){
+      $view.=$list[$k].nbsp();
+    }
+  }  
+    
+  $r=$lab.tg('input','type="hidden" id="'.$id.'" name="'.$id.'" value="'.$value.'" ','noslash').
+   tg('span','id="'.$id.'_view"',$view).
+   tg('span','onclick="m5_ts_switchContent(\''.$id.'_div\');" class="btn btn-lg"',bt_icon('caret-down')).
+   tg('div','id="'.$id.'_div" style="display:none" class="m5_ts_nabidka"', //class="alert alert-info rounded border-dark"
+    tg('span','style="float:right;font-size: 25px;" alt="X" class="btn btn-sm" '.
+              'onclick="m5_ts_switchContent(\''.$id.'_div\');"','&times;').
+      $nab).
+   tg('div','id="'.$id.'_alert" style="display:none"',''); 
+
+  return $r;
+}
+
+/** A section with one button on the left and one button on the right
+ * @param string $content - a HTML content inside the div
+ * @param string $addclass - a list of additional classes 
+ */ 
+function bt_justify_between($content,$addclass=''){
+  return tg('div','class="d-flex justify-content-between"'.($addclass!=''?' ':'').$addclass, 
+            $content); 
+}
+
+
+/** A hidable section with one button on the left and one button on the right
+ * @param string $label
+ * @param string $content - a HTML content inside the div
+ * @param string $addclass - a list of additional classes 
+ */ 
+function bt_hidable_section($label,$docid,$content,$addclass='card card-body'){
+  
+  if ($codid=='') $docid='hidableSection';
+  return 
+   tg('h5',
+      ' type="button" data-toggle="collapse" data-target="#'.$docid.'" aria-expanded="false" aria-controls="'.$docid.'"',
+      $label.' '.bt_icon('chevron-down')).
+   tg('div','class="collapse mt-3" id="'.$docid.'"',
+      tg('div','class="'.$addclass.'"',
+      $content));
+}
+
 ?>

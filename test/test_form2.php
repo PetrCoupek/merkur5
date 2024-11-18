@@ -24,7 +24,9 @@ class Testform extends M5{
     })'));
 
    
-   htpr(bt_tooltip('Test informační bubliny.','Info'.bt_icon('info')).
+   htpr(bt_hidable_section('Instrukce pro vyplění','Hidesec',
+     'Tady může být text nebo návod potřebný pro vyplění formuláře '.
+     str_repeat('Lorem Ipsum donor cealea gracit afede mortud leri pso. ',10)),
     tg('form','method="post" action="?" class="bg-light p-2 border" ',
      ta('h4','Hlavička formuláře').
      bt_container(['col-4','col-8'],
@@ -56,29 +58,54 @@ class Testform extends M5{
             "select kod, nazev ".
             "from sn_ciselniky ".
             "where ciselnik='faktory' ".
-            "order by poradi asc"),getpar('MULTI'))],
+            "order by poradi asc"),
+            getpar('MULTI'),
+            [ "disableSelectAll"=>true, 
+              "maxHeight"=> 300, 
+              "search"=> true,
+              "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]])],
        ['Doplňovací seznam',
-        bt_comboauto('','CA1',to_hash("select kod,hornina from kod_horniny where kod in (400,401,402) order by hornina asc",$db),getpar('CA1'))],
+        bt_comboauto('','CA1',to_hash("select kod,hornina from kod_horniny where kod in (400,401,402) order by hornina asc",$db),
+         getpar('CA1'))],
        ['Select (VannilaSelectBox)',
         bt_select("",'DBLIST2',to_hash("select kod,hornina from kod_horniny order by hornina asc",$db),
-        getpar('DBLIST2'),
-        [ "disableSelectAll"=>true, 
-          "maxHeight"=> 200, 
-          "search"=> false,
-          "translations"=>["all"=>"Vše","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]
-        ])
-       ] 
+        getpar('DBLIST2'))
+       ],
+       ['Volný výběr z připravených textů',
+        bt_text_select('','VOLNY',
+         ['Ab','Act','Afs','Amp','An','Ano','Aug','Bt','Cb','Cal','Chl','Cld','Cpx','Crd',
+          'Di','Dol','Drv','Fsp','Fo','Hbl','Kfs','Mc','Ol','Pl','Px','Qz','Srp','Tr'],
+          getpar('VOLNY'))
+       ],
+       ['Volný vícevýběr z připravené grafiky',
+        bt_icon_multiselect("",'GRAFIKY',
+         ['1'=>bt_icon('home'),
+          '2'=>bt_icon('compass'),
+          '3'=>bt_icon('geolocation'),
+          '4'=>'bez symbolu'],
+         getpar('GRAFIKY'))
+      ],
+      ['Výběr grafického symbolu',
+        bt_icon_select("",'GRAFIKA',
+         ['1'=>bt_icon('home'),
+          '2'=>bt_icon('compass'),
+          '3'=>bt_icon('geolocation'),
+          '4'=>bt_icon('check-square')],
+         getpar('GRAFIKA'))
+      ]
       ]).      
       '<hr>'.        
-     bt_container(['col-8','col-4'],
-       [[nbsp(20).
-        tg('input',' type="reset" class="btn btn-secondary" value="Nastavit původní stav"','noslash'),
-        submit('OK','Odeslat')]
-       ]),
+     bt_justify_between(
+        tg('input',' type="reset" class="btn btn-secondary" value="Nastavit původní stav"','noslash').
+        '[nějaké další tlačítko]'.
+        submit('OK','Odeslat')
+        ),
      hr()));
+
  }
 
  static function result(){
+   //deb(print_r($_POST,true),false);
    $tn='Výsledek textového pole je prázdný';
    $tp='Výsledek je '.implode(';'.nbsp(1),[getpar('TXTFLD'),
                                            getpar('DATEF'),
@@ -91,7 +118,10 @@ class Testform extends M5{
                                            getpar('OBEC2'),
                            '['.implode(';',(array)getpar('MULTI')).']',
                                            getpar('CA1'),
-                                           getpar('DBLIST2')
+                                           getpar('DBLIST2'),
+                                           getpar('VOLNY'),
+                                           getpar('GRAFIKY'),
+                                           getpar('GRAFIKA')
                               ]);
    if (getpar('RESPFO')==1)
     htpr(tg('div','class="p-2"',
@@ -138,5 +168,6 @@ function bt_comboauto_testing_version($lab,$id,$data=[],$val=''){
   
   return $s;
 }
+
 
 ?>

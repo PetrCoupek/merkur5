@@ -88,10 +88,11 @@ abstract class OpenDB {
    * This method returns current attribute value
    * @param string $attribute - the name of the attribute (in the view/table), 
    *   automatic case sensitivity detection 
-   * @return object with the attribute value
+   * @return string (or object) with the attribute value
    */
   function Data($sloupec){
     if (isset($this->data[$sloupec])) {
+      //return (gettype($this->data[$sloupec])=="string")?$this->data[$sloupec]:$this->data[$sloupec]->load();
       return $this->data[$sloupec];
     }else{
       return '';

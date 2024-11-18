@@ -24,6 +24,8 @@
  *  21.06.2024 - parametric form should contain a submit button named as _sg 
  *  12.09.2024 - podpora metody zobrazeni filtru, metoda filter_to_array
  *  30.09.2024 - vychozi obsluha datumoveho typu podle cilove databaze
+ *  03.10.2024 - opravy v __contruct
+ *  06.11.2024 - moznost entita tecka atribut v podmince - $_POST tecky rusi - viz genwhere
  */ 
 include_once "mbt.php";
 
@@ -250,7 +252,7 @@ private function column_labels(){
  * @return string - the SQL WHERE part
 */
 function genwhere(){
- 
+  
   $DAT=M5::get('DATA');
   $where='';
   $find_ascii=false;
@@ -294,8 +296,7 @@ function genwhere(){
     }
   }else{
     /* klasicky parametricky formular */
-    foreach (array_keys($DAT) as $pol){
-    //foreach ($DAT as $pol => $value){
+    foreach (array_keys($DAT) as $pol){ 
       if (preg_match("/^(.+)_par$/",$pol, $match)){ /* prochazej dvojice ATTR a ATTR_par*/       
         $bezpar = $match[1];
         $atribut=$bezpar;     /* $atribut obsahuje jmeno atributu, ktery je dotazovan */
@@ -318,7 +319,7 @@ function genwhere(){
           }elseif ($DAT[$pol] == 'ends') {
             $DAT[$bezpar] = "'%".$DAT[$bezpar]."'";
             $DAT[$pol]='like';  
-          }elseif ($DAT[$pol] == 'in' or $DAT[$pol] == 'not in'){
+          }elseif ($DAT[$pol] == 'in' || $DAT[$pol] == 'not in'){
             /* muze jit bud o multiselect a nebo seznam hodnot oddelenych carkou */
             if (is_array($DAT[$bezpar])){
               $p1=$DAT[$bezpar];
@@ -330,13 +331,14 @@ function genwhere(){
             }
             $DAT[$bezpar]="( ".$p2." )";
           }else{
-             $DAT[$bezpar]="'".$DAT[$bezpar]."'";
+            $DAT[$bezpar]="'".$DAT[$bezpar]."'";
           }
+          $atribut=str_replace('#','.',$atribut); /* moznost entita tecka atribut v podmince - $_POST tecky rusi*/
           if ($citlivost){
             /* podle Vaclav Pospisil - podminka bere to, ze se odbourava diakritika */
 					  $where.=$p."upper(convert($atribut,'US7ASCII')) $DAT[$pol] upper(convert($DAT[$bezpar],'US7ASCII'))";
           }else{
-              $where.=$p."$atribut $DAT[$pol] $DAT[$bezpar]";
+            $where.=$p."$atribut $DAT[$pol] $DAT[$bezpar]";
           }
         }
       }      
@@ -596,24 +598,24 @@ function __construct($param,$db){
         /* construct aditional bind variables - for update nad delete */
         if (getpar('_upd') || getpar('_del')){
           for ($i=0;$i<count($this->pragma);$i++)
-            if (isset($this->pragma[$i]['pk'])){
+            if (isset($this->pragma[$i]['pk']) && $this->pragma[$i]['pk']){
               $name=$this->pragma[$i]['name']; 
               $rc.=($rc==''?'':' and ').($name.'='.':'.strtolower($name));
               $this->bind[':'.strtolower($name)]=getpar(strtolower($name));
             }
           $this->uprikaz.=$rc;   
           $this->rprikaz.=$rc;
-        }  
+        }
     }else{
       if (getpar('_upd')){
         $this->uprikaz=isset($param['uprikaz'])?$param['uprikaz'][0]:'';
-        $this->bind=$param['uprikaz'][1];
+        $this->bind=isset($param['uprikaz'])?$param['uprikaz'][1]:'';
       }elseif (getpar('_del')){
         $this->rprikaz=isset($param['rprikaz'])?$param['rprikaz'][0]:'';
-        $this->bind=$param['rprikaz'][1];
+        $this->bind=isset($param['rprikaz'])?$param['rprikaz'][1]:'';
       }elseif (getpar('_ins')){
         $this->iprikaz=isset($param['iprikaz'])?$param['iprikaz'][0]:'';
-        $this->bind=$param['iprikaz'][1];
+        $this->bind=isset($param['iprikaz'])?$param['iprikaz'][1]:'';
       }
     }
   }  

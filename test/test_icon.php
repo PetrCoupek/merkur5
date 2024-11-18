@@ -15,7 +15,8 @@ htpr(ta('h1','Icons'),
     ['chevron-down','chevron-left','chevron-right','chevron-up','arrow-left','arrow-right',
      'caret-down','caret-up','check','check-circle','geo-alt','menu-app',
      'power','plusminus','exclamation-triangle','check-square','diamond','dot','lock','info','question',
-     'menu','geolocation','alarm','dash-circle'
+     'menu','geolocation','alarm','dash-circle','hourglass','hourglass-split','exclamation-circle',
+     'exclamation-octagon','bug-fill','bug','wrench','wrench-adjustable','trash-fill','magic','gear-fill'
     ]),
   br(2),  
   ikona_sekvence(
