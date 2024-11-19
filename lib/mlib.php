@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.51-011024
+ * @version 0.52-191124
  */
 /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -59,6 +59,8 @@ abstract class M5_core{
     self::set('header','');    /* header text */
     self::set('htfr','');      /* frontend content - scripts and styles */
     self::set('htpr','');      /* output text/html buffer */
+    self::set('actions','');   /* intended for menu-actions */
+    self::set('endpart','');   /* HTML part at the end of the HTML body element  */
     self::set('http_lan','C'); /* initial language */
     self::set('immediate',false); /* in CLI, you can output immediatelly, no to wait when script ends */ 
     self::set('path_current',str_replace('\\','/',dirname(dirname( __FILE__ )))); /* it requires to be called from subdir lib*/
@@ -147,8 +149,9 @@ abstract class M5_core{
    *  @param string $htext 
    *  @param string $key - the key is unique when the same functionality is required more then once 
    *                (f.e. two datefields in one form - the CSS,JS is downloaded only once )
+   *  @param bool $end_of_body 
    */
-  static function puthf($htext,$key){
+  static function puthf($htext,$key,$end_of_body=false){
     static $keys=[];
     if (!isset($keys[$key])){
       $keys[$key]=true;
@@ -175,8 +178,9 @@ abstract class M5_core{
       str_replace('#TITLE#',self::get('title'),
       str_replace('#HEADER#',self::get('header'),
       str_replace('#BODY#',self::get('htpr'),
-      str_replace('#ACTIONS#',self::get('htactions'),
-      str_replace('#___#',self::get('htfr'), self::get('htptemp')))))));
+      str_replace('#ACTIONS#',self::get('actions'),
+      str_replace('#___#',self::get('htfr'), 
+      str_replace('#ENDPART#',self::get('endpart'), self::get('htptemp'))))))));
      if (self::get('debug')){
        self::set('htptemp',
         str_replace('#ERRORS#',
@@ -220,7 +224,7 @@ abstract class M5_core{
     /* command-line params are in form p1=val1 p2=val2 ..etc delimiter is blank char
        when no = is present, then the param is set to '' (but not null) */
     if (self::get('sapi_name')=='cli'){
-      $sep='=';  /* see also https://www.php.net/manual/en/reserved.variables.argv.php */
+      $sep='='; /* see also https://www.php.net/manual/en/reserved.variables.argv.php */
       if (isset($_SERVER['argv']) && is_array($_SERVER['argv'])){
         for($i=1;$i<count((array)$_SERVER['argv']);$i++) {
           if (strpos($_SERVER['argv'][$i],$sep)){
@@ -584,7 +588,7 @@ function tg($tagname,$params='',$content='',$nopack=false){
 /* dalsi flobalni funkce */
 
 /** The function returns HTML non-breaking spaces. 
- * @param int $count - how many, default=1 
+ * @param number $count - how many, default=1 
  * @return string */
 
 function nbsp($count=1){
@@ -592,7 +596,7 @@ function nbsp($count=1){
 }
 
 /** The function returns the HTML tag for the page-break.  
- * @param int $count - number of page-braks, default=1 
+ * @param number $count - number of page-braks, default=1 
  * @return string 
  */ 
 function br($count=1){
@@ -687,7 +691,7 @@ function checkbox($label,$name,$value,$add=''){
  
 function check_box($label,$name,$checked,$add=''){
   $c=($checked)?'checked':'';
-  return $label.nbsp().tg('input','type="checkbox" name="'.$name.'" value="1" '.$add.' '.$c);
+  return $label.nbsp().tg('input','type="checkbox" name="'.$name.'" value="1" '.$add.' '.$c,'noslash');
 }
 
 /** The function returns the HTML tag for a check box, value to be posted when checked is taken from a global $DB hash

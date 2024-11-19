@@ -1072,10 +1072,16 @@ function bt_icon_select($lab,$id,$list,$value){
  * @param string $addclass - a list of additional classes 
  */ 
 function bt_justify_between($content,$addclass=''){
-  return tg('div','class="d-flex justify-content-between"'.($addclass!=''?' ':'').$addclass, 
-            $content); 
+  return tg('div','class="d-flex justify-content-between'.($addclass!=''?' ':'').$addclass.'"',$content);
 }
 
+/** A section with one button on the left and one button on the right
+ * @param string $content - a HTML content inside the div
+ * @param string $addclass - a list of additional classes 
+ */ 
+function bt_justify_end($content,$addclass=''){
+  return tg('div','class="d-flex justify-content-end'.($addclass!=''?' ':'').$addclass.'"',$content);
+}
 
 /** A hidable section with one button on the left and one button on the right
  * @param string $label
@@ -1083,8 +1089,7 @@ function bt_justify_between($content,$addclass=''){
  * @param string $addclass - a list of additional classes 
  */ 
 function bt_hidable_section($label,$docid,$content,$addclass='card card-body'){
-  
-  if ($codid=='') $docid='hidableSection';
+  if ($docid=='') $docid='hidableSection'.rand(1000,9999);
   return 
    tg('h5',
       ' type="button" data-toggle="collapse" data-target="#'.$docid.'" aria-expanded="false" aria-controls="'.$docid.'"',
