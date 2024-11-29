@@ -8,14 +8,14 @@ include_once '../lib/mlib.php';
 include_once 'ini.php';
 //include_once '../lib/vistab.php';
 
-M5::set('header','Test ODBC - Vistab');
+M5::set('header','Test ODBC - Vistab with allowed debug mode');
 M5::set('debug',true);
 M5::skeleton('../');
 
 $db = new OpenDB_ODBC(CONN_ODBC_TEST);
 //deb($db->Pragma("table_info('REPORT')") );
 $tt= new VisTab(
-  ['table'=>'REPORT'],$db); 
+  ['table'=>'REPORT','debug_mode'=>true],$db); 
 
 $tt->route("&vyhl=1");
 /**/

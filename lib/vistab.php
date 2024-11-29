@@ -25,24 +25,29 @@
  *  12.09.2024 - podpora metody zobrazeni filtru, metoda filter_to_array
  *  30.09.2024 - vychozi obsluha datumoveho typu podle cilove databaze
  *  03.10.2024 - opravy v __contruct
- *  06.11.2024 - moznost entita tecka atribut v podmince - $_POST tecky rusi - viz genwhere
+ *  08.11.2024 - moznost entita tecka atribut v podmince - $_POST tecky rusi - viz genwhere je nahrazeno ____
+ *  13.11.2024 - oprava storno podminky v parametrickem formulari (pri odeslani formulare pomoci Enter se nenastavil spravne filtr)
+ *  29.11.2024 - oprava uzivatelskeho razeni - kolikze s chovanim select-offset-fetch - musi byt jasne pora
+ * 
  */ 
 include_once "mbt.php";
 
 class VisTab {
 
 var $separator='~', /* char(s) used as separator for where condition among PUT/GET reuests */
-    $db,            /* connected database objects */
+    $db,            /* connected database objects - OpenDB_* class */
     $nastrane,      /* no of rows on lister page */
-    $param,         /* hash of parameters for class */
+    $param,         /* hash of parameters for setting the class */
     $sprikaz,       /* intrinsic select command for list of records */
     $cprikaz,       /* intrinsic count command */
-    $pragma,        /* meta infromation about a database entity */
+    $pragma,        /* content of meta information about a database attributes (types,lengths,labels) */
     $dprikaz,       /* intrinsic select command for detail page */ 
     $header,        /* table header for listing */
-    $postlink,      /* POST */
-    $pk,            /* primary key of the entity - an attribute or list of attributes */
-    $filter;        /* generater filter based on .. */
+    $postlink,      /* POST method used in listing */
+    $pk,            /* primary key of the entity - an attribute or list of attributes, used also when custom sort */
+    $filter,        /* generater filter based on .. */
+    $classdetail,   /* detail page css class */
+    $debug_mode=false; /* debug mode */
 
  /** @param array $param - array of parametres
   *  @param object $db - opened DB connextion
@@ -52,6 +57,11 @@ function __construct($param,$db){
   $this->db=$db;
   $this->nastrane=isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15;
   $this->param=$param;
+  
+  if (isset($param['debug_mode']) && $param['debug_mode']){
+    $this->debug_mode=true;
+  }
+  
   /* the display object is either a table or a select command */
   if (isset($param['table'])){
     $t=$param['table'];
@@ -67,17 +77,24 @@ function __construct($param,$db){
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
   }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){
-    $this->header=(isset($param['header'])?$param['header']:'[head]');
+    $this->header=(isset($param['header'])?$param['header']:'');
     $this->sprikaz=$param['sprikaz'];
     $this->cprikaz=$param['cprikaz'];
     $this->pragma=$param['pragma']; 
     $this->dprikaz=$param['dprikaz'];
-  }  
-
+    $this->pk=(isset($param['pk'])?$param['pk']:'rowid');
+  }else{
+    $this->pk=(isset($param['pk'])?$param['pk']:'rowid');
+  }
   if (isset($param['postlink']) && $param['postlink']){
     $this->postlink=true;  
   }else{
     $this->postlink=false;
+  }
+  if (isset($param['classdetail'])){
+    $this->classdetail=$param;  
+  }else{
+    $this->classdetail='bg-light border p-2';
   }
 
   /* filter expansion according to the flt parameter, if new conditions are not searched for */
@@ -85,13 +102,17 @@ function __construct($param,$db){
 
   /* the generation of "where condition" is always based on the parameter wrapped in _flt*/
   /* internally is referred as getpar('_whr') */
-  setpar('_whr',$this->genwhere()); 
-
+  setpar('_whr',$this->genwhere());
+  if ($this->debug_mode){
+    deb('VISTAB construct, _whr: '.getpar('_whr'),false);
+  } 
 }
 
-/** starting point for the component 
- * 
-*/
+/**
+ * the route method - starting point for the component 
+ * @param string $context The path to the file.
+ */
+
 function route($context){
   if (getpar('_se')){
     htpr($this->form_param($context));
@@ -102,8 +123,9 @@ function route($context){
   }
 }
 
-/** Tabulka pro listovani mnozinou vybranych zaznamu
- * 
+/** 
+ * the method for visualizing the entity data
+ * @param string $context - the page parameters contex
 */
 function lister($context){
   /* zpracovani potvrzeneho parametrickeho formulare - zde je nutne vygenerovat _flt pro omezeni - filtrovani */
@@ -113,7 +135,7 @@ function lister($context){
   }  
   $sprikaz=$this->genfilter($this->sprikaz);
   $cprikaz=$this->genfilter($this->cprikaz,false);
-  
+    
   $a=$this->db->SqlFetchArray($sprikaz,[],isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,getpar('_ofs',1));
   /* generovani linku pro prechod do detailu */
   if (count($a)>0 ){
@@ -159,9 +181,8 @@ function lister($context){
     for($i=0;$i<count($a);$i++){
       $a[$i]=$this->modify_row_before_print($a[$i]);
     }
-     
 
-    /* tisk tabulky a listovani */
+    /* tisk tabulky a listovani, $a je obsah/tabulka */
     $r.=gl(
       bt_lister(
         $this->header,
@@ -179,8 +200,8 @@ function lister($context){
         $context.'&_flt='.getpar('_flt'),
         $this->postlink,
         $this->text_filter()!=''?('Filtrováno: '.$this->text_filter()):'',
-        isset($this->param['text_button'])?$this->param['text_button']:'')
-    );
+        isset($this->param['text_button'])?$this->param['text_button']:'',
+        isset($this->param['toolbar_buttons'])?$this->param['toolbar_buttons']:''));
   }else{
     $r.=gl(bt_alert(isset($this->param['no_data'])?$this->param['no_data']:'Nejsou záznamy.','alert-warning'));
     $r.=$this->form_param($context);
@@ -222,7 +243,7 @@ function form_param($context){
       $b[$i][2]=textfield('',$a[$i]['name'],20,40,getpar($a[$i]['name']));
     }                  
   }
-  $b[$i]=[nbsp(1),submit('_st','Storno podmínky','btn btn-secondary m-1'),
+  $b[$i]=[nbsp(1),ahref('?'.$context.'&_st=1','Storno podmínky','class="btn btn-secondary m-1"'),
    submit('_sg','Vyhledej','btn btn-primary m-1')];
   return tg('form',
           'method="post" action="?'.$context.'&_o='.getpar('_o').'" class="m-2" ',
@@ -333,7 +354,7 @@ function genwhere(){
           }else{
             $DAT[$bezpar]="'".$DAT[$bezpar]."'";
           }
-          $atribut=str_replace('#','.',$atribut); /* moznost entita tecka atribut v podmince - $_POST tecky rusi*/
+          $atribut=str_replace('____','.',$atribut); /* moznost entita tecka atribut v podmince - $_POST tecky rusi*/
           if ($citlivost){
             /* podle Vaclav Pospisil - podminka bere to, ze se odbourava diakritika */
 					  $where.=$p."upper(convert($atribut,'US7ASCII')) $DAT[$pol] upper(convert($DAT[$bezpar],'US7ASCII'))";
@@ -366,7 +387,9 @@ function packfilter(){
   return $s;
 }
 
-/** retrieve the flt parameter and stores it to the normal params */
+/** retrieve the flt parameter and stores it to the normal params 
+ * 
+*/
 function getfilter(){
   $flt=getpar('_flt');
   if ($flt!=''){
@@ -388,7 +411,7 @@ function genfilter($sprikaz,$order_by=true){
   $where=getpar('_whr');
   $sprikaz=preg_replace("/\x0d/",' ',$sprikaz);
   $sprikaz=preg_replace("/\x0a/",' ',$sprikaz); //odstran odradkovani, aby fungoval r. vyraz
-  $oby=(getpar('_o')!='' && $order_by)?(' '.getpar('_o')):'';
+  $oby=(getpar('_o')!='' && $order_by)?(getpar('_o').','.$this->pk):'';
   $whr=(getpar('_whr')!='')?(' where '.$where):'';
   $whradd=(getpar('_whr')!='')?(' and '.$where):'';
   
@@ -413,6 +436,12 @@ function genfilter($sprikaz,$order_by=true){
       $sprikaz.=' '.$whr;
     }
   }
+
+  if ($order_by && $this->debug_mode) {
+    deb('VISTAB genfilter: '.$sprikaz,false);
+    deb('VISTAB _o: '.getpar('_o'),false);
+  }
+
   return $sprikaz;  
 }
 
@@ -472,29 +501,30 @@ function filter_to_array(){
 
 /** The detail page
  * @param string $context
+ * @return string - detail html content
  */
 function detail($context){
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */  
   $cprikaz=$this->genfilter($this->cprikaz,false);
-  
   $custom=$this->detail_single($context);
-
   /* pocet zaznamu a listovani po zaznamech */
-  $cprikaz=$this->genfilter($this->cprikaz,false);
+  //$cprikaz=$this->genfilter($this->cprikaz,false);
   $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
   if ($this->postlink){
     $back=postLink('?'.$context,'Zpět',
                    ['_o'=>getpar('_o'),
                    '_flt'=>getpar('_flt'),
                    '_ofs'=>$ofs],
-                   'class="btn btn-primary"');
+                   'class="btn btn-secondary m-2"');
   }else{
     $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
       'Zpět',
-      'class="btn btn-primary"');
+      'class="btn btn-secondary m-2"');
   }
-
-  return gl((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filtrováno: '.$this->text_filter())):''),
+  
+  return 
+    tg('div','class="'.$this->classdetail.'"',
+     gl((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filtrováno: '.$this->text_filter())):''),
        bt_pagination(
             getpar('_ofs',1),
             $this->db->SqlFetch($cprikaz),
@@ -504,7 +534,7 @@ function detail($context){
           ),
        $custom,
        $back
-      );
+      ));
 }
 
 /** detail of the page with the single record
@@ -521,7 +551,8 @@ function detail_single($context){
     else 
       $p[$this->pragma[$i]['name']]=$this->pragma[$i]['name'];
 
-  $b=[[]];$i=0;
+  $b=[[]];
+  $i=0;
   foreach ($r[0] as $k=>$v){
     if (isset($p[$k])){
       $b[$i][0]=ta('b',$p[$k]);
@@ -653,33 +684,32 @@ function detail($context){
     
     /* pocet zaznamu a listovani po zaznamech */
     if ($this->mode=='I') setpar('_ofs',1); /* pri vkladani noveho zaznamu se listovani da na zacatek */
-    $cprikaz=$this->genfilter($this->cprikaz);
+    $cprikaz=$this->genfilter($this->cprikaz,false);
     $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
     if ($this->postlink){
       $back=postLink('?'.$context,'Zpět',
                      ['_o'=>getpar('_o'),
                      '_flt'=>getpar('_flt'),
                      '_ofs'=>$ofs],
-                     'class="btn btn-primary"');
+                     'class="btn btn-secondary m-2"');
     }else{
       $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
         'Zpět',
-        'class="btn btn-secondary"');
+        'class="btn btn-secondary m-2"');
     }     
   
     return gl(
-      $this->mode!='I'?bt_pagination(
-              getpar('_ofs',1),
-              $this->db->SqlFetch($cprikaz),
-              1,
-              $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
-              $this->postlink
-            ):'',/* nekresli listovani pro novy zaznam */
-            $custom, 
-         $back
+      $this->mode!='I'?
+        bt_pagination(
+         getpar('_ofs',1),
+         $this->db->SqlFetch($cprikaz),
+         1,
+         $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
+         $this->postlink
+        ):'',/* nekresli listovani pro novy zaznam */
+        $custom, 
+        $back
         );
-    
-    
 }
 
 function detail_single($context){
@@ -798,7 +828,7 @@ function delete(){
   /** lister
    * @param string $context
    */
-function lister($context){
+function lister_($context){
    return parent::lister($context).
           ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"');    
 }

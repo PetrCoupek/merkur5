@@ -18,13 +18,8 @@ class Testform extends M5{
  static function form(){
    $db=new OpenDB_SQLite('file=../data/m5.sqlite3,mode=0');  
    
-   /* toto způsobí efektní tooltip */
-   htpr(ta('script','$(function () {
-    $(\'[data-toggle="tooltip"]\').tooltip()
-    })'));
-
-   
-   htpr(bt_hidable_section('Instrukce pro vyplění','Hidesec',
+   htpr(
+    bt_hidable_section('Instrukce pro vyplnění','Hidesec',
      'Tady může být text nebo návod potřebný pro vyplění formuláře '.
      str_repeat('Lorem Ipsum donor cealea gracit afede mortud leri pso. ',10)),
     tg('form','method="post" action="?" class="bg-light p-2 border" ',
@@ -33,13 +28,19 @@ class Testform extends M5{
       [[bt_tooltip('Pokud nezadáte text při odeslání, vyvoláte upozornění o problému.','Zadejte text '.bt_icon('info').' :'),
         textfield("",'TXTFLD',20,20,getpar('TXTFLD'))],
        ['Tvar odpovědi:',
-        combo("",'RESPFO',['1'=>'Výstraha nahoře na stránce',
-                           '2'=>'Dialog přes obrazovku',
-                           '3'=>'nic'],getpar('RESPFO')?getpar('RESPFO'):'1')],
+        combo("",
+             'RESPFO',
+             ['1'=>'Výstraha nahoře na stránce',
+              '2'=>'Dialog přes obrazovku',
+              '3'=>'nic'],
+             getpar('RESPFO')?getpar('RESPFO'):'1')],
        [hr(),hr()], 
        ['České datum',bt_datefield('','DATEF',getpar('DATEF'))],
        ['Databázový seznam', 
-         combo("",'DBLIST',to_hash("select kod,hornina from kod_horniny order by hornina asc",$db),
+         combo("",'DBLIST',
+               to_hash("select kod,hornina ".
+                       "from kod_horniny ".
+                       "order by hornina asc",$db),
          getpar('DBLIST'))],
        ['Radio seznam', 
          radio("",'DBRADIO',to_hash("select kod,hornina from kod_horniny where kod in (400,401,402) order by hornina asc",$db),
@@ -47,10 +48,10 @@ class Testform extends M5{
        ['Odstavec',textarea('','AREA',3,80,getpar('AREA'),'class="form-control" style="min-width: 100%"')],   
        ['Checkbox',check_box('','CH1',getpar('CH1')!=''?true:false)], 
        ['Range',bt_range('','RANGE',0,100,10,getpar('RANGE'),'')],
-       ['Našeptávač -Obec',
+       ['Našeptávač - Obec',
          bt_autocomplete('','OBEC','ajax/auto_obec.php',getpar('OBEC'))],
        ['České datum II',bt_datefield('','DATEF2',getpar('DATEF2'))], 
-       ['Našeptávač -Obec 2 ',
+       ['Našeptávač - Obec 2 ',
          bt_autocomplete('','OBEC2','ajax/auto_obec.php',getpar('OBEC2'))], 
        ['Multiselect (VannilaSelectBox)',
          bt_multiselect('','MULTI', 

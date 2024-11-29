@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.52-191124
+ * @version 0.53-291124
  */
 /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -803,13 +803,13 @@ function dblov($label,$name,$napojeni,$sele,$js='',$limit=1200){
  
 function combo($label,$name,$list,$def='',$js='',$null_value=true,$styling=[]){
   if ($null_value) {
-    $r=tg('option','value=""'.($def==''?' selected ':''),'[]');
+    $r=tg('option','value=""'.($def===''?' selected ':''),'[]');
   }else{
     $r='';
   }  
   foreach ($list as $k=>$v){
     $style=(isset($styling[$k]))?(' '.$styling[$k]):'';
-    $r.=tg('option','value="'.$k.'"'.($k==$def?' selected':'').$style,$v);
+    $r.=tg('option','value="'.$k.'"'.($k===$def?' selected':'').$style,$v);
   }  
   $r=$label.tg('select','name="'.$name.'" '.$js,$r);
   return $r;

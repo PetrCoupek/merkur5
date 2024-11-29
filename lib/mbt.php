@@ -18,7 +18,8 @@
  * 06.11.2024 - new icons
  * 11.11.2024 - new bt_lister parameter
  * 14.11.2024 - bt_datefield input noslash
- * /
+ * 29.11.2024 - new icons, better tooltip
+ *  * /
 
 /** The function returns HTML tag for date input based on Bootstrap datefield plug-in functionality
  * @param string $label - label before the tag
@@ -85,8 +86,8 @@ function bt_accordion($content,$id='accordion',$aria_exp=1){
  */
 function bt_autocomplete($label,$name,$url,$value='',$add='',$placeholder=''){
   $path=M5::get('path_relative');
-  if ($placeholder=='') $placeholder=(isset($_SESSION['la']) && $_SESSION['la']=='en')?'enter text...':'zadejte text...';
-  M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete.min.js"></script>'."\n",
+  if ($placeholder=='') $placeholder=(isset($_SESSION['la']) && $_SESSION['la']=='en')?'enter text..':'zadejte text..';
+  M5::puthf('<script src="'.$path.'/vendor/autocomplete/bootstrap-autocomplete_vlastni.js"></script>'."\n",
   'autocomplete');
   $r=ta('span',$label).
      tg('select','class="form-control basicAutoSelect'.$name.'" name="'.$name.'" id="'.$name.'" placeholder="'.$placeholder.'" ',' ');
@@ -139,7 +140,7 @@ function bt_dialog($title,$body){
  */ 
 
 function bt_alert($body,$type='alert-success'){
-  return tg('div','class="alert '.$type.'" role="alert"',
+  return tg('div','class="alert '.$type.' m-1" role="alert"',
           $body.
           tg('button','type="button" class="close" data-dismiss="alert" aria-label="Close"',
            tg('span','aria-hidden="true"','&times;')));
@@ -262,13 +263,14 @@ function bt_menu($title,$leftMenu=array(),$rightSide=''){
  * @param array $colrules - rules for columens in bt-styles
  * @param array $rows  - array with container's rows in table
  * @param string $rowclass - the class used on every row, default: row
+ * @param string $containerclass - the class used on the container, default: container m-2
  * example : bt_container(
           ['col-1','col-3','col-8'],
           [['row1 col1 text', 'row1 col3 text', 'row1 col8 text'],
            ['row2 col1 text', 'row2 col3 text', 'row2 col8 text'],
            ['row3 col1 text', 'row3 col3 text', 'row3 col8 text']]);
  */
-function bt_container($colrules,$rows,$rowclass='row'){
+function bt_container($colrules,$rows,$rowclass='row',$containerclass='container m-2'){
   $r='';
   if (!is_array($colrules)||count($colrules)<1) return '';
   if (!is_array($rows)||count($rows)<1) return '';
@@ -281,7 +283,7 @@ function bt_container($colrules,$rows,$rowclass='row'){
     }
     $r.=tg('div','class="'.$rowclass.'"',$t.' '); /*mezera*/  
   }
-  $r=tg('div','class="container m-2"',$r.' '); /*mezera*/
+  $r=tg('div','class="'.$containerclass.'"',$r.' '); /*mezera*/
   return $r;
 }
 
@@ -297,10 +299,10 @@ function bt_container($colrules,$rows,$rowclass='row'){
 function bt_hidable_area($label, $docid, $content, $addlabel='', $hide=true){
   return 
    tg('div','id="'.$docid.'_o" ',
-   ta('h5',tg('a','id="'.$docid.'_c" href="#" '.$addlabel, $label.nbsp(2).bt_icon('caret-down'))).
+   ta('h5',tg('span','id="'.$docid.'_c" href="#" '.$addlabel, $label.nbsp(2).bt_icon('caret-down'))).
   
    tg('div','id="'.$docid.'_i" '.($hide?'style="display:none"':''), $content.
-     tg('a','id="'.$docid.'_d" href="#" ',bt_icon('caret-up')))).
+     tg('a','id="'.$docid.'_d" href="#" class="btn btn-secondary btn-sm" ',bt_icon('caret-up')))).
    ta('script',
     '$(document).ready(function(){'.
       '$("#'.$docid.'_c").click(function(){'.
@@ -319,7 +321,7 @@ function bt_hidable_area($label, $docid, $content, $addlabel='', $hide=true){
 function bt_icon($name='info-square',$add=''){
   //$p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16" ';
   //$p2='version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="16" height="16" fill="currentColor" class="bi '.$name.'" viewBox="0 0 16 16"';
-  $p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi '.$name.'" viewBox="0 0 16 16" fill="currentColor"';
+  $p1='xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi bi-'.$name.'" viewBox="0 0 16 16" fill="currentColor"';
   $p2='version="1.1" xmlns="http://www.w3.org/2000/svg" width="16" height="16" class="bi '.$name.'" viewBox="0 0 16 16" fill="currentColor"';
   
   switch ($name){
@@ -456,7 +458,13 @@ function bt_icon($name='info-square',$add=''){
   case 'gear-fill':
     return tg('svg',$p1,
        tg('path','d="M9.405 1.05c-.413-1.4-2.397-1.4-2.81 0l-.1.34a1.464 1.464 0 0 1-2.105.872l-.31-.17c-1.283-.698-2.686.705-1.987 1.987l.169.311c.446.82.023 1.841-.872 2.105l-.34.1c-1.4.413-1.4 2.397 0 2.81l.34.1a1.464 1.464 0 0 1 .872 2.105l-.17.31c-.698 1.283.705 2.686 1.987 1.987l.311-.169a1.464 1.464 0 0 1 2.105.872l.1.34c.413 1.4 2.397 1.4 2.81 0l.1-.34a1.464 1.464 0 0 1 2.105-.872l.31.17c1.283.698 2.686-.705 1.987-1.987l-.169-.311a1.464 1.464 0 0 1 .872-2.105l.34-.1c1.4-.413 1.4-2.397 0-2.81l-.34-.1a1.464 1.464 0 0 1-.872-2.105l.17-.31c.698-1.283-.705-2.686-1.987-1.987l-.311.169a1.464 1.464 0 0 1-2.105-.872zM8 10.93a2.929 2.929 0 1 1 0-5.86 2.929 2.929 0 0 1 0 5.858z"'));
-         
+  case 'database':
+    return tg('svg',$p1, 
+       tg('path','d="M4.318 2.687C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4c0-.374.356-.875 1.318-1.313M13 5.698V7c0 .374-.356.875-1.318 1.313C10.766 8.729 9.464 9 8 9s-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777A5 5 0 0 0 13 5.698M14 4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16s3.022-.289 4.096-.777C13.125 14.755 14 14.007 14 13zm-1 4.698V10c0 .374-.356.875-1.318 1.313C10.766 11.729 9.464 12 8 12s-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10s3.022-.289 4.096-.777A5 5 0 0 0 13 8.698m0 3V13c0 .374-.356.875-1.318 1.313C10.766 14.729 9.464 15 8 15s-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13s3.022-.289 4.096-.777c.324-.147.633-.323.904-.525"'));     
+  case 'database-add':
+    return tg('svg',$p1,
+       tg('path','d="M12.5 16a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7m.5-5v1h1a.5.5 0 0 1 0 1h-1v1a.5.5 0 0 1-1 0v-1h-1a.5.5 0 0 1 0-1h1v-1a.5.5 0 0 1 1 0"').
+       tg('path',' d="M12.096 6.223A5 5 0 0 0 13 5.698V7c0 .289-.213.654-.753 1.007a4.5 4.5 0 0 1 1.753.25V4c0-1.007-.875-1.755-1.904-2.223C11.022 1.289 9.573 1 8 1s-3.022.289-4.096.777C2.875 2.245 2 2.993 2 4v9c0 1.007.875 1.755 1.904 2.223C4.978 15.71 6.427 16 8 16c.536 0 1.058-.034 1.555-.097a4.5 4.5 0 0 1-.813-.927Q8.378 15 8 15c-1.464 0-2.766-.27-3.682-.687C3.356 13.875 3 13.373 3 13v-1.302c.271.202.58.378.904.525C4.978 12.71 6.427 13 8 13h.027a4.6 4.6 0 0 1 0-1H8c-1.464 0-2.766-.27-3.682-.687C3.356 10.875 3 10.373 3 10V8.698c.271.202.58.378.904.525C4.978 9.71 6.427 10 8 10q.393 0 .774-.024a4.5 4.5 0 0 1 1.102-1.132C9.298 8.944 8.666 9 8 9c-1.464 0-2.766-.27-3.682-.687C3.356 7.875 3 7.373 3 7V5.698c.271.202.58.378.904.525C4.978 6.711 6.427 7 8 7s3.022-.289 4.096-.777M3 4c0-.374.356-.875 1.318-1.313C5.234 2.271 6.536 2 8 2s2.766.27 3.682.687C12.644 3.125 13 3.627 13 4c0 .374-.356.875-1.318 1.313C10.766 5.729 9.464 6 8 6s-2.766-.27-3.682-.687C3.356 4.875 3 4.373 3 4"'));
     
   /* Moon icons, https://icomoon.io/#preview-free */
   case 'floppy':  
@@ -597,7 +605,7 @@ function bt_icon($name='info-square',$add=''){
  * @param string $placement - optional instruction on which side place the tooltip
  */
 function bt_tooltip($title,$text,$placement='top'){
-
+  M5::puthf(ta('script','$(function () { $(\'[data-toggle="tooltip"]\').tooltip() })'),'tooltip');
   return tg('span','data-toggle="tooltip" data-placement="'.$placement.'" title="'.$title.'"',$text);
 }
 
@@ -768,7 +776,7 @@ function bt_multiselect($lab,$id,$options,$data=[],
             "translations"=>["all"=>"","items"=>"položek","selectAll"=>"Označ vše","clearAll"=>"Zruš označení"]]){
   $s='';
   M5::puthf(
-    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"')."\n".
+    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"','noslash')."\n".
     tg('script','src="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.js"',' '),
     'vanilaselect'
   );
@@ -803,7 +811,7 @@ function bt_select($lab,$id,$options,$data='',
             $colors=[]){
   $s='';
   M5::puthf(
-    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"')."\n".
+    tg('link','href="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.css" rel="stylesheet"','noslash')."\n".
     tg('script','src="'.M5::get('path_relative').'/vendor/vanillaSelectBox/vanillaSelectBox.js"',' '),
     'vanilaselect'
   );
