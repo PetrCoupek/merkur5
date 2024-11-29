@@ -1,14 +1,14 @@
 /**                      
  * default style file - based on bootstrap functionality
- * @date 08.02.20201
+ * 29.11.2024
 */
 
-/* specific bootstrap change */
+/* specific change - caption of any table is on the top! */
 table caption{
   caption-side: top;  
 } 
 
-/* page loader spinner functionality */
+/* page loader-spinner functionality */
 
 div.m5-loader_passive{
   position:absolute;
@@ -46,7 +46,7 @@ div.m5-errors{
   overflow: auto; 
 } 
 
-/* tlacitka pro CM editacni oblasti */ 
+/* buttons form CM subsystem */ 
 .m5-errors a {
   border: 1px solid transparent;
   border-radius: 0.25rem;
