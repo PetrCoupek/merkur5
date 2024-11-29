@@ -809,7 +809,7 @@ function combo($label,$name,$list,$def='',$js='',$null_value=true,$styling=[]){
   }  
   foreach ($list as $k=>$v){
     $style=(isset($styling[$k]))?(' '.$styling[$k]):'';
-    $r.=tg('option','value="'.$k.'"'.($k===$def?' selected':'').$style,$v);
+    $r.=tg('option','value="'.$k.'"'.((string)$k===$def?' selected':'').$style,$v);
   }  
   $r=$label.tg('select','name="'.$name.'" '.$js,$r);
   return $r;
