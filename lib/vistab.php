@@ -28,26 +28,29 @@
  *  08.11.2024 - moznost entita tecka atribut v podmince - $_POST tecky rusi - viz genwhere je nahrazeno ____
  *  13.11.2024 - oprava storno podminky v parametrickem formulari (pri odeslani formulare pomoci Enter se nenastavil spravne filtr)
  *  29.11.2024 - oprava uzivatelskeho razeni - kolikze s chovanim select-offset-fetch - musi byt jasne pora
- * 
- */ 
+ *  03.12.2024 - index pokračuje detailem
+ *  06.12.2024 - pevné omezení fixed_where na entitu, kterou se prochází, oprava indikace filtr
+ *  18.12.2024 - prejmenovani promennycho
+ *  */ 
 include_once "mbt.php";
 
 class VisTab {
 
-var $separator='~', /* char(s) used as separator for where condition among PUT/GET reuests */
-    $db,            /* connected database objects - OpenDB_* class */
-    $nastrane,      /* no of rows on lister page */
-    $param,         /* hash of parameters for setting the class */
-    $sprikaz,       /* intrinsic select command for list of records */
-    $cprikaz,       /* intrinsic count command */
-    $pragma,        /* content of meta information about a database attributes (types,lengths,labels) */
-    $dprikaz,       /* intrinsic select command for detail page */ 
-    $header,        /* table header for listing */
-    $postlink,      /* POST method used in listing */
-    $pk,            /* primary key of the entity - an attribute or list of attributes, used also when custom sort */
-    $filter,        /* generater filter based on .. */
-    $classdetail,   /* detail page css class */
-    $debug_mode=false; /* debug mode */
+var $separator='~',    /* char(s) used as separator for where condition among PUT/GET reuests */
+    $db,               /* connected database objects - OpenDB_* class */
+    $rowsPerPage,      /* no of rows on lister page */
+    $param,            /* hash of parameters for setting the class */
+    $sCmd,          /* intrinsic select command for list of records */
+    $cCmd,          /* intrinsic count command */
+    $pragma,           /* content of meta information about a database attributes (types,lengths,labels) */
+    $dCmd,          /* intrinsic select command for detail page, should be same as sCmd with more attributes in detail */ 
+    $header,           /* table header for listing */
+    $postlink,         /* POST method used in listing */
+    $pk,               /* primary key of the entity - an attribute or list of attributes, used also when custom sort */
+    $filter,           /* generater filter based on .. */
+    $classdetail,      /* detail page css class */
+    $debug_mode=false, /* debug mode */
+    $backText='&lt;';  /* text for back button */
 
  /** @param array $param - array of parametres
   *  @param object $db - opened DB connextion
@@ -55,7 +58,7 @@ var $separator='~', /* char(s) used as separator for where condition among PUT/G
 function __construct($param,$db){
 
   $this->db=$db;
-  $this->nastrane=isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15;
+  $this->rowsPerPage=isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15;
   $this->param=$param;
   
   if (isset($param['debug_mode']) && $param['debug_mode']){
@@ -66,25 +69,32 @@ function __construct($param,$db){
   if (isset($param['table'])){
     $t=$param['table'];
     $this->header=$t;
-    $this->sprikaz="select * from $t ";
-    $this->cprikaz="select count(*) as pocet from $t";
+    $this->sCmd="select * from $t ";
+    $this->cCmd="select count(*) as pocet from $t";
     $this->pragma=$this->db->Pragma("table_info('$t')");
-    $this->dprikaz=$this->sprikaz;
+    $this->dCmd=$this->sCmd;
     /* primary key taken from pragma */
     if ($this->pragma)
      for($i=0,$pk='';$i<count($this->pragma);$i++)
       if (isset($this->pragma[$i]['pk']) && $this->pragma[$i]['pk']) 
         $pk.=($pk==''?'':',').$this->pragma[$i]['name'];
     $this->pk=$pk;    
-  }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){
+  }elseif(isset($param['sprikaz']) && isset($param['cprikaz'])){ /* backword compatibility */
     $this->header=(isset($param['header'])?$param['header']:'');
-    $this->sprikaz=$param['sprikaz'];
-    $this->cprikaz=$param['cprikaz'];
+    $this->sCmd=$param['sprikaz'];
+    $this->cCmd=$param['cprikaz'];
     $this->pragma=$param['pragma']; 
-    $this->dprikaz=$param['dprikaz'];
-    $this->pk=(isset($param['pk'])?$param['pk']:'rowid');
+    $this->dCmd=(isset($param['dprikaz'])?$param['dprikaz']:$this->sCmd);
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
+  }elseif(isset($param['sCmd']) && isset($param['cCmd'])){
+    $this->header=(isset($param['header'])?$param['header']:'');
+    $this->sCmd=$param['sCmd'];
+    $this->cCmd=$param['cCmd'];
+    $this->pragma=$param['pragma']; 
+    $this->dCmd=(isset($param['dCmd'])?$param['dCmd']:$this->sCmd);
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
   }else{
-    $this->pk=(isset($param['pk'])?$param['pk']:'rowid');
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
   }
   if (isset($param['postlink']) && $param['postlink']){
     $this->postlink=true;  
@@ -105,11 +115,11 @@ function __construct($param,$db){
   setpar('_whr',$this->genwhere());
   if ($this->debug_mode){
     deb('VISTAB construct, _whr: '.getpar('_whr'),false);
-  } 
+  }
+  $this->backText=isset($param['backText'])?$param['backText']:(bt_icon('chevron-left').'Zpět');	
 }
 
-/**
- * the route method - starting point for the component 
+/** the route method - starting point for the component 
  * @param string $context The path to the file.
  */
 
@@ -133,10 +143,10 @@ function lister($context){
   if (getpar('_sg')) {     
     setpar('_flt',urlencode($this->packfilter()));
   }  
-  $sprikaz=$this->genfilter($this->sprikaz);
-  $cprikaz=$this->genfilter($this->cprikaz,false);
+  $sCmd=$this->genfilter($this->sCmd);
+  $cCmd=$this->genfilter($this->cCmd,false);
     
-  $a=$this->db->SqlFetchArray($sprikaz,[],isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,getpar('_ofs',1));
+  $a=$this->db->SqlFetchArray($sCmd,[],isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,getpar('_ofs',1));
   /* generovani linku pro prechod do detailu */
   if (count($a)>0 ){
     if (!isset($this->param['noDetail'])){
@@ -192,7 +202,7 @@ function lister($context){
         '',
         bt_pagination(
           getpar('_ofs',1),
-          $this->db->SqlFetch($cprikaz),
+          $this->db->SqlFetch($cCmd),
           isset($GLOBALS['vistab_n'])?$GLOBALS['vistab_n']:15,
           $context.'&_o='.getpar('_o').'&_flt='.getpar('_flt'),
           $this->postlink
@@ -273,7 +283,6 @@ private function column_labels(){
  * @return string - the SQL WHERE part
 */
 function genwhere(){
-  
   $DAT=M5::get('DATA');
   $where='';
   $find_ascii=false;
@@ -365,6 +374,9 @@ function genwhere(){
       }      
     }
   }
+  if (isset($this->param['fixed_where']) && $this->param['fixed_where']!=''){
+    $where.=($where!=''?' and ':'').$this->param['fixed_where'];
+  }
   return $where;
 }
 
@@ -387,8 +399,8 @@ function packfilter(){
   return $s;
 }
 
-/** retrieve the flt parameter and stores it to the normal params 
- * 
+/** retrieve the flt parameter and stores it to the normal params using M5::setpar function
+ * This is called only in the Vistab constructor
 */
 function getfilter(){
   $flt=getpar('_flt');
@@ -396,8 +408,10 @@ function getfilter(){
      $flt=urldecode($flt);
      $F=explode($this->separator,$flt);
      for($i=0;$i<count($F);$i=$i+3){
-       setpar($F[$i],$F[$i+2]);
-       setpar($F[$i].'_par',$F[$i+1]);
+       if (isset($F[$i]) && isset($F[$i+2])){
+         setpar($F[$i],$F[$i+2]);
+         setpar($F[$i].'_par',$F[$i+1]);
+       }
      }
   }
 }
@@ -407,42 +421,42 @@ function getfilter(){
  * @return string - the SQL select command
  * 
 */
-function genfilter($sprikaz,$order_by=true){
+function genfilter($sCmd,$order_by=true){
   $where=getpar('_whr');
-  $sprikaz=preg_replace("/\x0d/",' ',$sprikaz);
-  $sprikaz=preg_replace("/\x0a/",' ',$sprikaz); //odstran odradkovani, aby fungoval r. vyraz
+  $sCmd=preg_replace("/\x0d/",' ',$sCmd);
+  $sCmd=preg_replace("/\x0a/",' ',$sCmd); /* remove newlines to be regular expression functional */
   $oby=(getpar('_o')!='' && $order_by)?(getpar('_o').','.$this->pk):'';
   $whr=(getpar('_whr')!='')?(' where '.$where):'';
   $whradd=(getpar('_whr')!='')?(' and '.$where):'';
   
   if ($oby!=''){
-    if (preg_match("/^(select\s+.*) where (.+) order by (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].' where ('.$match[2].$whradd.') order by '.$oby; 
-    }elseif (preg_match("/^(select\s+.*) order by (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].$whr.' order by '.$oby;
-    }elseif (preg_match("/^(select\s+.*) where (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].' where ('.$match[2].$whradd.') order by '.$oby;
+    if (preg_match("/^(select\s+.*) where (.+) order by (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].' where ('.$match[2].$whradd.') order by '.$oby; 
+    }elseif (preg_match("/^(select\s+.*) order by (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].$whr.' order by '.$oby;
+    }elseif (preg_match("/^(select\s+.*) where (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].' where ('.$match[2].$whradd.') order by '.$oby;
     }else{
-      $sprikaz.=$whr.' order by '.$oby;
+      $sCmd.=$whr.' order by '.$oby;
     }
   }else{
-    if (preg_match("/^(select\s+.*) where (.+) order by (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].' where ('.$match[2].$whradd.') order by '.$match[3]; 
-    }elseif (preg_match("/^(select\s+.*) order by (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].$whr.' order by '.$match[2];
-    }elseif (preg_match("/^(select\s+.*) where (.+)$/i",$sprikaz,$match)){
-      $sprikaz=$match[1].' where ('.$match[2].') '.$whradd;
+    if (preg_match("/^(select\s+.*) where (.+) order by (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].' where ('.$match[2].$whradd.') order by '.$match[3]; 
+    }elseif (preg_match("/^(select\s+.*) order by (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].$whr.' order by '.$match[2];
+    }elseif (preg_match("/^(select\s+.*) where (.+)$/i",$sCmd,$match)){
+      $sCmd=$match[1].' where ('.$match[2].') '.$whradd;
     }else{
-      $sprikaz.=' '.$whr;
+      $sCmd.=' '.$whr;
     }
   }
 
   if ($order_by && $this->debug_mode) {
-    deb('VISTAB genfilter: '.$sprikaz,false);
+    deb('VISTAB genfilter: '.$sCmd,false);
     deb('VISTAB _o: '.getpar('_o'),false);
   }
 
-  return $sprikaz;  
+  return $sCmd;  
 }
 
 /** dewhere - convert where condition back to the attribute parametres values
@@ -505,29 +519,31 @@ function filter_to_array(){
  */
 function detail($context){
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */  
-  $cprikaz=$this->genfilter($this->cprikaz,false);
+  $cCmd=$this->genfilter($this->cCmd,false);
   $custom=$this->detail_single($context);
   /* pocet zaznamu a listovani po zaznamech */
-  //$cprikaz=$this->genfilter($this->cprikaz,false);
-  $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
+  $ofs= getpar('_ofs')%$this->rowsPerPage;
+  if ($ofs==0) $ofs=$this->rowsPerPage;
+  $ofs= getpar('_ofs')-$ofs+1; /* navratovy offset odkazuje na naslitovanou stranku */
   if ($this->postlink){
-    $back=postLink('?'.$context,'Zpět',
+    $back=postLink('?'.$context,$this->backText,
                    ['_o'=>getpar('_o'),
                    '_flt'=>getpar('_flt'),
                    '_ofs'=>$ofs],
                    'class="btn btn-secondary m-2"');
   }else{
     $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
-      'Zpět',
+       $this->backText,
       'class="btn btn-secondary m-2"');
   }
   
   return 
     tg('div','class="'.$this->classdetail.'"',
-     gl((getpar('_whr')?tg('div','class="m-2"',bt_alert('Filtrováno: '.$this->text_filter())):''),
+     gl(
+       $this->text_filter()!=''?bt_alert('Filtrováno: '.$this->text_filter()):'',
        bt_pagination(
             getpar('_ofs',1),
-            $this->db->SqlFetch($cprikaz),
+            $this->db->SqlFetch($cCmd),
             1,
             $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
             $this->postlink
@@ -541,8 +557,9 @@ function detail($context){
  * 
  */
 function detail_single($context){
-  $dprikaz=$this->genfilter($this->dprikaz);
-  $r=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1));
+  $dCmd=$this->genfilter($this->dCmd,true);
+  
+  $r=$this->db->SqlFetchArray($dCmd,[],1,getpar('_ofs',1));
   /* popisy polozek mohou byt z popisu entity v databazi */
   $p=[];
   for($i=0;$i<count($this->pragma);$i++)
@@ -560,8 +577,7 @@ function detail_single($context){
       $i++;
     }  
   }
-  return bt_container(['col-4','col-8'],$b);
-    
+  return bt_container(['col-4','col-8'],$b); 
 }
 
 /** vraci parametry pro udrzeni kontextu tridy Vistab 
@@ -580,11 +596,15 @@ function vistab_params($method='GET'){
 */
 class EdiTab extends VisTab{
 
-var $mode='',
+var $mode='', /* indikator stavu skriptu:
+               I - stav noveho cisteho formulare pred zobrazenim,
+               i - insert failed,
+               u - update failed,
+               e - update or insert OK  */
     $bind=[],
-    $iprikaz,
-    $uprikaz,
-    $rprikaz,
+    $iCmd,
+    $uCmd,
+    $rCmd,
     $rowid,
     $eprikaz,
     $data;
@@ -595,9 +615,9 @@ function __construct($param,$db){
       /* detail form or detail form action */
       if (isset($param['table'])){
         $t=$param['table'];
-        $this->iprikaz="insert into $t ";
-        $this->uprikaz="update $t set ";
-        $this->rprikaz="delete from $t where ";
+        $this->iCmd="insert into $t ";
+        $this->uCmd="update $t set ";
+        $this->rCmd="delete from $t where ";
         $ip1='';$ip2='';
         for ($i=0;$i<count($this->pragma);$i++){
           $name=$this->pragma[$i]['name']; 
@@ -611,14 +631,14 @@ function __construct($param,$db){
           }else{
             $pole=":".$name;
           }  
-          //$this->uprikaz.=($i==0?'':',').$this->column[$i].'='."'#".$this->column[$i]."#'";
-          $this->uprikaz.=($i==0?'':', ').$name.'='.$pole;
+          //$this->uCmd.=($i==0?'':',').$this->column[$i].'='."'#".$this->column[$i]."#'";
+          $this->uCmd.=($i==0?'':', ').$name.'='.$pole;
           /* bind array */
           $ip1.=($i==0?'':', ').$name;
           $ip2.=($i==0?'':', ').$pole;
         }
-        $this->uprikaz.=" where ";
-        $this->iprikaz.='('.$ip1.') values ('.$ip2.')'; 
+        $this->uCmd.=" where ";
+        $this->iCmd.='('.$ip1.') values ('.$ip2.')'; 
         $rc='';
         /* construct bind content - for insert and update */
         if (getpar('_ins') || getpar('_upd'))
@@ -634,67 +654,82 @@ function __construct($param,$db){
               $rc.=($rc==''?'':' and ').($name.'='.':'.strtolower($name));
               $this->bind[':'.strtolower($name)]=getpar(strtolower($name));
             }
-          $this->uprikaz.=$rc;   
-          $this->rprikaz.=$rc;
+          $this->uCmd.=$rc;   
+          $this->rCmd.=$rc;
         }
     }else{
       if (getpar('_upd')){
-        $this->uprikaz=isset($param['uprikaz'])?$param['uprikaz'][0]:'';
-        $this->bind=isset($param['uprikaz'])?$param['uprikaz'][1]:'';
+        $this->uCmd=isset($param['uCmd'])?$param['uCmd'][0]:'';
+        $this->bind=isset($param['uCmd'])?$param['uCmd'][1]:'';
       }elseif (getpar('_del')){
-        $this->rprikaz=isset($param['rprikaz'])?$param['rprikaz'][0]:'';
-        $this->bind=isset($param['rprikaz'])?$param['rprikaz'][1]:'';
+        $this->rCmd=isset($param['rCmd'])?$param['rCmd'][0]:'';
+        $this->bind=isset($param['rCmd'])?$param['rCmd'][1]:'';
       }elseif (getpar('_ins')){
-        $this->iprikaz=isset($param['iprikaz'])?$param['iprikaz'][0]:'';
-        $this->bind=isset($param['iprikaz'])?$param['iprikaz'][1]:'';
+        $this->iCmd=isset($param['iCmd'])?$param['iCmd'][0]:'';
+        $this->bind=isset($param['iCmd'])?$param['iCmd'][1]:'';
       }
     }
   }  
 }
 
+/** nevyuzito ? */
 function detail_form($context,$data=null){
     return tg('form','method="post" action="?'.$context.'"',
      para('_o',getpar('_o')).para('_flt',getpar('_flt')).para('_ofs',getpar('_ofs')).
      '[replace]');
 }
-  
+
+/** thw whole detail page 
+ * includig listeing over other details 
+ * and call the detail_single method
+ * @param string $context - the page parameters contex 
+ */
 function detail($context){
-    $this->eprikaz=$this->genfilter($this->dprikaz);
+    $this->eprikaz=$this->genfilter($this->dCmd);
+    if ($this->debug_mode) deb('EDITAB detail: '.$this->eprikaz,false);
     $db=$this->db;
+    /* The empty data for blank form or POST data after unsuccesfull insert/update or take
+     * the data from the database for the detail form 
+     */
     if ($this->mode=='I'){
+      /* new record - empty form fields */
       $this->data=[]; 
       foreach($this->pragma as $k=>$v){
         $this->data[$v['name']]=''; /* empty form fields */
       }
-    }elseif ($this->mode=='i'){
+    }elseif ($this->mode=='i' || $this->mode=='u'){
       /* navrat z neuspesneho pokusu o ulozeni - zopakuj POST polozky do editacnich poli */
       $this->data=M5::getparm();
       $this->mode='I'; /* dalsi pokus o ulozeni nove vety */
     }else{
+      /* uspesne ulozeni dat a jejich opetovne nacteni z DB - budou tam jiz napr. casove znacky z DB */
       $r=$db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
+      if ($this->debug_mode) deb('EdiTab detail '.$r,false);
       $this->data=$r[0];
       if (isset($this->param['rowidcolumn'])){
         $this->rowid=$this->data[$this->param['rowidcolumn']];
       }
+      setpar('_blank',''); 
     }       
-    //parent::detail($context,$this->detail_form($data,$context));
-   
+       
     $custom=$this->detail_single($context); /* it uses $this->data */
     
+    /* number of records and pagination, passing control parameters */
+    if ($this->mode=='I') setpar('_ofs',1); /* when inserting a new record, scrolling starts at the beginning */
+    $cCmd=$this->genfilter($this->cCmd,false);
+    $ofs= getpar('_ofs')%$this->rowsPerPage;
+    if ($ofs==0) $ofs=$this->rowsPerPage;
+    $ofs= getpar('_ofs')-$ofs+1; /* the return offset refers to the page that was paged */
     
-    /* pocet zaznamu a listovani po zaznamech */
-    if ($this->mode=='I') setpar('_ofs',1); /* pri vkladani noveho zaznamu se listovani da na zacatek */
-    $cprikaz=$this->genfilter($this->cprikaz,false);
-    $ofs= getpar('_ofs')-getpar('_ofs')%$this->nastrane+1; /* navratovy offset odkazuje na naslitovanou stranku */
     if ($this->postlink){
-      $back=postLink('?'.$context,'Zpět',
+      $back=postLink('?'.$context,$this->backText,
                      ['_o'=>getpar('_o'),
                      '_flt'=>getpar('_flt'),
                      '_ofs'=>$ofs],
                      'class="btn btn-secondary m-2"');
     }else{
       $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
-        'Zpět',
+         $this->backText,
         'class="btn btn-secondary m-2"');
     }     
   
@@ -702,16 +737,19 @@ function detail($context){
       $this->mode!='I'?
         bt_pagination(
          getpar('_ofs',1),
-         $this->db->SqlFetch($cprikaz),
+         $this->db->SqlFetch($cCmd),
          1,
          $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
          $this->postlink
-        ):'',/* nekresli listovani pro novy zaznam */
+        ):'',/* do not draw pages for a new record */
         $custom, 
         $back
         );
 }
 
+/** Original detail form - normally to be overriden in the child class
+ * @param string $context
+ */
 function detail_single($context){
   $original_primary='';
   $r=$this->db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
@@ -749,25 +787,29 @@ function detail_single($context){
      bt_container(['col-4','col-8'],$b)));
 
 }
-  
+
+/** the route method - starting point for the component 
+ * @param string $context The path to the file.
+ *  recomendation: for child classes: call the parent method after the custom code
+ */
 function route($context){  
     if (getpar('_se')){
       htpr($this->form_param($context));
     }elseif (getpar('_det')){
-      $result=false;      
+      $show_list=false;      
       if (getpar('_upd')){
         $this->update();
       }elseif (getpar('_del')){
-        $result=$this->delete();
+        $show_list=$this->delete();
       }elseif (getpar('_ins')){
-        $result=$this->insert();
+        $this->insert(); /* insert is always followed by detail */
       }elseif (getpar('_blank')){
         $this->mode='I';
       }
-      if ($result){
+      if ($show_list){
         htpr($this->lister($context));
       }else{
-        htpr($this->detail($context));
+        htpr($this->detail($context)); /* continue with detail form (also after succesufull insert) */
       }
     }elseif(getpar('_st')){
       /* it is necessary to clear the param content */
@@ -780,58 +822,51 @@ function route($context){
   }
   
 /** insert action
- * @return bool $result means 'to stay in detail' - in case of update always
+ * @return bool true
  */  
 function insert(){
-    //deb($this->iprikaz,false);deb($this->bind,false);
-    $er=$this->db->Sql($this->iprikaz,$this->bind);
-    if (!$er){
-      htpr(bt_alert('Záznam vložen'));
-      setpar('_ofs',1);
-      return true;
-    }else{
-      htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
-      $this->mode='i';
-      return false;
-    }     
+  $er=$this->db->Sql($this->iCmd,$this->bind);
+  if (!$er){
+    htpr(bt_alert('Záznam vložen'));
+    setpar('_ofs',1);
+    $this->mode='e';
+  }else{
+    htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
+    $this->mode='i';
+  }
+  return true;     
 }
   
-  /** update action
-   * @return bool $result means 'to stay in detail' - in case of update always
-   */
+/** update action
+ * @return bool $result means 'to stay in detail' - in case of update always
+ */
 function update(){
-    $er=$this->db->Sql($this->uprikaz,$this->bind);
-    if (!$er){
-      htpr(bt_alert('Záznam byl uložen'));
-    }else{
-      htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
-    }
-    return true;  
+  $er=$this->db->Sql($this->uCmd,$this->bind);
+  if (!$er){
+    htpr(bt_alert('Záznam byl uložen'));
+    $this->mode='e'; 
+  }else{
+    htpr(bt_alert('Záznam nebyl uložen '.$this->db->Error,'alert-danger'));
+    $this->mode='u';
+  }
+  return true;  
 }
   
-  /** delete action
-   * @return bool $result means to stay in detail - in case of update always
-   */
+/** delete action
+  * @return bool $result means to stay in detail - in case of update always
+ */
 function delete(){
-    //deb($this->rprikaz,false);deb($this->bind,false);
-    $er=$this->db->Sql($this->rprikaz,$this->bind);
-    if (!$er){
-      htpr(bt_alert('Záznam smazán'));
-      setpar('_ofs',1);
-      return true;
-    }else{
-      htpr(bt_alert('Záznam nebyl smazán '.$this->db->Error,'alert-danger'));
-      return false;
-    }  
+  $er=$this->db->Sql($this->rCmd,$this->bind);
+  if (!$er){
+    htpr(bt_alert('Záznam smazán'));
+    setpar('_ofs',1);
+    return true;
+  }else{
+    htpr(bt_alert('Záznam nebyl smazán '.$this->db->Error,'alert-danger'));
+    return false;
+  }  
 }
   
-  /** lister
-   * @param string $context
-   */
-function lister_($context){
-   return parent::lister($context).
-          ahref('?'.$context.'&_blank=1&_det=1','Nový záznam','class="btn btn-primary"');    
-}
   
 }
    
