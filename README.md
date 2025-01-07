@@ -95,5 +95,5 @@ htpr(
        'Nejsou záznamy.','',
        bt_pagination(getpar('_ofs',1),$total,15)));
    
-M5::done;
+M5::done();
 ```
