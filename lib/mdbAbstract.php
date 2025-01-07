@@ -27,7 +27,7 @@ abstract class OpenDB {
   
   /** $db = new OpenDB_Oracle($connection_string)
    * 
-   * connect to the dabasase, if database does not exist, it will be made a creation attempt 
+   * connect to the database, if database does not exist, it will be made a creation attempt 
    * @param string $connect - connection string
    * @return OpenDB_Oracle a new database wrapper object, or false when connection was not established
    */
@@ -35,7 +35,7 @@ abstract class OpenDB {
    
   } 
   
-  /** $error = $db->Sql($sql_command)
+  /** $error = $db->Sql($sql_command);
    * 
    * Provide a SQL command in the target database 
    * @param string $command - and sql command
@@ -114,7 +114,7 @@ abstract class OpenDB {
   }  
  
   
-  /** $string = $db->SqlFetch($sql_command)
+  /** $string = $db->SqlFetch($sql_command);
    * 
    * combine Sql and FetchRow method into one step and returns data hash 
    * @param string $command - and sql command
@@ -134,7 +134,7 @@ abstract class OpenDB {
     }  
   }
 
-  /** $string = $db->SqlFetchRow($sql_command)
+  /** $string = $db->SqlFetchRow($sql_command);
    * 
    * combine Sql and FetchRow method into one step and returns data hash 
    * @param string $command - and sql command
@@ -150,7 +150,7 @@ abstract class OpenDB {
     }  
   }
   
-  /** $array = $db->SqlFetchArray($sql_command,$limit=0)
+  /** $array = $db->SqlFetchArray($sql_command,$limit=0);
    * 
    * combine Sql and FetchRow method into one step and returns data array
    * @param string $sql_command - and sql command
@@ -173,7 +173,7 @@ abstract class OpenDB {
     return $a;    
   }
   
-  /** $error = $db->SqlFetchKeys($sql_command,$key)
+  /** $error = $db->SqlFetchKeys($sql_command,$key);
    * 
    * combine Sql and FetchRow method into one step and returns data array
    * @param string $sql_command - and sql command
@@ -202,7 +202,7 @@ abstract class OpenDB {
     return $a;    
   }
   
-  /** $result = $db->SqlFetchList($prikaz,$limit,$sep,$bind)
+  /** $result = $db->SqlFetchList($prikaz,$limit,$sep,$bind);
    * 
    * prepare a list of values from a select query to one column
    * @param string $sql_command - and sql command

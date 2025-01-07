@@ -10,21 +10,41 @@ class Myform extends M5{
 
  static function skeleton($path=''){
    parent::skeleton('../');           /* zajisti volani metody route, ../ je cesta k CSS */
-   parent::set('header','Test form and submit');
+   parent::set('header','Formulář a jeho potvrzení');   
+   self::done();                        /* Zapis bufferu na standarni vystup */
+ }
+
+ static function route(){
+   getparm();                         /* vyzvednuti parametru */
    if (getpar('OK')) self::result();  /* pokud byl odeslan formular, nastane akce */
    self::form();                      /* formular se tiskne vzdy */
-   htpr_all();                        /* Zapis bufferu na standarni vystup */
  }
  
  static function form(){
-   htpr(bt_container(['col-12'],[[tg('form','method="post" action="?"',
-     textfield("Type the text:",'TXTFLD',20,20,getpar('TXTFLD')).nbsp(5).
-     submit('OK','Ok'))]]));
+   htpr(
+    tg('form','method="post" action="?" class="bg-light p-2 border" ',
+      bt_container(['col-4','col-8'],
+      [['Zadejte text: ' , textfield('','TXTFLD',20,20,getpar('TXTFLD'))],
+       ['Forma výstupu: ', combo('','RESPFO',['1'=>'Výstraha nahoře na stránce',
+                                              '2'=>'Dialog přes obrazovku',
+                                              '3'=>'nic'],
+                                 getpar('RESPFO')?getpar('RESPFO'):'1')],
+       ['', submit('OK','Ok')]
+      ])));
  }
 
  static function result(){
-   htpr(getpar('TXTFLD')?
-    bt_alert('Result is '.getpar('TXTFLD')):bt_alert('Result is empty','alert-danger'));   
+   $vysledek='Výsledek je '.getpar('TXTFLD');
+   $chyba='Textové pole je prázdné';
+  switch (getpar('RESPFO')) {
+    case '1': htpr(getpar('TXTFLD') ? bt_alert($vysledek) : bt_alert($chyba, 'alert-danger'));
+     break;
+    case '2': htpr(getpar('TXTFLD') ? bt_dialog('Výstup',$vysledek) : bt_dialog('Varování',$chyba));
+     break;
+    case '3':
+     // No action needed for case '3'
+     break;
+  };
  }
 
 }

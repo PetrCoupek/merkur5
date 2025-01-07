@@ -9,7 +9,7 @@
  *  
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.53-291124
+ * @version 0.54-060125
  */
 /* compatability  */
 if (!defined('PHP_VERSION_ID')) {
@@ -49,9 +49,10 @@ abstract class M5_core{
   
   public static $ent=array();
   
-  /** initialize of internal variables - the registry pattern 
-   *  It is called in the mlib library itself
-  */
+  /** 
+   * Initialize internal variables - the registry pattern.
+   * It is called in the mlib library itself.
+   */
   static function iniset(){
     self::set('debug',false);  /* debug status */
     self::set('errors','');    /* erors area for debug mode */
@@ -588,7 +589,7 @@ function tg($tagname,$params='',$content='',$nopack=false){
 /* dalsi flobalni funkce */
 
 /** The function returns HTML non-breaking spaces. 
- * @param number $count - how many, default=1 
+ * @param int $count - how many, default=1 
  * @return string */
 
 function nbsp($count=1){
@@ -596,7 +597,7 @@ function nbsp($count=1){
 }
 
 /** The function returns the HTML tag for the page-break.  
- * @param number $count - number of page-braks, default=1 
+ * @param int $count - number of page-braks, default=1 
  * @return string 
  */ 
 function br($count=1){
