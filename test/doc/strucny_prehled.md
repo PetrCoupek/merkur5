@@ -2,11 +2,11 @@
 
 Následující text osvětluje způsob návrhu některých PHP serverových aplikací v ČGS.
 
-Řada současně běžících aplikací na aplikačním serveru [https://app.geology.cz](https://app.geology.cz) je postavena na konvencích využivající aplikační modul označený jako M5 (soubor lib/mlib.php) spolu s dalšími PHP třídami, které na něj navazují.
+Řada současně běžících aplikací na aplikačním serveru [https://app.geology.cz](https://app.geology.cz) je postavena na konvencích využívající aplikační modul označený jako M5 (soubor lib/mlib.php) spolu s dalšími PHP třídami, které na něj navazují.
 Termínem **"modul"** je myšlena situace, kdy se deklarovaná třída v PHP se statickými metodami a se svými statickými proměnnými využívá v aplikaci přímo, bez vytvoření instance. 
-Vytvářené aplikace jsou databázové a jejich účelem je buď editační nástroj pro pořízování a úpravu dat v databázi Oracle, případně slouží k prezentaci existujících záznamů, ve spojení s ostatní infrastrukturou, jak je portál ČGS, mapý server ČSG a metadatový katalog ČGS.
+Vytvářené aplikace jsou databázové a jejich účelem je buď editační nástroj pro pořizování a úpravu dat v databázi Oracle, případně slouží k prezentaci existujících záznamů, ve spojení s ostatní infrastrukturou, jak je portál ČGS, mapový server ČSG a metadatový katalog ČGS.
 
-Naše potřeby jsou zpravidla: jednoduché editační a prohlížecí aplikace nad databází Oracle, případně s využitím mapových webových služeb, generování výstupných sestav na základě dat v databázi, ukládání souborových příloh ne server, synchronizace různých systémů na pozadí, tvorba jednorázových skriptů na úpravy, imort či export dat relační databáze, atd.
+Naše potřeby jsou zpravidla: jednoduché editační a prohlížecí aplikace nad databází Oracle, případně s využitím mapových webových služeb, generování výstupných sestav na základě dat v databázi, ukládání souborových příloh ne server, synchronizace různých systémů na pozadí, tvorba jednorázových skriptů na úpravy, import či export dat relační databáze, atd.
 
 V přístupu MVC (Model-View-Controler) plní úlohu modelu databázové relační schéma a jeho data. Úloha PHP skriptu je v roli Controleru umožňující činnosti dat daty, typicky autentizovanými uživateli. Grafická podoba aplikace je z velké míry oddělena od funkční vrstvy použitím šablony stránky a připravených front-endových prvků a forma prezentace dat může být ovlivněna připravenými databázovými pohledy na data.
 
@@ -36,13 +36,13 @@ obsahuje také několik příkazů, které jsou přímo provedeny a dále deklar
 
 Aplikační PHP skript může být obecně spuštěn různým způsobem:
 
-- jako skript řízený webovým serverem, typicky **Apache 2.4** s modulem **php_module** uvnitř paměťového poolu, popřípadě v režimu FAST-CGI . Takový běh skriptu je zdaleka nejčastější. Po skriptu se zpravidla očekává nějaká jednorázová akce, která netrvá delší dobu. Webový server, případně v našem případě HTTPS proxy, hlídá timeout, po který očekává odpověď skriptu. Tato době je zpravidla kolem 30 vteřin, poté je spojení mezi proxy a Apache ukončeno. Apache má také nastavený timeout, po jehož vypršení je proces násilně ukončen. 
+- jako skript řízený webovým serverem, typicky **Apache 2.4** s modulem **php_module** uvnitř paměťového poolu, popřípadě v režimu FAST-CGI . Takový běh skriptu je zdaleka nejčastější. Po skriptu se zpravidla očekává nějaká jednorázová akce, která netrvá delší dobu. Webový server, případně v našem případě HTTPS proxy, hlídá timeout, po který očekává odpověď skriptu. Tato doba je zpravidla kolem 30 vteřin, poté je spojení mezi proxy a Apache ukončeno. Apache má také nastavený timeout, po jehož vypršení je proces násilně ukončen. 
 - jako skript spuštěný z příkazové řádky, případně automaticky pomocí cron. V PHP tento režim se nazývá **CLI** (command line interface). Běh skriptu není nijak časově omezen. Typické využití je při řešení úloh synchronizace různých systémů
 - zvláštní situace je spuštění PHP skriptu pomocí volání CLI ze skriptu již běžícího na webovém serveru. Takový skript umožní generování úlohy na pozadí, která trvá delší dobu (například generování PDF výstupních sestav, příprava složitějších exportů a podobně). Vzniká nezávislé vlákno a to již není časově omezeno. Programátor může zajisti mechanismus, který umožní koncovému uživateli sledovat průběh a dokončení procesu a získání vygenerovaného výstupu.
 
-PHP samo o sobě disponuje řadou velmi užitečných a komformtních funkcí pro sestavování odpovědí do webových služeb a předávání dat. Skript řízený webovým serverem může vracet různé odpovědi (v hlavičce odpovědi Content-type). Nejčastěji: text/html; charset=utf-8- text/xml,- application/json, application/pdf , image/jpg, image/png a další. 
+PHP samo o sobě disponuje řadou velmi užitečných a komfortních funkcí pro sestavování odpovědí do webových služeb a předávání dat. Skript řízený webovým serverem může vracet různé odpovědi (v hlavičce odpovědi Content-type). Nejčastěji: text/html; charset=utf-8- text/xml,- application/json, application/pdf , image/jpg, image/png a další. 
 
-**Při využití modulu M5 je možné psát skripty pro všechny výše zmíněné případy spuštění a vracení výsledku**, často jako jediný skript, který může být použit pro různé situace. Pro vstupní a výstupní operace se využívají připravené funkce **M5::getpar()** , **M5::htpr()**, či **M5::getresp()**. V souboru mlib jsou zároveň deklarované jejcich synonyma jako globální funkce (není zde využita direktiva namespace ). Jednorázové odpovědi vracející např. JSON odpovědi pro komplexní frontend aplikaci mohou být pojaty jako metody uvnitř jediného aplikačního modulu, který vychází z M5 modulu.
+**Při využití modulu M5 je možné psát skripty pro všechny výše zmíněné případy spuštění a vracení výsledku**, často jako jediný skript, který může být použit pro různé situace. Pro vstupní a výstupní operace se využívají připravené funkce **M5::getpar()** , **M5::htpr()**, či **M5::getresp()**. V souboru mlib jsou zároveň deklarovaná jejich synonyma jako globální funkce (není zde využita direktiva namespace ). Jednorázové odpovědi vracející např. JSON odpovědi pro komplexní frontend aplikaci mohou být pojaty jako metody uvnitř jediného aplikačního modulu, který vychází z M5 modulu.
 
 Modul M5 je využit spolu s ostatními nástroji - databázovým wraperem. 
 
@@ -82,11 +82,11 @@ Hello::skeleton();
 
 ```
 
-Modul **Hello** zde zdědil funkcionalitu výchozího běhového modulu a při znalosti jeho metod je můžeme rozšiřovat a dopňovat. Beztřídní varianta se stejnou funkcionalitou vypadá následovně:
+Modul **Hello** zde zdědil funkcionalitu výchozího běhového modulu a při znalosti jeho metod je můžeme rozšiřovat a doplňovat. Beztřídní varianta se stejnou funkcionalitou vypadá následovně:
 
 ```php
 include_once "../lib/mlib.php";
-self::set('header','Nejmenší aplikace');
+M5::set('header','Nejmenší aplikace');
 M5::skeleton(); 
 htpr(ta('p','Haló, tak tady jsem.'));
 M5::done();           
@@ -143,7 +143,7 @@ self::set('htptemp','<!DOCTYPE html>'."\n".
       ))).'#ERRORS#')));
 ```
 
-Modul M5 obsahuje metody **M5::ta()**, **M5::tg()**, které jsou volány synonymy **ta()**, **tg()**. Tyto metody plně nahrazují zápis HTML značek (tagů), takže aplikace samotná neobsahuje žádné surové HTML značky. Dále je zde využit jednoduchý systém šablon, kdy zde umístěné značky #TITLE#, #BODY#, #ERRORS#, popř. #HEADER# a další jsou nahrazeny před výstupem skriptu živými ekvivalenty. Zde bude při kompletaci stránky vše, co bylo "vytisknuto" funkcí **M5::htpr()** dozazeno místo #BODY# . Analogicky, symbol #ERRORS# je nahrazen výstupem ladící funkce **M5::deb()** . Tento systém umožňuje dále například integraci hotových externích front-end prvků, vyžadujících úvodní připojení JS kódu, atd.
+Modul M5 obsahuje metody **M5::ta()**, **M5::tg()**, které jsou volány synonymy **ta()**, **tg()**. Tyto metody plně nahrazují zápis HTML značek (tagů), takže aplikace samotná neobsahuje žádné surové HTML značky. Dále je zde využit jednoduchý systém šablon, kdy zde umístěné značky #TITLE#, #BODY#, #ERRORS#, popř. #HEADER# a další jsou nahrazeny před výstupem skriptu živými ekvivalenty. Zde bude při kompletaci stránky vše, co bylo "vytisknuto" funkcí **M5::htpr()** dosazeno místo #BODY# . Symbol #ERRORS# je nahrazen výstupem ladící funkce **M5::deb()** . Shodně je řešena integrace hotových externích front-end prvků, vyžadujících úvodní připojení JS kódu, atd.
 
 Šablona může mít obecně podobu např- XML dokumentu: 
 
@@ -154,7 +154,7 @@ self::set('htptemp','<?xml version="1.0" encoding="UTF-8"?>'."\n".'#BODY#' );
 
 ### Formuláře v režimu klient - server
 
-Typickou úlohou je zobrazení a zpracování formuláře. V modulu M5 jsou je již připravená funkcionalita, která usnaňuje tvorbu webových formulářů s daty z databáze. Některé formulářové prvky jsou přímo v rámci modulu **M5**, prvky vyžadující návrh Bootstrap a určitou konfiguraci klienta jsou v souboru **lib/mbt.php** . Všimněte si, že globální funkce **textfield()**, **combo()**, **submit()** zastupují funkcionalitu HTML značek (input, select, button, atd.), či vzhledovou a responzivní funkcionalitu - **bt_container()** , **bt_alert()**, **bt_dialog()**. 
+Typickou úlohou je zobrazení a zpracování formuláře. V modulu M5 jsou je již připravená funkcionalita, která usnadňuje tvorbu webových formulářů s daty z databáze. Některé formulářové prvky jsou přímo v rámci modulu **M5**, prvky vyžadující návrh Bootstrap a určitou konfiguraci klienta jsou v souboru **lib/mbt.php** . Všimněte si, že globální funkce **textfield()**, **combo()**, **submit()** zastupují funkcionalitu HTML značek (input, select, button, atd.), či vzhledovou a responzivní funkcionalitu - **bt_container()** , **bt_alert()**, **bt_dialog()**. 
 
 Následující kód obsahuje celou aplikaci jednoduchého formuláře a jeho zpracování. Uživatel má zadat text a zvolit, jakým způsobem bude výsledek po odeslání prezentován. Smyslem této jednoduché umělé úlohy je demostrovat základní možnosti interakce s formulářem a logiku jeho zpracování. 
 
@@ -218,12 +218,12 @@ Pokud je vlastní aplikace vytvořena jako následník modulu M5, spoléhá na j
 
 ### Paleta formulářových prvků
 
-K dispozici je řada připravených formulářových prvků - například český dialog pro zadávání datumových položek, našeptávač, radio seznam, checkbox, databázový seznam, multiselect, volný výběr z připravené grafiky a jiné. V základní knihovně je rovněž funkce **bt_icon()** na vkládání SVG ikon přímo do HTML výstupu. Funkce **bt_hideble_section()** implementuje část, která je při vyvolání skryta a může být uživatelem rozbalena. Příklad sestavení formuláře s mnoha rozdílnými funkčními prvky je převzat z demostračního testu.
+K dispozici je řada připravených formulářových prvků - například český dialog pro zadávání datumových položek, našeptávač, radio seznam, checkbox, databázový seznam, multiselect, volný výběr z připravené grafiky a jiné. V základní knihovně je rovněž funkce **bt_icon()** na vkládání SVG ikon přímo do HTML výstupu. Funkce **bt_hidable_section()** implementuje část, která je při vyvolání skryta a může být uživatelem rozbalena. Příklad sestavení formuláře s mnoha rozdílnými funkčními prvky je převzat z demonstračního testu.
 
 ```php
 htpr(
  bt_hidable_section('Instrukce pro vyplnění','Hidesec',
-     'Tady může být text nebo návod potřebný pro vyplění formuláře '.
+     'Tady může být text nebo návod potřebný pro vyplnění formuláře '.
      str_repeat('Lorem Ipsum donor cealea gracit afede mortud leri pso. ',10)),
     tg('form','method="post" action="?" class="bg-light p-2 border" ',
      ta('h4','Hlavička formuláře').
@@ -356,7 +356,7 @@ getResp($r);
 
 ### Přidání další front-end funkcionality
 
-Způsob vytváření front-endových prvků, které využívají připravené komponenty v Javascriptu+DHTML+CSS, je otevřený. V souboru **lib/mbt.php** je deklarována řada globálních funkcí, které vrací řetězec obsahující úsek HTML kódu. Předpona **bt_** značí, že jsou vázané na šablonu využívající CSS Bootstrap prostředí (srovnání s funkcemi značenými  **ht_** ) . Pokud implementace prvku vyžaduje připravenou externí funkcionalitu, založenou na Javascriptu nebo CSS, obsauje tělo funkce instrukci **M5::puthf()** . Tato metoda vkládá do hlavičky generované stránky kód zajišťující připojení příslušných částí front-end kódu při načítání stránky do prohlížeče. Její volání obsahuje příslušný odkaz (zpravidla tag **script** nebo **link**) a zároveň je předán jedinečný identifikátor. Identifikátor slouží k tomu, aby v případě vícenásobného využití prvku na stránce, byly příslušné funkční části umístěny do hlavičky pouze jednou. Jako ukázku uvádím zdrojový kód výše použitého našeptávače **bt_autocomplete()** .
+Způsob vytváření front-endových prvků, které využívají připravené komponenty v Javascriptu+DHTML+CSS, je otevřený. V souboru **lib/mbt.php** je deklarována řada globálních funkcí, které vrací řetězec obsahující úsek HTML kódu. Předpona **bt_** značí, že jsou vázané na šablonu využívající CSS Bootstrap prostředí (srovnání s funkcemi značenými  **ht_** ) . Pokud implementace prvku vyžaduje připravenou externí funkcionalitu, založenou na Javascriptu nebo CSS, obsahuje tělo funkce instrukci **M5::puthf()** . Tato metoda vkládá do hlavičky generované stránky kód zajišťující připojení příslušných částí front-end kódu při načítání stránky do prohlížeče. Její volání obsahuje příslušný odkaz (zpravidla tag **script** nebo **link**) a zároveň je předán jedinečný identifikátor. Identifikátor slouží k tomu, aby v případě vícenásobného využití prvku na stránce, byly příslušné funkční části umístěny do hlavičky pouze jednou. Jako ukázku uvádím zdrojový kód výše použitého našeptávače **bt_autocomplete()** .
 
 ```php
 function bt_autocomplete($label,$name,$url,$value='',$add='',$placeholder=''){
@@ -392,18 +392,18 @@ function bt_autocomplete($label,$name,$url,$value='',$add='',$placeholder=''){
   return $r;
 }
 ```
-Tento přístup umožní rozumné oddělení obecné funčnosti od funkčnosti vysloveně aplikační.
+Tento přístup umožní rozumné oddělení obecné funkčnosti od funkčnosti vysloveně aplikační.
 
 
 ### Možnosti ladících výpisů
 
-Šablona vzhledu aplikace obsahuje sekci #ERRORS#, která obsahuje modulem M5 odchycené běhové chyby. Pro běh v produkčním prostředí je při kompletaci výstupu tato sekce odstraněna, pokud je **M5** parametr **debug** nastaven na **false** . Nástavení
+Šablona vzhledu aplikace obsahuje sekci #ERRORS#, která obsahuje modulem M5 odchycené běhové chyby. Pro běh v produkčním prostředí je při kompletaci výstupu tato sekce odstraněna, pokud je **M5** parametr **debug** nastaven na **false** . Nastavení
 
 ```php
 M5::set('debug',true);
 ```
 
-zajistí, že bude ve výstupu našeho kódu přítomna ladící informace. Ta je obvykle prezentována žlutým polem, s červeným neproporcionálním fontem (skutečný vzhled lze ovlivnit ve vlastní šabloně). Kdekoliv uvnitř kódu lze voláním funkce **deb()** zařídit ladící výpis. Funkce deb má dva parametry. První je libovolného typu a umožňuje inspekci předaného výrazu/proměnné. Druhý je boolean a je nepovinný. Pokud je druhý parametr **false**, nebsahuje ladící výpis místo, odkud byl zavolán. Ladícím výstupem je inteligentní inspakce předaného výrazu - je uveden typ a v případě předání komplexního objektu (pole, hash, objekt) je vypsán i jeho aktuální obsah. Příklad ladícího výpisu příkazu deb($a) ($a je pole) včetně výpisu zásobníku a umístění samotného příkazu deb v kódu skriptu:
+zajistí, že bude ve výstupu našeho kódu přítomna ladící informace. Ta je obvykle prezentována žlutým polem, s červeným neproporcionálním fontem (skutečný vzhled lze ovlivnit ve vlastní šabloně). Kdekoliv uvnitř kódu lze voláním funkce **deb()** zařídit ladící výpis. Funkce deb má dva parametry. První je libovolného typu a umožňuje inspekci předaného výrazu/proměnné. Druhý je boolean a je nepovinný. Pokud je druhý parametr **false**, nebsahuje ladící výpis místo, odkud byl zavolán. Ladícím výstupem je inspekce předaného výrazu - je uveden typ a v případě předání komplexního objektu (pole, hash, objekt) je vypsán i jeho aktuální obsah. Příklad ladícího výpisu příkazu deb($a) ($a je pole) včetně výpisu zásobníku a umístění samotného příkazu deb v kódu skriptu:
 
 ```
 /srv/www/htdocs/share/lokality/php/vistab_lokality.php:deb:484:
@@ -484,7 +484,7 @@ Funkce průběžného nebo jednorázového výpisu může být v rámci CLI vyu�
 php syn_chl.php db=1 | php send_mail.php
 ```
 
-Modul M5 zaručí, že i případné běhové ne- fatální chyby, které se během činnosti skriptu vyskytnou, budou následně umístěny do e-mailu. Toto uspořádání transparentně odděluje posílání e-mailů od samotné synchronizace. Pokud cheme být zcela důslední a odeslat i protokol o úplné havarii syn_chl.php, může to vypadat takto:
+Modul M5 zaručí, že i případné běhové ne- fatální chyby, které se během činnosti skriptu vyskytnou, budou následně umístěny do e-mailu. Toto uspořádání transparentně odděluje posílání e-mailů od samotné synchronizace. Pokud chceme být zcela důslední a odeslat i protokol o úplné havárii syn_chl.php, může to vypadat takto:
 
 ```
 php syn_loz.php db=1 2>&1 | php send_mail.php
@@ -524,10 +524,10 @@ htpr(ht_table('Členství ve skupinách',
 $db->Close();       
 ```
 
-Konstruktoru se předává připojovací řetězec. Doporučuje se tento řetězec držet oddělení v ini souboru aplikace, kde je definovaný jako konstanta.
-Lze využít toho, že pomocí základní knihovny je ini soubor vždy načten. Uvedená metoda načte obsah výsledku SQL selct dotazu do struktury $a
+Konstruktoru se předává připojovací řetězec. Doporučuje se tento řetězec držet odděleně v ini souboru aplikace, kde je definovaný jako konstanta.
+Lze využít toho, že pomocí základní knihovny je ini soubor vždy načten. Uvedená metoda načte obsah výsledku SQL select dotazu do struktury $a
 
-Základní wrapper obsahuje metodu pro položení dotazu **Sql()**, získání výsledku **FetchRow()**, přímé získání jednoho údaje kombinací předchozího **SqlFetch()**, získání pole **SqlFetchArray()**, pole s klíčem **SqlFetchKeys()**, či seznamu **SqlFetchList()**. Medoty sjednocují zadávání parametrů pro **prepare** (zamezení SQL Injection)  pro různé databáze a umožňují jejich jednotnou kombinaci s dalšími prvky - našeptávači, combo boxy, listovacími, či pevnými tabulkami.
+Základní wrapper obsahuje metodu pro položení dotazu **Sql()**, získání výsledku **FetchRow()**, přímé získání jednoho údaje kombinací předchozího **SqlFetch()**, získání pole **SqlFetchArray()**, pole s klíčem **SqlFetchKeys()**, či seznamu **SqlFetchList()**. Metody sjednocují zadávání parametrů pro **prepare** (zamezení SQL Injection)  pro různé databáze a umožňují jejich jednotnou kombinaci s dalšími prvky - našeptávači, combo boxy, listovacími, či pevnými tabulkami.
 
 
 
@@ -695,9 +695,9 @@ Připraví seznam hodnot z výběrového dotazu do jednoho sloupce
 
 Třída VisTab slouží pro přístup a vizualizaci databázové entity. Samotná vizualizace se skládá ze tří různých stránek. Základní stránka je **seznam záznamů** v tabulkové formě. Další stránka je formulář, pomocí kterého můžeme omezit viditelný rozsah záznamů, též nazýván jako **parametrický formulář** či filtr. Ze seznamu nalezených záznamů lze pak přejít do **detailu záznamu**, kdy jsou zobrazeny podrobnější informace, či celý záznam, který by se do základního uspořádání nevešel. Základní funkcionalita umí toto:
 
-- seznamem lze listovat po stránkách. Při přechodu do detailu lze listovat po záznamech a při listingu v detailu se pomocí tlačítka zpět dá dostat na přislušnou stránku seznamu. Neustále je zobrazen celkový počet záznamů.
+- seznamem lze listovat po stránkách. Při přechodu do detailu lze listovat po záznamech a při listingu v detailu se pomocí tlačítka zpět dá dostat na příslušnou stránku seznamu. Na každé stránce je zobrazen celkový počet záznamů.
 - klikem na záhlaví příslušného sloupce je seznam seřazen podle tohoto sloupce vzestupně, dalším klikem sestupně. Listování po stránkách a v detailu se přizpůsobí zvolenému řazení
-- je přítomen parametrický formulář a po jeho vyvolání lze zadat podmínku omezující množinu záznamů. Podmínka se zachovává při návratu do tohoto formuláře a je viditelná v seznamu a detalu záznamu.
+- je přítomen parametrický formulář a po jeho vyvolání lze zadat podmínku omezující množinu záznamů. Podmínka se zachovává při návratu do tohoto formuláře a je viditelná v seznamu a detailu záznamu.
 
 Protože reálné situace bývají často dosti komplexní povahy, rozebereme postupně možnosti využití vlastností třídy VisTab.
 Základní volání je ve tvaru:
@@ -707,7 +707,7 @@ $t= new Vistab([parametry], $[databázový wrapper]);
 ```
 
 Konstruktoru se předává pole parametrů a odkaz na otevřený databázový wrapper. Databázový wrapper je objekt, který realizuje komunikaci s některým typem SQL databáze. Viz popis třídy OpenDb a jejích potomků.
-V nejjednoduším případě je entita definována jako tabulka databáze.
+V nejjednodušším případě je entita definována jako tabulka databáze.
 
 ```php
 $t= new Vistab(['table'=>'TABULKA'], new OpenDB_SQLite(CON_DB));
@@ -719,8 +719,8 @@ Pro složitější případy lze využít pohled na data SQL příkazem select. 
 $tt= new Vistab(
   ['header'=>' ',
    'sCmd'=>"select id_sog, sog_sd_ok, sog_vl_zn, sog_evidovano, sog_resitel, sog_termin, sog_lokalizace,".
-              "sog_je_neni_sd_kod, sog_stav ".
-              "from aplgeol.sog_sd_sog_vw", 
+           "sog_je_neni_sd_kod, sog_stav ".
+           "from aplgeol.sog_sd_sog_vw", 
    'cCmd'=>'select count(*) as pocet from aplgeol.sog_sd_sog_vw',
    'pragma'=>[['name'=> 'SOG_VL_ZN',     'comment' => 'Vlastní značka'],
               ['name'=> 'SOG_EVIDOVANO', 'comment' => 'Evidováno SOG'],
@@ -743,17 +743,17 @@ Zde :
 
 Zároveň mohou select příkazy představovat dotazy do již připraveného pohledu nad složitěji strukturovanými daty. To je vhodné například v situaci, kdy hlavní zobrazovaná tabulka obsahuje pouze kódy údajů, které ale v seznamu chceme mít vyjádřeny jejich popisy. Například když záznam obsahuje kód obce, ale v seznamu chceme vidět její skutečný název, a pak také očekáváme řazení podle skutečného názvu, ne nikoliv podle interního kódu.
 
-Pragma zde obsahuje informace o zobrazované entitě. Ve výchozím volání je získáno z datového katalogu příslušné databáze.  Některé údaje jsou pak užitečné pro konstrukci náhledu na data. Zde bylo zadáno přímo podle požadavků na obsah a popis sloupců. Pokud není pragma předáno jako vstupní paramatr, generuje se výchozím voláním 
+Pragma zde obsahuje informace o zobrazované entitě. Ve výchozím volání je získáno z datového katalogu příslušné databáze.  Některé údaje jsou pak užitečné pro konstrukci náhledu na data. Zde bylo zadáno přímo podle požadavků na obsah a popis sloupců. Pokud není pragma předáno jako vstupní parametr, generuje se výchozím voláním 
 
 **$db->Pragma("table_info('TABLE_NAME'"))**.
 
-Pragma obsahuje seznam hashů vztahujících se k jednotlivým atributům entity ['name','comment','default','datalength','precision','datename','pk']. Tento přístup sjednocuje nakládání s těmtito údaji napříč různými databázovými řešeními.
+Pragma obsahuje seznam hashů vztahujících se k jednotlivým atributům entity ['name','comment','default','datalength','precision','datename','pk']. Tento přístup sjednocuje nakládání s těmito údaji napříč různými databázovými řešeními.
 Více u popisu třídy OpenDB.
 
 
 ### Stránka se seznamem, stránka s detailem a parametrický formulář
 
-V reálných situacích je třeba více ovlivnit chování základní třídy, když se zobrazuje seznam záznamů. Například je tu požadavek, aby řádky byly různě obarveny na základě hodnoty některého atributu. Nebo je požadavána náhrada textového údaje ikonou. Dalším častým úkolem je vytvoření funkčních odkazů nad různými atributy.
+V reálných situacích je třeba více ovlivnit chování základní třídy, když se zobrazuje seznam záznamů. Například je tu požadavek, aby řádky byly různě obarveny na základě hodnoty některého atributu. Nebo je požadována náhrada textového údaje ikonou. Dalším častým úkolem je vytvoření funkčních odkazů nad různými atributy.
 
 Reálné řešení spočívá ve vytvoření potomka třídy Vistab s nahrazenými metodami:
 
@@ -772,7 +772,7 @@ class SOGtab extends Vistab{
 } 
 ```
 
-Zde je funkce **modify_row_before_print()** volána s datovým obsahem získaného řádku a předpokládá se, že příslušný řádek je vrácen v podobě, která se následně vytiskne. To dává široký prostor pro řešení rozličných vzhledových a funkčníh požadavků na seznam.
+Zde je funkce **modify_row_before_print()** volána s datovým obsahem získaného řádku a předpokládá se, že příslušný řádek je vrácen v podobě, která se následně vytiskne. To dává široký prostor pro řešení rozličných vzhledových a funkčních požadavků na seznam.
 
 Většinou také dochází k nahrazení strojově vytvořeného detailu vlastní stránkou. Využijeme další vlastnosti třídy Vistab a nahradíme její metodu **detail()** vlastním kódem. ¨
 
@@ -797,12 +797,12 @@ class SOGtab extends Vistab{
     $dprikaz=$this->genfilter($this->dCmd,false);
     $zaznam=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1)); /* skutecne zaznamy na zaklade podminky */
     $custom=ta('div',sog_detail($zaznam[0],$this->db,$context)); /* zavolani skutecneho obsahu */
-    parent::detail($context,$custom);            /* funkcionalita listovani a navratu do seznamu, manipulace s daprikazem se nepouzije */
+    parent::detail($context,$custom);            /* funkcionalita listovani a navratu do seznamu, manipulace s $dprikaz se nepouzije */
   }
 
 } 
 ```
-Nově vytořená metoda **detail** má za úkol provést naplění obsahu stránky s detailem do řetězce **$custom** a následně z důvodu listování, řazení a filtrování volat původní metodu.
+Nově vytvořená metoda **detail** má za úkol provést naplnění obsahu stránky s detailem do řetězce **$custom** a následně z důvodu listování, řazení a filtrování volat původní metodu.
 
 To je rozdíl oproti přepisu metody **form_param()** , kde se počítá s nahrazením původního formuláře. Na této stránce není listování a při změně parametrů se počítá s tím, že jsme opět na začátku nově vygenerovaného seznamu. Metodat **form_param()** obsahuje generování parametrického formuláře. Ten musí mít určitou strukturu. 
 Zde je opět reálný příklad, respektive jeho část:
@@ -837,11 +837,11 @@ function form_param($context){
 
 }
 ```
-Důležité je dodržet páry ATRIBUT a ATRIBUT_par , které určují hodnotu hladaného parametru a jeho relační význam. Také je nutné obeslat formulář tlačítkem **_sg** . Nezbytné je i udržení kontektu **$context** .
+Důležité je dodržet páry ATRIBUT a ATRIBUT_par , které určují hodnotu hledaného parametru a jeho relační význam. Také je nutné obeslat formulář tlačítkem **_sg** . Nezbytné je i udržení "kontextu" **$context** .
 
 ### Metoda route()
 
-Třída Vistab se spouští metodou route(). Jako parametr se předává aktuální kontext, který si doplní do všech ovládacích odkazů (GET o POST požadavky) a tím si tento kontext udržuje. To je výhoné například při jejím použití v rámci aplikace postavené na systému správy obsahu (třída Cm). Tam stačí udržovat parametr item, značící číslo obsahové stránky aplikace.
+Třída Vistab se spouští metodou route(). Jako parametr se předává aktuální kontext, který si doplní do všech ovládacích odkazů (GET o POST požadavky) a tím si tento kontext udržuje. To je výhodné například při jejím použití v rámci aplikace postavené na systému správy obsahu (třída Cm). Tam stačí udržovat parametr item, značící číslo obsahové stránky aplikace.
 
 
 ```php
@@ -864,7 +864,7 @@ Při nahrazení této metody by mělo dojít pouze k ošetření nové funkciona
 
 ### Mechanismus generování filtru a generování řazení
 
-Po odeslání paramatrického formuláře na server skript sestavuje nový parametr **_flt**, který si pak předává v komprimované podobě mezi stránkami při listování a odskoku do detailu. Rovněž si předává parametry **_o** (řazení) , **_ofs** (offset, aktuální pozice) a také vše, co je ve stupním parametru **$context** . Na základě parametrů je pak skript schopen sestavit aktuální SQL podmínku pro výběr záznamů (metoda **genwhere(..)** volaná v případě potřeby v konstruktoru ), následně v metodě **genfilter(..)** doplní podmínku do klauzule **WHERE** a připojí klauzili **ORDER BY** . Tento machanismus lze rozšířit v případě potřeby - například pokud koncept parametrického formuláře nevyhovuje a je třeba do něj doplnit další funkcionality. To lze udělat nejlépe na konci konstruktoru a následně doplnit svoji metodu na zpracování dalších parametrů z jinak koncipovaného vyhledávacího formuláře:
+Po odeslání parametrického formuláře na server skript sestavuje nový parametr **_flt**, který si pak předává v komprimované podobě mezi stránkami při listování a odskoku do detailu. Rovněž si předává parametry **_o** (řazení) , **_ofs** (offset, aktuální pozice) a také vše, co je ve vstupním parametru **$context** . Na základě parametrů je pak skript schopen sestavit aktuální SQL podmínku pro výběr záznamů (metoda **genwhere(..)** volaná v případě potřeby v konstruktoru ), následně v metodě **genfilter(..)** doplní podmínku do klauzule **WHERE** a připojí klauzuli **ORDER BY** . Tento machanismus lze rozšířit v případě potřeby - například pokud koncept parametrického formuláře nevyhovuje a je třeba do něj doplnit další funkcionality. To lze udělat nejlépe na konci konstruktoru a následně doplnit svoji metodu na zpracování dalších parametrů z jinak koncipovaného vyhledávacího formuláře:
 
 ```php
 
@@ -939,7 +939,7 @@ function route($context){
   }
 ```
 
-Základní využití třídy pro editaci záznamů v databázi Editab je jen rozšířením VistTab s tím, že formulář s detailem záznam umožňuje jeho uložení, odstranění a je přitomno tlačítko pro založení nového záznamu.
+Základní využití třídy pro editaci záznamů v databázi Editab je jen rozšířením VistTab s tím, že formulář s detailem záznam umožňuje jeho uložení, odstranění a je přítomno tlačítko pro založení nového záznamu.
 
 
 ```php
@@ -947,7 +947,7 @@ $t= new Editab(['table'=>'TABULKA'], new OpenDB_SQLite(CON_DB));
 ```
 Aby editace fungovala, musí být zaručena jednoznačnost jednotlivých záznamů pomocí existence primárního klíče.
 V základním stavu umí třída provést příslušné dotazy do databázového katalogu a zjistit si, jak vypadá primární klíč a
-generovat základní formulář, a příslušné SQL dotazy na modifikaci dat s využitím informací buď z databáze, nebo z podtrčených parametrů, analogicky s VisTab .
+generovat základní formulář, a příslušné SQL dotazy na modifikaci dat s využitím informací buď z databáze, nebo z předaných parametrů, analogicky s VisTab .
 
 Při reálném návrhu editačního formuláře je téměř vždy potřeba přesněji specifikovat jednotlivé editační SQL příkazy, nebo lépe nahradit jednotlivé výchozí metody **detail_form()**, **insert()**, **update()** a **delete()** vlastním kódem. Obojí přístup je možné kombinovat.
 
@@ -961,13 +961,13 @@ Při reálném návrhu editačního formuláře je téměř vždy potřeba přes
 
 ### Úvod, stromová struktura uložená v databázi
 
-Třída **Cm** navazuje na modul **M5** a realizuje systém správy obsahu, který je uložen v databázi. Umožňuje tak vytvářet komplexní aplikace. Komplexní aplikace navržená s využitím třídy **Cm** obsahuje stromové menu, které dělí aplikaci do jednotlivých stránek. Každá stránka má nastavitelná přístupová práva pro jednotlivé uživatele či role. V rámci stránky jsou obsaženy položky různých typů, ke kterým jsou opět přidělena práva na základě uživatelů či rolí. Položky mohou být různého typu, pro budování funkční aplikace je zásadní typ umožnující vkládat php skripty.
+Třída **Cm** navazuje na modul **M5** a realizuje systém správy obsahu, který je uložen v databázi. Umožňuje tak vytvářet komplexní aplikace. Komplexní aplikace navržená s využitím třídy **Cm** obsahuje stromové menu, které dělí aplikaci do jednotlivých stránek. Každá stránka má nastavitelná přístupová práva pro jednotlivé uživatele či role. V rámci stránky jsou obsaženy položky různých typů, ke kterým jsou opět přidělena práva na základě uživatelů či rolí. Položky mohou být různého typu, pro budování funkční aplikace je zásadní typ umožňující vkládat php skripty.
 
 Aktuální funkcionalita, obsah aplikace a její přístupnost jednotlivým uživatelům je tak řízena z databáze. Samotná správa aplikace a řešení přístupů či rolí může být prováděno administrátorem bez zásahu do kódu aplikace. Zvolená dekompozice aplikace umožnuje rozdělit práci mezi více vývojářů a řídit proces vývoje kódu a nahrazování jednotlivých částí aplikace.
 
 ### Doporučené použití třídy Cm
 
-Pro nasazení a využití této funkcionality je vhodné aplikaci umístit do samostatné složky s podsložkami, jak je popsáno u popisu modulu M5. V této složce bude řídící aplikační skript **d.php** spolu s definičním skriptem **ini.php** . Je vhodné využít mod_access a mod_rewrite a zajistit, aby d.php byl v této složce výchozím spuštěným skriptem. Řídící skript musí obsahovat instruktci pro PHP session_start(),  využije modul M5 a definuje jejích potomka App, u kterého zavolá staticky metodu **skeleton()**. V **ini.php** souboru je pak šablona komplexní aplikace, která obsahuje prvky k nahrazení za levé menu, drobečkovou navigaci, atd. (#EDIT_LINK#, #BREADCRUMB#, #SIDEBAR# ) dynamickými metodami třídy Cm. Na základě aplikačního prostředí může eventuálně řešit i prřihlašovací formulář a situaci po odhlášení se od aplikace (v příkladu není uvedeno). Obsah skriptu d.php je přibližně následující:
+Pro nasazení a využití této funkcionality je vhodné aplikaci umístit do samostatné složky s podsložkami, jak je popsáno u popisu modulu M5. V této složce bude řídící aplikační skript **d.php** spolu s definičním skriptem **ini.php** . Je vhodné využít mod_access a mod_rewrite a zajistit, aby d.php byl v této složce výchozím spuštěným skriptem. Řídící skript musí obsahovat instruktci pro PHP session_start(),  využije modul M5 a definuje jejích potomka App, u kterého zavolá staticky metodu **skeleton()**. V **ini.php** souboru je pak šablona komplexní aplikace, která obsahuje prvky k nahrazení za levé menu, drobečkovou navigaci, atd. (#EDIT_LINK#, #BREADCRUMB#, #SIDEBAR# ) dynamickými metodami třídy Cm. Na základě aplikačního prostředí může eventuálně řešit i přihlašovací formulář a situaci po odhlášení se od aplikace (v příkladu není uvedeno). Obsah skriptu d.php je přibližně následující:
 
 ```php
 session_start();
@@ -1021,7 +1021,7 @@ App::set('htptemp',$GLOBALS['htptemp']);
 App::skeleton('../../'); /* sigleton template, skeleton() method is called */
 
 ```
-Zároveň musí být v databázovém schématu (Oracle nebo SQLite) připravena struktura pro uložení samotného obsahu aplikace - menu, odkazy na vkládané skripty, seznamy účtů aplikace, další infromace jako návody, odkazy na grafické soubory, atd.
+Zároveň musí být v databázovém schématu (Oracle nebo SQLite) připravena struktura pro uložení samotného obsahu aplikace - menu, odkazy na vkládané skripty, seznamy účtů aplikace, další informace jako návody, odkazy na grafické soubory, atd.
 
 V příkladu výše je volání konstruktoru třídy **Cm**. Jako první parametr se předává prefix názvu sady databázových tabulek, které budou odkazovány v databázovém schématu (připojení wrapperu je druhý parametr). V příkladu je to "APP", takže třída očekává ve schématu entity:
 
@@ -1029,7 +1029,7 @@ V příkladu výše je volání konstruktoru třídy **Cm**. Jako první paramet
 ```
 APP_LOG_TAB    -- entita logování událostí aplikace
 APP_POLOZKY    -- entita položek obsahu na jednotlivých stránkách
-APP_PRAVA      -- entita evidovaných práv ke stránkám a polžkám
+APP_PRAVA      -- entita evidovaných práv ke stránkám a položkám
 APP_SKUP       -- entita seznamu skupin / rolí v aplikaci
 APP_STROM      -- entita stromové struktury stránek aplikace
 APP_UNASTAV    -- entita individuálních nastavení uživatele
@@ -1040,18 +1040,18 @@ APP_UZIV       -- entita seznamu uživatelských účtů pro aplikaci
 
 Pro generování entity v konkrétní databázové instanci je připraven script **create.sql** ve složce s aplikačním vzorem. Zvolený systém s prefixem umožnuje sdílet v jednom schématu více různých aplikací.
 
-Hlavní řídící skript obsahuje volání metody **folder()** . Tato metoda vizualizuje aktuální složku aplikace podle předaného parametru **item**. Hodnota parametru item je přirozené číslo. Pro správnou funkci všech formulářů, aktivních prvků pusí být toto číslo předáno při každém POST či GET v dílčím skriptu volaném z aplikace. Dílčí skripty se nemusí o nic dalšího starat, jsou zavolány metodou **App::$cms->folder()**, která postupně prochází obsah stránky a podle typu položky provede buď include_once příkaz (pro 'inc' typ položky), či eval příkaz (pro 'app' typ položky). Pasivní typy obahu z databáze pouze vkládá ('txt' typ položky). Činí tak až na základě ověření přístupových práv.  Výchozí aplikace obsahuje již administrační složku umožňující editaci uživatelů a skupin. Celý obsah aplikace je pak možno vytvořit pomocí ní samotné, na základě vhodně nastavených práv pro správcovský účet.
+Hlavní řídící skript obsahuje volání metody **folder()** . Tato metoda vizualizuje aktuální složku aplikace podle předaného parametru **item**. Hodnota parametru item je přirozené číslo. Pro správnou funkci všech formulářů, aktivních prvků musí být toto číslo předáno při každém POST či GET v dílčím skriptu volaném z aplikace. Dílčí skripty se nemusí o nic dalšího starat, jsou zavolány metodou **App::$cms->folder()**, která postupně prochází obsah stránky a podle typu položky provede buď include_once příkaz (pro 'inc' typ položky), či eval příkaz (pro 'app' typ položky). Pasivní typy obsahu z databáze pouze vkládá ('txt' typ položky). Činí tak až na základě ověření přístupových práv.  Výchozí aplikace obsahuje již administrační složku umožňující editaci uživatelů a skupin. Celý obsah aplikace je pak možno vytvořit pomocí ní samotné, na základě vhodně nastavených práv pro správcovský účet.
 
 ### Další užitečné skripty ve výchozí aplikaci
 
 Výchozí aplikace řízená třídou Cm obsahuje několik obecných skriptů, které jsou v zásadě vhodné pro správce každé aplikace. Mimo editace uživatelů a skupin je to přehledná tabulka práv, prohlížení aplikačního logu. SQL workbench na dotazy do databáze, skript realizující parsovaný výstup z phpinfo() funkce a další.
 
-Skript programátorské dokumentace využívá vlastnosti tzv. reflexní třídy v PHP a generuje púřehled veškeré dokumentace ve zdrojových kódech aplikace, pokud dodržují normu pro PHP dokumentator. Samotné knihovny M5 toto splňují a proto je možno zobrazit popisy volání parametrů jednotlivých metod jednotlivých tříd a globáních funkcí. Popisy jsou ve zdrojovém kódu v anglickém jazyce, nebo v něčem co si autor myslel, že anglický jazyk je.
+Skript programátorské dokumentace využívá vlastnosti tzv. reflexní třídy v PHP a generuje přehled veškeré dokumentace ve zdrojových kódech aplikace, pokud dodržují normu pro PHP dokumentator. Samotné knihovny M5 toto splňují a proto je možno zobrazit popisy volání parametrů jednotlivých metod jednotlivých tříd a globálních funkcí. Popisy jsou ve zdrojovém kódu v anglickém jazyce, nebo v něčem co si autor myslel, že anglický jazyk je.
 
 Aplikace může rovněž využít evidenci uživatelských nastavení a pro uživatele lze do aplikace zařadit skript, kterými si toto nastavení mohou měnit.
 
 ### Interakce aplikačních skriptů se třídou Cm
 
-Aplikační skripty vytvářené komplexní aplikace by měly být umístěny ve složce **php/** a jsou pomocí výše popsaného mechanismu inkludovány při běhu metody **App::$cms->folder()** . V samotné databázi se jen jméno inkludovaného souboru. Skript musí pči GET a POST requestech převávat hodnotu **getpar('item')**. Skript dále může využít aktuální informace o přihlášeném uživateli a podle toho přizpůsobit svou funkcionalitu. Třída **Cm** používá PHP session, ve které udržuje jméno uživatelského účtu  **$_SESSION['uzivatel']** a může testovat, zde tento uživatel je v určité skupině pomocí **App::$cms->is_in_group('SKUPINA'))** , dále je k dispozici skript pro získání hodnoty daného atributu individuálního nastavení uživatele **App::$cms->get_user_setting('kod_atributu')** .
+Aplikační skripty vytvářené komplexní aplikace by měly být umístěny ve složce **php/** a jsou pomocí výše popsaného mechanismu inkludovány při běhu metody **App::$cms->folder()** . V samotné databázi se jen jméno inkludovaného souboru. Skript musí při GET a POST requestech předat aktuální hodnotu parametru item (nejlépe pomocí **getpar('item')** ). Skript dále může využít aktuální informace o přihlášeném uživateli a podle toho přizpůsobit svou funkcionalitu. Třída **Cm** používá PHP session, ve které udržuje jméno uživatelského účtu  **$_SESSION['uzivatel']** a může testovat, zde tento uživatel je v určité skupině pomocí **App::$cms->is_in_group('SKUPINA'))** , dále je k dispozici skript pro získání hodnoty daného atributu individuálního nastavení uživatele **App::$cms->get_user_setting('kod_atributu')** .
 
 
