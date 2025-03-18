@@ -30,7 +30,8 @@
  *  29.11.2024 - oprava uzivatelskeho razeni - kolikze s chovanim select-offset-fetch - musi byt jasne pora
  *  03.12.2024 - index pokračuje detailem
  *  06.12.2024 - pevné omezení fixed_where na entitu, kterou se prochází, oprava indikace filtr
- *  18.12.2024 - prejmenovani promennycho
+ *  18.12.2024 - prejmenovani promennych
+ *  12.02.2025 - oprava HTML injection
  *  */ 
 include_once "mbt.php";
 
@@ -50,7 +51,8 @@ var $separator='~',    /* char(s) used as separator for where condition among PU
     $filter,           /* generater filter based on .. */
     $classdetail,      /* detail page css class */
     $debug_mode=false, /* debug mode */
-    $backText='&lt;';  /* text for back button */
+    $backText='&lt;',  /* text for back button */
+    $where='';         /* temporary where */
 
  /** @param array $param - array of parametres
   *  @param object $db - opened DB connextion
@@ -85,16 +87,16 @@ function __construct($param,$db){
     $this->cCmd=$param['cprikaz'];
     $this->pragma=$param['pragma']; 
     $this->dCmd=(isset($param['dprikaz'])?$param['dprikaz']:$this->sCmd);
-    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
+    $this->pk=(isset($param['pk'])?$param['pk']:'');
   }elseif(isset($param['sCmd']) && isset($param['cCmd'])){
     $this->header=(isset($param['header'])?$param['header']:'');
     $this->sCmd=$param['sCmd'];
     $this->cCmd=$param['cCmd'];
     $this->pragma=$param['pragma']; 
     $this->dCmd=(isset($param['dCmd'])?$param['dCmd']:$this->sCmd);
-    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
+    $this->pk=(isset($param['pk'])?$param['pk']:'');
   }else{
-    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
+    $this->pk=(isset($param['pk'])?$param['pk']:'');
   }
   if (isset($param['postlink']) && $param['postlink']){
     $this->postlink=true;  
@@ -111,10 +113,10 @@ function __construct($param,$db){
   $this->getfilter(); 
 
   /* the generation of "where condition" is always based on the parameter wrapped in _flt*/
-  /* internally is referred as getpar('_whr') */
-  setpar('_whr',$this->genwhere());
+  
+  $this->where=$this->genwhere();
   if ($this->debug_mode){
-    deb('VISTAB construct, _whr: '.getpar('_whr'),false);
+    deb('VISTAB construct, _whr: '.$this->where,false);
   }
   $this->backText=isset($param['backText'])?$param['backText']:(bt_icon('chevron-left').'Zpět');	
 }
@@ -156,7 +158,7 @@ function lister($context){
            ['_det'=>'1','_o'=>getpar('o'),'_flt'=>getpar('_flt'),'_ofs'=>$j],'class="card text-primary"');
         }else{
           $l='?_det=1&amp;_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$j;
-          $a[$i]['detail']=ahref($l.$context,bt_icon('menu'));
+          $a[$i]['detail']=ahref($l.$context,bt_icon('menu'), 'id="detail-icon"');
         }        
       }
     }
@@ -189,7 +191,7 @@ function lister($context){
 
     /* modifikace volanim metody modify_row */
     for($i=0;$i<count($a);$i++){
-      $a[$i]=$this->modify_row_before_print($a[$i]);
+      $a[$i]=$this->modify_row_before_print($a[$i], $context);
     }
 
     /* tisk tabulky a listovani, $a je obsah/tabulka */
@@ -223,7 +225,7 @@ function lister($context){
  * @param array $row - input roww
  * @return array $row - modified row
  */
-function modify_row_before_print($row){
+function modify_row_before_print($row, $context){
   return $row;
 }
 
@@ -234,8 +236,6 @@ function modify_row_before_print($row){
 */
 function form_param($context){
   
-  //$this->dewhere(base64_decode(getpar('_whr')));
-  /*$a=$this->db->Pragma("table_info('$t')");*/
   $a=$this->pragma;
   if (!is_array($a)) {
     deb('wrong pragma'); 
@@ -326,14 +326,17 @@ function genwhere(){
     }
   }else{
     /* klasicky parametricky formular */
-    foreach (array_keys($DAT) as $pol){ 
-      if (preg_match("/^(.+)_par$/",$pol, $match)){ /* prochazej dvojice ATTR a ATTR_par*/       
-        $bezpar = $match[1];
-        $atribut=$bezpar;     /* $atribut obsahuje jmeno atributu, ktery je dotazovan */
-        if (preg_match("/^(.+)_and(\d*)$/",$bezpar, $match)){
-          $atribut= $match[1]; 
-        } 
-        /* jednotlive podminky se spojuji pomoci and , ale u prvniho and neni */
+    foreach (array_keys($DAT) as $pol){
+
+        if (preg_match("/^(.+)_par$/",$pol, $match)){ /* prochazej dvojice ATTR a ATTR_par*/
+
+            $bezpar = $match[1];
+            if (isset($this->param['ignore_pars']) && in_array($bezpar,$this->param['ignore_pars'])) continue;
+            $atribut=$bezpar;     /* $atribut obsahuje jmeno atributu, ktery je dotazovan */
+            if (preg_match("/^(.+)_and(\d*)$/",$bezpar, $match)){
+                $atribut= $match[1];
+            }
+            /* jednotlive podminky se spojuji pomoci and , ale u prvniho and neni */
         $p=($where != '')?' and ':'';
         /* null a not null nemusi mit vyplnenou hodnotu $DATA{$bezpar} muze byt prazdne */
         if ($DAT[$pol] == 'null' || $DAT[$pol] == 'not null'){
@@ -377,7 +380,7 @@ function genwhere(){
   if (isset($this->param['fixed_where']) && $this->param['fixed_where']!=''){
     $where.=($where!=''?' and ':'').$this->param['fixed_where'];
   }
-  return $where;
+  return htmlspecialchars_decode($where);
 }
 
 /** packs filter params as one param named _flt  
@@ -403,7 +406,7 @@ function packfilter(){
  * This is called only in the Vistab constructor
 */
 function getfilter(){
-  $flt=getpar('_flt');
+  $flt=htmlspecialchars_decode(getpar('_flt'));
   if ($flt!=''){
      $flt=urldecode($flt);
      $F=explode($this->separator,$flt);
@@ -422,12 +425,12 @@ function getfilter(){
  * 
 */
 function genfilter($sCmd,$order_by=true){
-  $where=getpar('_whr');
+  $where=$this->where;
   $sCmd=preg_replace("/\x0d/",' ',$sCmd);
   $sCmd=preg_replace("/\x0a/",' ',$sCmd); /* remove newlines to be regular expression functional */
-  $oby=(getpar('_o')!='' && $order_by)?(getpar('_o').','.$this->pk):'';
-  $whr=(getpar('_whr')!='')?(' where '.$where):'';
-  $whradd=(getpar('_whr')!='')?(' and '.$where):'';
+  $oby=(getpar('_o')!='' && $order_by)?(getpar('_o')):'';
+  $whr=($where!='')?(' where '.$where):'';
+  $whradd=($where!='')?(' and '.$where):'';
   
   if ($oby!=''){
     if (preg_match("/^(select\s+.*) where (.+) order by (.+)$/i",$sCmd,$match)){
@@ -517,10 +520,10 @@ function filter_to_array(){
  * @param string $context
  * @return string - detail html content
  */
-function detail($context){
+function detail($context, $custom = ''){
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */  
   $cCmd=$this->genfilter($this->cCmd,false);
-  $custom=$this->detail_single($context);
+  //$custom=$this->detail_single($context);
   /* pocet zaznamu a listovani po zaznamech */
   $ofs= getpar('_ofs')%$this->rowsPerPage;
   if ($ofs==0) $ofs=$this->rowsPerPage;
@@ -534,11 +537,11 @@ function detail($context){
   }else{
     $back=ahref('?_o='.getpar('_o').'&amp;_flt='.getpar('_flt').'&amp;_ofs='.$ofs.$context,
        $this->backText,
-      'class="btn btn-secondary m-2"');
+      'class="btn btn-secondary"');
   }
   
   return 
-    tg('div','class="'.$this->classdetail.'"',
+    tg('div','id="detail" class="'.$this->classdetail.'"',
      gl(
        $this->text_filter()!=''?bt_alert('Filtrováno: '.$this->text_filter()):'',
        bt_pagination(
@@ -548,15 +551,15 @@ function detail($context){
             $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
             $this->postlink
           ),
-       $custom,
-       $back
+       $custom /*,
+       $back*/
       ));
 }
 
 /** detail of the page with the single record
  * 
  */
-function detail_single($context){
+function detail_single($context, $custom = ''){
   $dCmd=$this->genfilter($this->dCmd,true);
   
   $r=$this->db->SqlFetchArray($dCmd,[],1,getpar('_ofs',1));
@@ -577,7 +580,7 @@ function detail_single($context){
       $i++;
     }  
   }
-  return bt_container(['col-4','col-8'],$b); 
+  return bt_container(['col-4','col-8'],$b);
 }
 
 /** vraci parametry pro udrzeni kontextu tridy Vistab 
@@ -684,7 +687,7 @@ function detail_form($context,$data=null){
  * and call the detail_single method
  * @param string $context - the page parameters contex 
  */
-function detail($context){
+function detail($context, $custom = ''){
     $this->eprikaz=$this->genfilter($this->dCmd);
     if ($this->debug_mode) deb('EDITAB detail: '.$this->eprikaz,false);
     $db=$this->db;
@@ -750,7 +753,7 @@ function detail($context){
 /** Original detail form - normally to be overriden in the child class
  * @param string $context
  */
-function detail_single($context){
+function detail_single($context, $custom=''){
   $original_primary='';
   $r=$this->db->SqlFetchArray($this->eprikaz,[],1,getpar('_ofs',1));
   /* popisy polozek mohou byt z popisu entity v databazi */
@@ -782,6 +785,7 @@ function detail_single($context){
               para('_ofs',getpar('_ofs')),
               para('_det',1)) 
          ];
+         
   return tg('form','method="post" action="?'.$context.'"',
     ta('fieldset',
      bt_container(['col-4','col-8'],$b)));

@@ -324,7 +324,7 @@ htpr(
 
 ### Příklad skriptu vracející JSON odpověď pro našeptávač
 
-V následujícím případě je ukázáno využití modulu M5 v roli samostatného našeptávače. Tento kód plní dvě role, jednak vrací pro volající frontend prvek seznam potenciálních záznamů k výběru a nebo vrátí pevný klíč již vybraného záznamu. To je potřeba v situaci, kdy je již prvek vybrán a celý formulář je načtený z databáze. Celé to zapadá do funkcionality našeptávače ukázaného výše. Příklad páce s databází je reálný. Uvedený kód našeptává obce v ČR.
+V následujícím případě je ukázáno využití modulu M5 v roli samostatného našeptávače. Tento kód plní dvě role, jednak vrací pro volající frontend prvek seznam potenciálních záznamů k výběru a nebo vrátí pevný klíč již vybraného záznamu. To je potřeba v situaci, kdy je již prvek vybrán a celý formulář je načtený z databáze. Celé to zapadá do funkcionality našeptávače ukázaného výše. Příklad práce s databází je reálný. Uvedený kód našeptává obce v ČR.
 
 ```php
 include_once '../../lib/mlib.php';                      
@@ -335,7 +335,7 @@ if (getpar('q'))
   $r=autocompleteFormat(
     $db->SqlFetchArray(
       "select lau2_kod as V, lau2_vyznam||' ['||lau2_kod||']' as T ".
-      "from kod_all_obec ".
+      "from dat_kod.kod_all_obec ".
       "where lau2_vyznam like :vyz||'%' ".
       "order by lau2_vyznam asc ",
       [':vyz'=>getpar('q')],
@@ -343,7 +343,7 @@ if (getpar('q'))
 if (getpar('id')){
    $r=$db->SqlFetch(
      "select lau2_vyznam||' ['||lau2_kod||']' as T ".
-     "from kod_all_obec ".
+     "from dat_kod.kod_all_obec ".
      "where lau2_kod =:id ",
       [':id'=>getpar('id')]  );
   $r=json_encode(['text'=>$r],JSON_UNESCAPED_UNICODE);
@@ -837,7 +837,7 @@ function form_param($context){
 
 }
 ```
-Důležité je dodržet páry ATRIBUT a ATRIBUT_par , které určují hodnotu hledaného parametru a jeho relační význam. Také je nutné obeslat formulář tlačítkem **_sg** . Nezbytné je i udržení "kontextu" **$context** .
+Při tvorbě vlastního parametrického formuláře je nutné si uvědomit, jak mechanismus převodu vstupních údajů na SQL podmínku where pracuje. Důležité je dodržet páry ATRIBUT a ATRIBUT_par , které určují hodnotu hledaného parametru a jeho relační význam. Také je nutné obeslat formulář tlačítkem **_sg** . U koomplexních aplikací je nezbytné je i udržení "kontextu" **$context** (to se zařídí snadno včeleněním kódu **para('item',getpar('item'))**). Po odeslání formuláře by měla metoda **route()** naší třídy zachytit přítomnost parametru **_sq** a vyvolat metodu **genwhere()**. Tato metoda pro každou předanou dvojici relační operátor a hodnota - ATRIBUT_par a ATRIBUT - zjišťuje, zda je hodnota ATRIBUT nenulová. Pokud je nulová, tedy uživatel nic u tohoto atributu neuvedl, nic se nestane . Pokud je nenulová, přidá se podmínka ve tvaru [jméno atributu] [relační operátor] [hodnota atributu]. Jednotlivé podmínky se spojují pomocí operátoru and. Sestavení SQL dotazu separuje již existující klauze WHERE a ORDER_BY . Případná již existující klauzule WHERE je doplněna o zadaný filtr. U složitých a komplexních dotazů SQL užívajících například klauzuli UNION, HAVING atd. to nebude fungovat a v takovém případě je potřeba vytvořit pohled na data (VIEW) v databázi a v PHP skriptu pracovat s tímto pohledem.
 
 ### Metoda route()
 
