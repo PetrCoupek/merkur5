@@ -11,19 +11,23 @@
 
 class Editace_uziv extends EdiTab{
 
- /** reseni extra funkcionality nad ramec ukladani do jedne entity */
- function route_skupina_uziv(){
+ /** reseni extra funkcionality nad ramec ukladani do jedne entity 
+  * 
+ */
+ function route_skupina_uziv($context=''){
+  
   if (getpar('_det')){
     /* zobraz, ve kterych skupinach je uzivatel  */
+    $pref=App::$cms->table;
     htpr(
      ht_table('Členství ve skupinách',
       ['NAZEV'=>'Název skupiny'],
       $this->db->SqlFetchArray(
        "select nazev ".
-       "from dkb_uskup,dkb_skup ".
-       "where dkb_uskup.skupina=dkb_skup.skupina ".
+       "from ".$pref."_uskup us, ".$pref."_skup u ".
+       "where us.skupina=u.skupina ".
        "and typ_vazby='U' ".
-       "and dkb_uskup.uzivatel=:u",
+       "and  us.uzivatel=:u",
        [':u'=>$this->rowid]),
       'Uživatel není ve skupinách',
       'class="table"'));
@@ -34,6 +38,7 @@ class Editace_uziv extends EdiTab{
 
 $db = new OpenDB_SQLite(App::$dbconnect);
 $pref=App::$cms->table;
+
 $tt= new Editace_uziv(
   ['sprikaz'=>
      "select ljmeno, uziv_id, prijmeni, jmeno,  ".
@@ -58,8 +63,8 @@ $tt= new Editace_uziv(
      ['name'=> 'KEMAIL','comment' => 'e-mail','nolist'=>true],
      ['name'=> 'KTELEFON','comment' => 'Telefon','nolist'=>true],
      ['name'=> 'KMOBIL','comment' => 'Mobil','nolist'=>true]],
-   'dprikaz'=>'select * from '.$pref.'_uziv order by prijmeni asc',
-   'uprikaz'=>[
+   'dCmd'=>'select * from '.$pref.'_uziv order by prijmeni asc',
+   'uCmd'=>[
      'update '.$pref.'_uziv set jmeno=:jmeno,'.
      'prijmeni=:prijmeni, os_cislo=:os_cislo, titul_pred=:titul_pred,'.
      'titul_za=:titul_za,odbor=:odbor,oddeleni=:oddeleni,cislo_kanc=:cislo_kanc,'.
@@ -84,7 +89,7 @@ $tt= new Editace_uziv(
       ':ktelefon'=>getpar('KTELEFON'),
       ':kmobil'=>getpar('KMOBIL')
      ]],
-   'iprikaz'=>[
+   'iCmd'=>[
      "insert into '.$pref.'_uziv (ljmeno,lheslo,uziv_id,jmeno,prijmeni,os_cislo,titul_pred,".
      "titul_za,odbor,oddeleni,cislo_kanc,specializace,ulice,mesto,psc,kemail,".
      "ktelefon,kmobil) ".
@@ -109,11 +114,11 @@ $tt= new Editace_uziv(
       ':ktelefon'=>getpar('KTELEFON'),
       ':kmobil'=>getpar('KMOBIL')
      ]],
-    'rprikaz'=>[
+    'rCmd'=>[
       "delete from '.$pref.'_uziv where uziv_id=:uziv_id",
       [':uziv_id'=>getpar('UZIV_ID')]],
-    'rowidcolumn'=>'LJMENO'                           
-   
+    'rowidcolumn'=>'LJMENO',                           
+    'debug_mode'=>false
   ],
   $db); 
 

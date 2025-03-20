@@ -32,6 +32,8 @@
  *  06.12.2024 - pevné omezení fixed_where na entitu, kterou se prochází, oprava indikace filtr
  *  18.12.2024 - prejmenovani promennych
  *  12.02.2025 - oprava HTML injection
+ *  18.03.2025 - úprava filter, vracení, detail_single je pro nahrazení.
+ *  20.03.2025 - rownum v konstruktoru, pokud není pk
  *  */ 
 include_once "mbt.php";
 
@@ -87,16 +89,16 @@ function __construct($param,$db){
     $this->cCmd=$param['cprikaz'];
     $this->pragma=$param['pragma']; 
     $this->dCmd=(isset($param['dprikaz'])?$param['dprikaz']:$this->sCmd);
-    $this->pk=(isset($param['pk'])?$param['pk']:'');
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
   }elseif(isset($param['sCmd']) && isset($param['cCmd'])){
     $this->header=(isset($param['header'])?$param['header']:'');
     $this->sCmd=$param['sCmd'];
     $this->cCmd=$param['cCmd'];
     $this->pragma=$param['pragma']; 
     $this->dCmd=(isset($param['dCmd'])?$param['dCmd']:$this->sCmd);
-    $this->pk=(isset($param['pk'])?$param['pk']:'');
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
   }else{
-    $this->pk=(isset($param['pk'])?$param['pk']:'');
+    $this->pk=(isset($param['pk'])?$param['pk']:'rownum');
   }
   if (isset($param['postlink']) && $param['postlink']){
     $this->postlink=true;  
@@ -521,9 +523,12 @@ function filter_to_array(){
  * @return string - detail html content
  */
 function detail($context, $custom = ''){
+  
   /* pritahnuti vety dprikaz - sestaveni podminky na zaklade znalosti pk */  
   $cCmd=$this->genfilter($this->cCmd,false);
-  //$custom=$this->detail_single($context);
+  
+  $custom=$this->detail_single($context);
+  
   /* pocet zaznamu a listovani po zaznamech */
   $ofs= getpar('_ofs')%$this->rowsPerPage;
   if ($ofs==0) $ofs=$this->rowsPerPage;
@@ -551,8 +556,8 @@ function detail($context, $custom = ''){
             $this->postlink?($context.'&_det=1&_flt='.getpar('_flt')):($context.'&_o='.getpar('_o').'&_flt='.getpar('_flt').'&_det=1'),
             $this->postlink
           ),
-       $custom /*,
-       $back*/
+       $custom,
+       $back
       ));
 }
 
@@ -560,6 +565,7 @@ function detail($context, $custom = ''){
  * 
  */
 function detail_single($context, $custom = ''){
+  if ($custom!='') return $custom;
   $dCmd=$this->genfilter($this->dCmd,true);
   
   $r=$this->db->SqlFetchArray($dCmd,[],1,getpar('_ofs',1));

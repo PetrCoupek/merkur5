@@ -9,19 +9,18 @@
  *
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.531-130325
+ * @version 0.533-200325
  */
 /* compatability  */
-if (!defined('PHP_VERSION_ID')) 
-{
+if (!defined('PHP_VERSION_ID')) {
     $_version = explode('.', PHP_VERSION);
     define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
 }
-if (!defined('__DIR__')) 
-{
+if (!defined('__DIR__')) {
     define('__DIR__', dirname(__FILE__));
 }
-
+define('M5_VERSION', '0.532-190325');
+define('M5_HTML_ESCAPE', true);
 /* executable part */
 
 ini_set('default_charset', 'utf-8');
@@ -635,7 +634,7 @@ function nbsp($count = 1)
 }
 
 /** The function returns the HTML tag for the page-break.
- * @param number $count - number of page-braks, default=1
+ * @param int $count - number of page-braks, default=1
  * @return string
  */
 function br($count = 1)
@@ -656,8 +655,8 @@ function hr()
 /** The function returns the HTML tag for a text input
  * @param string $label - label before the tag
  * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param number $size - the size in chars
- * @param number $maxl - the maximum allowed input size in chars
+ * @param int $size - the size in chars
+ * @param int $maxl - the maximum allowed input size in chars
  * @param string $value - initial value in the text input
  * @param string $add - other added parametres in the tag (useful for javascript client-side functionality or styling)
  * @return string
@@ -679,8 +678,8 @@ function textfield($label, $name, $size, $maxl, $value, $add = '')
 /** The function returns the HTML tag for a text input, initial value is taken from a global $DB hash
  * @param string $label - label before the tag
  * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param number $size - the size in chars
- * @param number $maxl - the maximum allowed input size in chars
+ * @param int $size - the size in chars
+ * @param int $maxl - the maximum allowed input size in chars
  * @param string $add - other added parametres in the tag (useful for javascript client-side functionality or styling)
  * @return string
  */
@@ -694,8 +693,8 @@ function dbtext($label, $name, $size, $maxl, $add = '')
 /** The function returns the HTML tag for a text area
  * @param string $label - label before the tag
  * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param number $rows - the number of rows
- * @param number $cols - the number of columns
+ * @param int $rows - the number of rows
+ * @param int $cols - the number of columns
  * @param string $value - initial value in the text area
  * @param string $add - other added parametres in the tag (useful for javascript client-side functionality or styling)
  * @return string
@@ -709,8 +708,8 @@ function textarea($label, $name, $rows, $cols, $value, $add = '')
 /** The function returns the HTML tag for a text area, initial value is taken from a global $DB hash
  * @param string $label - label before the tag
  * @param string $name - the name of the input tag (name parameter in the form and also the id in the document)
- * @param number $rows - the number of rows
- * @param number $cols - the number of columns
+ * @param int $rows - the number of rows
+ * @param int $cols - the number of columns
  * @param string $add - other added parametres in the tag (useful for javascript client-side functionality or styling)
  * @return string
  */
@@ -1171,10 +1170,18 @@ function http_lan_text($text1, $text2)
  */
 
 function getpar($key,$default='',$html=true)
-{
+{  
   if (isset(M5::$ent['DATA'][$key])) {
-    if ($html) {
-      return htmlspecialchars(M5::$ent['DATA'][$key],ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML401);
+    if ($html && M5_HTML_ESCAPE) {
+      $mask=ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML401;  
+      if (is_array(M5::$ent['DATA'][$key])) {
+        $a=[];
+        foreach (M5::$ent['DATA'][$key] as $k=>$v) 
+          $a[$k] = htmlspecialchars($v,$mask);
+        return $a;
+      }else{
+        return htmlspecialchars(M5::$ent['DATA'][$key],$mask);
+      }
     }else{
       return M5::$ent['DATA'][$key];
     }  
