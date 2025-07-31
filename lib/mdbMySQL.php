@@ -2,6 +2,7 @@
 /** Database wrapper for MySQL database based on PDO interface
  *  
  *  @author Petr Čoupek
+ *  29.07.2025 abstract class name change
  */ 
      
  /* 03.11.2020 - vytvoreni z puvodniho kodu na webhostingu
@@ -9,7 +10,7 @@
  */
 include_once "mdbAbstract.php";
 
-class OpenDB_MySQL extends OpenDB{
+class OpenDB_MySQL extends OpenDB_{
   var $conn;      /* pripojeni (dblink)- vysledek po volani mysql_connect (mysql_pconnect) */
   var $parse;     /* dotaz sql - vysledek parse */
   var $data;      /* struktura, ve ktere je radek z databaze */

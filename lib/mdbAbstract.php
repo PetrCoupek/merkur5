@@ -8,9 +8,11 @@
   *  add offset parameter
   *  05.06.2023 - prepare for consistent treating possible BLOBS (=as strings) in databases (aka Oracle)
   *  02.11.2023 - minor improvement in meta-doc (method data returnns generally object type)
+  *  29.07.2025 - new, not colliding abstract name
+  *
  */
- 
-abstract class OpenDB {
+
+abstract class OpenDB_ {
   var $conn;      // pripojeni - vysledek po volani ocilogon
   var $parse;     // dotaz sql - vysledek ociparse
   var $data;      // struktura, ve ktere je radek z databaze
@@ -104,11 +106,12 @@ abstract class OpenDB {
    * This method returns current attribute value
    * @return hash with the current fetched row values BLOB are converted to strings.
    */
-  function DataHash(){
+  function DataHash()
+  {
     $h=array();
-    if ($this->data) foreach ($this->data as $k=>$v){
-      $h[$k]=isset($this->data[$k])?(
-       (gettype($this->data[$k])=="string")?$v:$this->data[$k]->load()):'';      
+    if ($this->data) 
+      foreach ($this->data as $k=>$v){
+        $h[$k]=isset($this->data[$k])?((gettype($this->data[$k])=="string")?$v:(string)$v):'';      
     }
     return $h;  
   }  
@@ -124,7 +127,7 @@ abstract class OpenDB {
   function SqlFetch($prikaz,$bind=array()){
     /* zjednoduseni nacteni hodnoty z db primo do promenne */
     if (!$this->Sql($prikaz,$bind) && $this->FetchRowA() ) {
-      if (gettype($this->data[0])=="object"){
+      if (gettype($this->data[0])=="object" && !M5_NOT_LOAD_CLOB ){
         return (string)($this->data[0]->load()); /* Oracle BLOB */
       }else{
         return (string)($this->data[0]);

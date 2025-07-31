@@ -3,11 +3,12 @@
  *  
  *  @author Petr Coupek
  *  29.10.2014, 22.1.2019, 08.01.2024
+ *  29.07.2025 abstract class name change
  */
 
 include_once "mdbAbstract.php";
  
-class OpenDB_ODBC extends OpenDb{
+class OpenDB_ODBC extends OpenDb_{
   var $conn;       /* pripojeni - vysledek po volani odbc_connect */
   var $parse;      /* dotaz sql - vysledek odbc_exec */
   var $data;       /* struktura, ve ktere je radek z databaze */

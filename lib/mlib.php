@@ -1,7 +1,6 @@
 <?php
-/** mlib.php - Merkur5 core library
+/** mlib.php - Merkur5 core library: M5_core class, M5 class and global functions
  *
- * There are some default actions when the core starts (executable part).
  * This file contains the framework's core essentials.
  * The abstract class M5_core is the startpoint for client-server functionality.
  * The class M5 could be used directly or could be override with the real one.
@@ -9,80 +8,128 @@
  *
  * @author Petr Čoupek
  * @package Merkur5
- * @version 0.533-200325
+ * @version 0.54-310725
  */
-/* compatability  */
-if (!defined('PHP_VERSION_ID')) {
-    $_version = explode('.', PHP_VERSION);
-    define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
-}
-if (!defined('__DIR__')) {
-    define('__DIR__', dirname(__FILE__));
-}
-define('M5_VERSION', '0.532-190325');
-define('M5_HTML_ESCAPE', true);
-/* executable part */
 
-ini_set('default_charset', 'utf-8');
-set_time_limit(0);
-spl_autoload_register("m5_autoload"); /* $errcontext=null pro PHP8 */
-set_error_handler(
-    function ($errno, $errstr, $errfile, $errline, $errcontext = null) {
-        /* error was suppressed with the @-operator */
-        /* $errcontext is attached object with all the details - do not print_r it ! */
-        if (0 === error_reporting()) {
-            return false;
-        }
-        M5::set('errors', M5::get('errors') . "M5: $errstr, $errno, $errfile, $errline " . gettype($errcontext) . "\n");
-        return true; /* stop error propagation at this moment */
-    });
-
-M5_core::iniset();
-
-/* the attempt to load global parametres stored in $GLOBALS or defined constants ..*/
+/* the attempt to load setting for the application at global level */
 if (file_exists('ini.php')) include_once 'ini.php';
 
-/* done.. */
+M5_core::iniset();
+      
 
-/** Abstract class with the core functionality */
+/** Abstract class M5_core with the core functionality
+ * This class provides the basic functionality of the framework.
+ * 
+ * */
 abstract class M5_core
 {
 
-    public static $ent = array();
+    public static $ent = [];
 
     /** initialize of internal variables - the registry pattern
      *  It is called in the mlib library itself
      */
     static function iniset()
     {
-        self::set('debug', false);  /* debug status */
-        self::set('errors', '');    /* erors area for debug mode */
-        //tick('start');
-        self::set('header', '');    /* header text */
-        self::set('htfr', '');      /* frontend content - scripts and styles */
-        self::set('htpr', '');      /* output text/html buffer */
-        self::set('actions', '');   /* intended for menu-actions */
-        self::set('endpart', '');   /* HTML part at the end of the HTML body element  */
-        self::set('http_lan', 'C'); /* initial language */
-        self::set('immediate', false); /* in CLI, you can output immediatelly, no to wait when script ends */
-        self::set('path_current', str_replace('\\', '/', dirname(dirname(__FILE__)))); /* it requires to be called from subdir lib*/
-        self::set('path_relative', str_replace($_SERVER['DOCUMENT_ROOT'], '', self::get('path_current')));
-        self::set('routes', []);    /* initial route rules */
-        self::set('sapi_name', php_sapi_name()); /* when =='cli' command line script is running */
-        self::set('title', ''); /* title text */
-        self::set('version', '(c) SmallM 2024'); /* version text */
-        self::set('DATA', self::getparm());
+      if (file_exists('m5.ini')) include_once 'm5.ini';
+      /* compatability  */
+      if (!defined('PHP_VERSION_ID')) {
+        $_version = explode('.', PHP_VERSION);
+        define('PHP_VERSION_ID', ($_version[0] * 10000 + $_version[1] * 100 + $_version[2]));
+      }
+      if (!defined('__DIR__')) define('__DIR__', dirname(__FILE__));
+      define('M5_VERSION', '0.536-020725');
+      if (!defined('M5_HTML_ESCAPE')) define('M5_HTML_ESCAPE', true);
+      if (!defined('M5_SHUTDOWN_FUNCTION')) define('M5_SHUTDOWN_FUNCTION', true); /* when true, the shutdown function is registered */
+      if (!defined('M5_ERROR_HANDLER')) define('M5_ERROR_HANDLER', true); /* when true, the error handler is registered */
+      if (!defined('M5_TIME_LIMIT')) define('M5_TIME_LIMIT', 0); /* default time limit for script execution */
 
-        register_shutdown_function("M5_core::m5_shutdown_handler");
+      /* executable part */
+      ini_set('default_charset', 'utf-8');
+      set_time_limit(M5_TIME_LIMIT); /* set time limit for script execution */
+      self::set('debug', false);  /* debug status */
+      self::set('errors', '');    /* erors area for debug mode */
+      self::set('header', '');    /* header text */
+      self::set('htfr', '');      /* frontend content - scripts and styles */
+      self::set('htpr', '');      /* output text/html buffer */
+      self::set('actions', '');   /* intended for menu-actions */
+      self::set('endpart', '');   /* HTML part at the end of the HTML body element  */
+      self::set('http_lan', 'C'); /* initial language */
+      self::set('immediate', false); /* in CLI, you can output immediatelly, no to wait when script ends */
+      self::set('path_current', str_replace('\\', '/', dirname(dirname(__FILE__)))); /* it requires to be called from subdir lib*/
+      self::set('path_relative', str_replace($_SERVER['DOCUMENT_ROOT'], '', self::get('path_current')));
+      self::set('routes', []);    /* initial route rules */
+      self::set('sapi_name', php_sapi_name()); /* when =='cli' command line script is running */
+      self::set('title', ''); /* title text */
+      self::set('version', '(c) SmallM 2024'); /* version text */
+      self::set('html_escape', M5_HTML_ESCAPE); /* HTML escape status */
+      self::set('DATA', self::getparm());
+      self::set('htptemp', ''); /* HTML template for the output */
+      spl_autoload_register("M5_core::autoload"); /* $errcontext=null pro PHP8 */
+      if (M5_ERROR_HANDLER) set_error_handler("M5_core::error_handler"); /* set error handler */
+      if (M5_SHUTDOWN_FUNCTION) register_shutdown_function("M5_core::shutdown_handler");
+
     }
 
-    static function m5_shutdown_handler()
+    static function error_handler($errno, $errstr, $errfile, $errline, $errcontext = null) 
+    {
+      /* error was suppressed with the @-operator */
+      /* $errcontext is attached object with all the details - do not print_r it ! */
+      if (0 === error_reporting()) {
+         return false;
+      }
+      self::set('errors', self::get('errors') . "M5: $errstr, $errno, $errfile, $errline " . gettype($errcontext) ."\n");
+      return true; /* stop error propagation at this moment */
+    }
+
+    static function shutdown_handler()
     {
         deb('M5 shutdown: ' . print_r(error_get_last(), true), false);
-        if (error_get_last() != NULL) {
+        if (error_get_last() != NULL && error_reporting() != 0) {
             self::done();
             //exit(); /* this simply not to stop the script in all situations by division a zero in eval function, see done method */
         }
+    }
+
+    /** PHP Autoload function
+     * @param $class Class
+     * @return none
+     */
+    static function autoload($class)
+    {
+       /* rizeny autoload jednotlivych modulu  zakladni knihovny */
+       $path = __DIR__; /* $path by mel obsahovat cestu z zakladni knihovne lib, ktera je nactena jeko prvni */
+       $f = [
+        'VisTab' => $path . '/vistab.php',
+        'EdiTab' => $path . '/vistab.php',
+        'OpenDB_Oracle' => $path . '/mdbOracle.php',
+        'OpenDB_MySQL' => $path . '/mdbMySQL.php',
+        'OpenDB_SQLite' => $path . '/mdbSQLite.php',
+        'OpenDB_ODBC' => $path . '/mdbODBC.php',
+        'Cm' => $path . '/mlib_cm.php'
+       ];
+       foreach ($f as $k => $v) {
+         if ($k == $class) {
+           require $v;
+           return 1;
+         }
+       }
+       /* look at the lib directory: the required name should be the same as the file */
+       if (file_exists('lib/' . $class . '.php')) {
+         require 'lib/' . $class . '.php';
+         return 1;
+       }
+       if (file_exists($path . '/' . $class . '.php')) { /* pokud je path nenulova */
+          require $path . '/' . $class . '.php';
+          return 1;
+       }
+      if (file_exists('php/' . $class . '.php')) {
+         require'php/' . $class . '.php';
+         return 1;
+      }
+      /* if the class is not found, then it is not fatal error */
+      deb('M5: Class ' . $class . ' not found in autoload', false);
+      return 0;
     }
 
 
@@ -143,7 +190,7 @@ abstract class M5_core
 
     static public function route()
     {
-        getparm();  /* minimal route is to call getparm() */
+        //getparm();  /* minimal route is to call getparm() */
     }
 
     /** put text into output text/html buffer */
@@ -185,12 +232,11 @@ abstract class M5_core
         } else {
             if (self::get('title') == '') self::set('title', self::get('header'));
             self::set('htptemp',
-                str_replace('#TITLE#', self::get('title'),
-                    str_replace('#HEADER#', self::get('header'),
-                        str_replace('#BODY#', self::get('htpr'),
-                            str_replace('#ACTIONS#', self::get('actions'),
-                                str_replace('#___#', self::get('htfr'),
-                                    str_replace('#ENDPART#', self::get('endpart'), self::get('htptemp'))))))));
+              str_replace(['#TITLE#','#HEADER#','#BODY#',
+                           '#ACTIONS#','#___#','#ENDPART#'],
+                          [self::get('title'),self::get('header'),self::get('htpr'),
+                           self::get('actions'),self::get('htfr'),self::get('endpart')],
+                          self::get('htptemp')));
             if (self::get('debug')) {
                 self::set('htptemp',
                     str_replace('#ERRORS#',
@@ -214,20 +260,27 @@ abstract class M5_core
      */
     static function htpr_replace($r, $s)
     {
-        self::set('htpr', str_replace($r, $s, self::get('htpr')));
+      self::set('htpr', str_replace($r, $s, self::get('htpr')));
     }
 
-    /** Registry design template for strings - common setter */
+    /** Registry design template for strings - common setter
+     * @param string $k - key
+     * @param string $v - value
+     * @return void
+     */
     static function set($k, $v)
     {
-        self::$ent[$k] = $v;
+      self::$ent[$k] = $v;
     }
 
-    /** Registry design template for strings - common getter */
+    /** Registry design template for strings - common getter
+     * @param string $k - key
+     * @return string - value
+    */
     static function get($k)
     {
-        /* common setter for class variables */
-        return isset(self::$ent[$k]) ? self::$ent[$k] : '';
+      /* common setter for class variables */
+      return isset(self::$ent[$k]) ? self::$ent[$k] : '';
     }
 
     static function getparm()
@@ -407,55 +460,7 @@ abstract class M5 extends M5_core
 
 }
 
-/* global functions and global aliases */
-
-/**
- * Global function: Autoload function
- *
- * The core library lib.php defines and activates this function via spl_autoload_register.
- * The function provides autoload queue .
- * Incorporated parts/classes of the framework system are then instatnly available without using require statement.
- * Currently are suppoerted : Edit_table, View_table, OpenDB* classes and Cm class.
- * @param $class Class
- * @return none
- */
-
-function m5_autoload($class)
-{
-    /* rizeny autoload jednotlivych modulu  zakladni knihovny */
-    $path = __DIR__; /* $path by mel obsahovat cestu z zakladni knihovne lib, ktera je nactena jeko prvni */
-    //echo $path,";";  //puvodne $path='lib';
-    $f = array('VisTab' => $path . '/vistab.php',
-        'EdiTab' => $path . '/vistab.php',
-        'OpenDB_Oracle' => $path . '/mdbOracle.php',
-        'OpenDB_MySQL' => $path . '/mdbMySQL.php',
-        'OpenDB_SQLite' => $path . '/mdbSQLite.php',
-        'OpenDB_ODBC' => $path . '/mdbODBC.php',
-        'Cm' => $path . '/mlib_cm.php'
-    );
-    foreach ($f as $k => $v) {
-        if ($k == $class) {
-            require($v);
-            return 1;
-        }
-    }
-    /* ostatni tridy jsou ve slozkach lib (systemove) nebo php (aplikacni) */
-    if (file_exists('lib/' . $class . '.php')) {
-        require('lib/' . $class . '.php');
-        return 1;
-    }
-    if (file_exists($path . '/' . $class . '.php')) { /* pokud je path nenulova */
-        require($path . '/' . $class . '.php');
-        return 1;
-    }
-    if (file_exists('php/' . $class . '.php')) {
-        require('php/' . $class . '.php');
-        return 1;
-    }
-}
-
-
-/* globl function aliasses */
+/* global function aliasses */
 
 /** The function "prints" the HTML content into a HTML buffer M5::get('htptemp')
  *
@@ -523,12 +528,13 @@ function gl()
  *  It publishes the $DATA hash as a global.
  *  No params.
  * @return none
+ * obsolete, use M5::getparm() instead
  */
 
 function getparm()
 {
-    global $DATA;
-    $DATA = M5::getparm();
+ //   global $DATA;
+ //   $DATA = M5::getparm();
 }
 
 /** Debugging tool in the framework Prints debug information about a PHP variable.
@@ -541,7 +547,7 @@ function getparm()
 
 function deb($t, $btrace = true)
 {  /* funkce realizujici ladici vypisy */
-    $d = $btrace ? debug_backtrace() : '';  /* zjisti, odkud byla funkce deb zavolana */
+    $d = $btrace ? debug_backtrace() : [];  /* zjisti, odkud byla funkce deb zavolana */
     $s = '';
     for ($i = 0; isset($d[$i]); $i++) {
         $s .= (isset($d[$i]['file']) ? $d[$i]['file'] : '') . ':' .
@@ -1009,9 +1015,9 @@ function submit($name, $value, $class = 'btn btn-primary', $title = '')
  * @return string HTML
  */
 
-function subres($class = 'ui-button ui-widget ui-corner-all')
+function subres($class = 'btn btn-secondary')
 {
-    return tg('input type="reset" value="Reset" class="' . $class . '"');
+    return tg('input type="reset" value="Reset" class="' . $class . '"','noslash');
 }
 
 /** The Function returns a HTML td tag for contruction HTML tables
@@ -1172,7 +1178,7 @@ function http_lan_text($text1, $text2)
 function getpar($key,$default='',$html=true)
 {  
   if (isset(M5::$ent['DATA'][$key])) {
-    if ($html && M5_HTML_ESCAPE) {
+    if ($html && M5::$ent['html_escape']) {
       $mask=ENT_QUOTES|ENT_SUBSTITUTE|ENT_HTML401;  
       if (is_array(M5::$ent['DATA'][$key])) {
         $a=[];
@@ -1209,9 +1215,11 @@ function setpar($key, $value)
 
 function getpars()
 {
-    global $DATA;
-    return $DATA;
+    //global $DATA;
+    //return $DATA;
+    return M5::$ent['DATA'];
 }
+
 
 /** This function returns true value when the input string represents a formally valid e-mail address
  * @param string $email - the address to be formally validated

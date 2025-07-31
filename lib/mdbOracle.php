@@ -12,10 +12,14 @@
   * 24.01.2024 - sql error diagnostic, debug attr.
   * 11.03.2024 - repair bug in pragma 
   * 21.05.2024 - parametr version + osetreni starsich verzi Oracle
+  * 24.07.2025 - test if parameter $bind is an array 
   */
 include_once "mdbAbstract.php";
+if (!defined('M5_NOT_LOAD_CLOB')) define('M5_NOT_LOAD_CLOB',false); // do not load CLOBs as strings, but as objects
+
  
-class OpenDB_Oracle extends OpenDB{
+class OpenDB_Oracle extends OpenDB_
+{
   var $conn;      // pripojeni - vysledek po volani ocilogon
   var $parse;     // dotaz sql - vysledek ociparse
   var $data;      // struktura, ve ktere je radek z databaze
@@ -37,12 +41,14 @@ class OpenDB_Oracle extends OpenDB{
    * @param string $connect - connection string
    * @return OpenDB_Oracle a new database wrapper object, or false when connection was not established
    */
-  function __construct($connect){ 
+  function __construct($connect)
+  { 
     $this->typedb='oracle';
     //putenv ("NLS_LANG=CZECH_CZECH REPUBLIC.EE8MSWIN1250");
     putenv ("NLS_LANG=CZECH_CZECH REPUBLIC.AL32UTF8");   //?jede
     putenv ("NLS_NUMERIC_CHARACTERS=.,");
-    putenv ("NLS_DATE_FORMAT=DD.MM.YYYY"); 
+    putenv ("NLS_DATE_FORMAT=DD.MM.YYYY");
+    //putenv ("TNS_ADMIN=c:\oracle_client_32"); 
     $m=array();
     if (preg_match('/^dsn=(.+);uid=(.+);pwd=(.+)$/i',$connect,$m)){  
       $this->conn=@oci_connect($m[2],$m[3],$m[1],$this->charset);
@@ -65,7 +71,8 @@ class OpenDB_Oracle extends OpenDB{
     }  
   }
   
-  function __destruct(){
+  function __destruct()
+  {
     if ($this->conn) {oci_close($this->conn);}
     $this->conn=null;
   }
@@ -77,9 +84,10 @@ class OpenDB_Oracle extends OpenDB{
    * @param array $bind - list of bind parameters
    * @return boolean, true when an error has occured, false on success
    */
-  function Sql($command,$bind=array()){
+  function Sql($command,$bind=array())
+  {
     $this->parse=@oci_parse($this->conn,$command);
-    if (count($bind)){
+    if (is_array($bind) && count($bind)){
       foreach($bind as $k=>$v){
          @oci_bind_by_name($this->parse,$k,$bind[$k]); /* pozor $v nefunguje! musi byt $bind[$k] !*/
       }
@@ -118,7 +126,8 @@ class OpenDB_Oracle extends OpenDB{
    * @param string $lob_content - LOB content 
    * @return boolean, true when an error has occured, false on success
    */
-  function SqlLOB($command,$lob_field,$lob_content){
+  function SqlLOB($command,$lob_field,$lob_content)
+  {
     $delkalob=100000;
     $this->parse=@ociparse($this->conn,$command);
     $clob = @oci_new_descriptor($this->conn, OCI_DTYPE_LOB); // OCI_D_LOB ?
@@ -154,13 +163,54 @@ class OpenDB_Oracle extends OpenDB{
    * Provide fetch of one row of the data from the database table to the local Hash
    * @return boolean, true when next row has been fetched, false at the end of data
    */  
-  function FetchRow(){
+  function FetchRow()
+  {
     if($this->data=@oci_fetch_array($this->parse,OCI_ASSOC+OCI_RETURN_NULLS)){
       return $this->data;
     }else{
       return false;
     }   
   }
+
+
+/** $value = $db->DataHash();
+   * 
+   * This method returns current attribute value
+   * @return hash with the current fetched row values BLOB are converted to strings.
+   */
+  function DataHash()
+  {
+    $h=array();
+    if ($this->data) 
+      foreach ($this->data as $k=>$v){
+        $h[$k]=isset($this->data[$k])?(
+         (gettype($this->data[$k])=="object" && !M5_NOT_LOAD_CLOB)?$this->data[$k]->load():$v):'';      
+    }
+    return $h;  
+  }  
+ 
+ 
+  /** $string = $db->SqlFetch($sql_command);
+   * 
+   * combine Sql and FetchRow method into one step and returns data hash 
+   * @param string $command - and sql command
+   * @param array $bind - list of bind parameters
+   * @return string with the data content
+   */
+  function SqlFetch($prikaz,$bind=array())
+  {
+    /* zjednoduseni nacteni hodnoty z db primo do promenne */
+    if (!$this->Sql($prikaz,$bind) && $this->FetchRowA() ) {
+      if (gettype($this->data[0])=="object" && !M5_NOT_LOAD_CLOB ){
+        return (string)($this->data[0]->load()); /* Oracle BLOB */
+      }else{
+        return (string)($this->data[0]);
+      }  
+    }else{
+      return '';
+    }  
+  }
+
   
   /** $error = $db->Pragma("table_info('TABLE_NAME'");
    * 
@@ -168,7 +218,8 @@ class OpenDB_Oracle extends OpenDB{
    * @param string $command - table info pragma
    * @return boolean, true when an error has occured, false on success
    */
-  function Pragma($command){
+  function Pragma($command)
+  {
     /* metoda vraci strukturu s udaji - napr. struktura tabulky a nebo false v pripade chyby*/
     /* duvodem teto metody je sjednoceni pristupu k datovemu katalogu napric databazemi */
     $m=array(); $struktura=array();
@@ -244,7 +295,8 @@ class OpenDB_Oracle extends OpenDB{
    * Provide fetch of one row of the data from the database table to the local Array
    * @return boolean, true when next row has been fetched, false at the end of data
    */ 
-  function FetchRowA(){
+  function FetchRowA()
+  {
     if($this->data=@oci_fetch_array($this->parse,OCI_NUM+OCI_RETURN_NULLS)){
       return $this->data;
     }else{
@@ -261,7 +313,8 @@ class OpenDB_Oracle extends OpenDB{
    * @param integer $offset - start position in the select, default=1, has sense only if select is ordered
    * @return array  with the data content
    */
-  function SqlFetchArray($prikaz,$bind=array(),$limit=0,$offset=1){
+  function SqlFetchArray($prikaz,$bind=array(),$limit=0,$offset=1)
+  {
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
     $a=[];
     if ($offset>1 && (int)$this->version>12){

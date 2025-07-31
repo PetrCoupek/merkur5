@@ -2,11 +2,11 @@
 /** Database wrapper for the  PostgreSQL database
  * @author Petr Coupek
  * 11.10.2021
- * 
+ * 29.07.2025 abstract class name change
  */
 include_once "mdbAbstract.php";
 
-class OpenDB_pg extends OpenDB{
+class OpenDB_pg extends OpenDB_{
   var $conn;       //pripojeni - vysledek po volani ocilogon
   var $parse;      //dotaz sql - vysledek ociparse
   var $data;       //struktura, ve ktere je radek z databaze

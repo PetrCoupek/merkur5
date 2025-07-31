@@ -7,10 +7,13 @@
  /*  29.10.2014-2021
   * 21.06.2023 - 
   * 04.12.2023 - oprava naplneni chybovaho stavu
+  * 25.06.2025 - PHP 8.4 compatability
+  * 29.07.2025 abstract class name change
   */
 include_once "mdbAbstract.php";
  
-class OpenDB_SQLite extends OpenDB{
+class OpenDB_SQLite extends OpenDB_
+{
   var $conn;       /* pripojeni - vysledek po volani objektu SQLite3 */
   var $parse;      /* dotaz sql - SQLite3 objekt, ktery (zpravidla) obsahuje vysledek dotazu */
   var $data;       /* struktura, ve ktere je radek z databaze */
@@ -27,8 +30,8 @@ class OpenDB_SQLite extends OpenDB{
    * @param string $connect - connection string
    * @return a new database wrapper object, or false when connection was not established
    */
-  function __construct($connect){
-    /* konstruktor, ktery vytvori pripojeni do DB a nebo da chybu - tu tiskne htpr */
+  function __construct($connect)
+  {
     $this->typedb='sqlite';
     $m=array();
     if (preg_match('/^file=(.+)\,mode=(.+)$/i',$connect,$m)){
@@ -51,8 +54,7 @@ class OpenDB_SQLite extends OpenDB{
       }else{
         $this->stav=true;
         $this->Error='';
-        //$this->conn->enableExceptions(true);
-        $this->conn->enableExceptions(false);
+        if (PHP_VERSION_ID<80300)  $this->conn->enableExceptions(false);
         return $this->stav; 
       }
     }else{
@@ -70,7 +72,8 @@ class OpenDB_SQLite extends OpenDB{
    * @param array $bind - list of bind parameters
    * @return boolean, true when an error has occured, false on success
    */
-  public function Sql($command,$bind=array()){
+  public function Sql($command,$bind=array())
+  {
     $errorCode=0;
     $errorReportingLevel = error_reporting(); /* poznamena uroven vypisovani chyb*/
     //error_reporting(0);
@@ -125,7 +128,8 @@ class OpenDB_SQLite extends OpenDB{
    * @param string $command - table info pragma
    * @return boolean, true when an error has occured, false on success
    */
-  function Pragma($command){
+  function Pragma($command)
+  {
     /* metoda vraci strukturu s udaji - napr. struktura tabulky a nebo false v pripade chyby*/
     /* duvodem teto metody je sjednoceni pristupu k datovemu katalogu napric databazemi */
      $m=array(); 
@@ -173,7 +177,8 @@ class OpenDB_SQLite extends OpenDB{
    * Provide fetch of one row of the data from the database table to the local Hash
    * @return boolean, true when next row has been fetched, false at the end of data
    */  
-  function FetchRow(){
+  function FetchRow()
+  {
     /* pritahovani vet - asoc pole - nepracuje v pripade chyby prikazu insert */
     if (is_object($this->parse)) {
       try{
@@ -197,7 +202,8 @@ class OpenDB_SQLite extends OpenDB{
    * Provide fetch of one row of the data from the database table to the local Array
    * @return boolean, true when next row has been fetched, false at the end of data
    */ 
-  function FetchRowA(){
+  function FetchRowA()
+  {
     /* pritahovani dat - jako pole */
     if ($this->parse) try{
       if($this->data=$this->parse->fetchArray(SQLITE3_NUM)){
@@ -219,7 +225,8 @@ class OpenDB_SQLite extends OpenDB{
    *   automatic case sensitivity detection 
    * @return string with the attribute value
    */
-  function Data($sloupec){
+  function Data($sloupec)
+  {
     /* vraceni dat resi case sensitivitu */
     if (isset($this->data[$sloupec])) {
       return $this->data[$sloupec];
@@ -237,7 +244,8 @@ class OpenDB_SQLite extends OpenDB{
    * This method returns current attribute value
    * @return hash with the current fetched row values
    */
-  function DataHash(){
+  function DataHash()
+  {
     return (array)$this->data;
   }  
  
@@ -245,7 +253,8 @@ class OpenDB_SQLite extends OpenDB{
    * 
    * Closes the database connection
    */  
-  function Close(){
+  function Close()
+  {
     if ($this->conn) {$this->conn->close();}
   }
 }

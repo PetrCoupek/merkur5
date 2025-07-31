@@ -26,7 +26,8 @@
  * 14.10.2024 - sidebar d-print none
  * 06.11.2024 - M5_ERROR_CLASS
  * 26.11.2024 - oprava razeni seznamu uzivatelu a skupin
- * 27.11.2024 - uprava vzhledu, refaktoring 
+ * 27.11.2024 - uprava vzhledu, refaktoring
+ * 25.06.2025 - str_replace optimization
  * *  */
 define('M5_CM_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
 define('M5_CM_ERROR_HANDLER',true);
@@ -199,7 +200,7 @@ class Cm{
 
   static function remcr($vstup){
     /* odstrani odradkovani z radku nacteneho souboru - pro passwd */
-    return str_replace("\t",'',str_replace("\n",'',str_replace("\r",'',$vstup)));
+    return str_replace(["\t","\n","\r"],'', $vstup);
   }
 
   /**  MCMS Tree getter
