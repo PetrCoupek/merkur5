@@ -7,7 +7,12 @@
 
 include_once '../lib/mlib.php';
 include_once '../lib/mbt.php';
-define('DBFILE',"d:/Data/sqlite/gdo_data.sqlite");
+
+$datafile="d:/Data/sqlite/gdo_data.sqlite";
+if (strstr($_SERVER['DOCUMENT_ROOT'],'/mnt/')){
+  $datafile=str_replace('d:','/mnt/d',$datafile,);
+}
+define('DBFILE',$datafile);
 
 class App extends M5{
   static $dbconnect="file=".DBFILE.",mode=1";

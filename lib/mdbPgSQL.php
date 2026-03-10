@@ -22,7 +22,7 @@ class OpenDB_pg extends OpenDB_{
    * @param string $connect - connection string
    * @return OpenDB_pg a new database wrapper object, or false when connection was not established
    */
-  function OpenDB_pg($napojeni){
+  function __construct($napojeni){ //změna na __construct R.A
     $m=array();
     if (preg_match('/^dns=(.+);uid=(.+);pwd=(.+)$/i',$napojeni,$m)){
       if (preg_match('/^(.+)\:(.+)\:(.+)$/i',$m[1],$mm)) {
@@ -63,6 +63,8 @@ class OpenDB_pg extends OpenDB_{
    */ 
   function Sql($dotaz,$bind=array()){
     if (!isset($this->conn)) {
+      return -1;
+    } else if ($dotaz == '') { //přidáno if pro prázdný dotaz, prepare jinak skončí fatal errorem R.A
       return -1;
     }
     try{
@@ -275,10 +277,19 @@ class OpenDB_pg extends OpenDB_{
    * @param array $bind - list of bind parameters
    * @return array with the data content
    */
-  function SqlFetchArray($prikaz,$limit=0,$bind=array()){
+
+function SqlFetchArray($prikaz,$bind=array(), $limit=0, $offset=1){ //prohozeni bind a limit, pridano parametru offset a limit R.A
     /* zjednoduseni nacteni celeho vysledku select primo do pole v PHP s volitelnym limitem */
     $a=array();
     //$a= new SplFixedArray(10000);$i=0;
+    
+    if ($offset > 0 || $limit > 0) {
+      $prikaz .= " OFFSET " . ($offset - 1);
+      if ($limit > 0) {
+        $prikaz .= " LIMIT " . $limit;
+      }
+    }
+    
     if (!$this->Sql($prikaz,$bind)){
       while ($this->FetchRow()){
         array_push($a,$this->DataHash());
@@ -288,6 +299,7 @@ class OpenDB_pg extends OpenDB_{
     }
     return $a;    
   }
+
   
   /** $error = $db->SqlFetchKeys($sql_command,$key)
    * 

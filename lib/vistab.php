@@ -35,6 +35,7 @@
  *  18.03.2025 - úprava filter, vracení, detail_single je pro nahrazení.
  *  23.07.2025 - implementace skrytého parametru _more pro opakování stejné podmínky pro další atributy
  *  24.07.2025 - kompatabilita pro zadání starých parametrů při editaci
+ *  12.02.2026 - přidání ladící informace, oprava ladění při nenaplněném pk
  *  */ 
 include_once "mbt.php";
 if (!defined('M5_HTML_ESCAPE')) {
@@ -88,8 +89,8 @@ function __construct($param,$db)
     $this->header=(isset($param['header'])?$param['header']:'');
     $this->sCmd=$param['sprikaz'];
     $this->cCmd=$param['cprikaz'];
-    $this->pragma=$param['pragma']; 
-    $this->dCmd=(isset($param['dprikaz'])?$param['dprikaz']:$this->sCmd);
+    $this->pragma=$param['pragma'];
+    $this->dCmd=(isset($param['dprikaz'])?$param['dprikaz']:$this->sCmd);  
     $this->pk=$this->construct_pk();
   }elseif(isset($param['sCmd']) && isset($param['cCmd'])){
     $this->header=(isset($param['header'])?$param['header']:'');
@@ -471,7 +472,9 @@ function genfilter($sCmd,$order_by=true)
   $where=getpar('_whr','',false); /* důležité nabrat nepoškozené parametry */
   $sCmd=preg_replace("/\x0d/",' ',$sCmd);
   $sCmd=preg_replace("/\x0a/",' ',$sCmd); /* remove newlines to be regular expression functional */
-  $oby=(getpar('_o')!='' && $order_by)?(getpar('_o').','.$this->pk):'';
+
+  $oby=(getpar('_o')!='' && $order_by)?(getpar('_o').($this->pk?',':'').$this->pk):'';
+  
   $whr=(getpar('_whr')!='')?(' where '.$where):'';
   $whradd=(getpar('_whr')!='')?(' and '.$where):'';
   
@@ -910,6 +913,10 @@ function route($context)
 function insert()
 {
   $er=$this->db->Sql($this->iCmd,$this->bind);
+  if ($this->debug_mode) {
+    deb('VISTAB insert: '.$this->iCmd,false);
+    deb($this->bind,false);
+  }  
   if ($this->debug_mode) deb('EDITAB insert: '.$this->iCmd,false);
   if (!$er){
     htpr(bt_alert('Záznam vložen'));
@@ -958,6 +965,10 @@ function gen_pk_cond($string_escape=true)
 function update()
 {
   $er=$this->db->Sql($this->uCmd,$this->bind);
+  if ($this->debug_mode) {
+    deb('VISTAB update: '.$this->uCmd,false);
+    deb($this->bind,false);
+  }  
   if (!$er){
     htpr(bt_alert('Záznam byl uložen'));
     $this->mode='e'; 
@@ -974,6 +985,10 @@ function update()
 function delete()
 {
   $er=$this->db->Sql($this->rCmd,$this->bind);
+  if ($this->debug_mode) {
+    deb('VISTAB delete: '.$this->rCmd,false);
+    deb($this->bind,false);
+  }  
   if (!$er){
     htpr(bt_alert('Záznam smazán'));
     setpar('_ofs',1);

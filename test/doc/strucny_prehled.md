@@ -16,7 +16,7 @@ Jednotlivé kapitoly textu jsou:
 - [Třída VisTab - vizualizace databázové entity](#třída-vistab---vizualizace-databázové-entity)
 - [Třída EdiTab - editace databázové entity](#třída-editab---editace-databázové-entity)
 - [Třída Cm - systém správy obsahu pro komplexní aplikaci](#třída-cm---systém-správy-obsahu-pro-komplexní-aplikaci)
-
+- [Problematika HTML a SQL injection](#problematika-html-a-sql-injection)
 
 ## Modul M5 - základ pro návrh aplikace
 
@@ -774,7 +774,7 @@ class SOGtab extends Vistab{
 
 Zde je funkce **modify_row_before_print()** volána s datovým obsahem získaného řádku a předpokládá se, že příslušný řádek je vrácen v podobě, která se následně vytiskne. To dává široký prostor pro řešení rozličných vzhledových a funkčních požadavků na seznam.
 
-Většinou také dochází k nahrazení strojově vytvořeného detailu vlastní stránkou. Využijeme další vlastnosti třídy Vistab a nahradíme její metodu **detail()** vlastním kódem. ¨
+Většinou také dochází k nahrazení strojově vytvořeného detailu vlastní stránkou. Základní metodat "Vistab::detail()" obsahuje funkcionalitu listování a vracení se z detailu. Samotný obsah se generuje voláním metody **detail_single()**, která je připravena pro nahrazení vlastním kódem. ¨
 
 Opět se jedná o reálnou situaci ze stejné aplikace:
 
@@ -782,7 +782,7 @@ Opět se jedná o reálnou situaci ze stejné aplikace:
 ```php
 class SOGtab extends Vistab{
 
-  function modify_row_before_print($row){
+  function modify_row_before_print($row,$context=''){
     if ($row['SOG_JE_NENI_SD_KOD']=='Y') $row['SOG_JE_NENI_SD_KOD']=tg('span','class="text-success"',bt_icon('check-circle'));
     if ($row['SOG_JE_NENI_SD_KOD']=='N') $row['SOG_JE_NENI_SD_KOD']=tg('span','class="text-danger"',bt_icon('dash-circle'));
     if ($row['SOG_JE_NENI_SD_KOD']=='X') $row['SOG_JE_NENI_SD_KOD']='';
@@ -793,13 +793,10 @@ class SOGtab extends Vistab{
     return $row;
   }
 
-  function detail($context,$custom=''){
-    $dprikaz=$this->genfilter($this->dCmd,false);
-    $zaznam=$this->db->SqlFetchArray($dprikaz,[],1,getpar('_ofs',1)); /* skutecne zaznamy na zaklade podminky */
-    $custom=ta('div',sog_detail($zaznam[0],$this->db,$context)); /* zavolani skutecneho obsahu */
-    parent::detail($context,$custom);            /* funkcionalita listovani a navratu do seznamu, manipulace s $dprikaz se nepouzije */
+  function detail_single($context,$custom=''){  
+    $zaznam=$this->db->SqlFetchArray($this->dCmd,[],1,getpar('_ofs',1)); /* skutecne zaznamy na zaklade podminky */
+    return ta('div',sog_detail($zaznam[0],$this->db,$context)); /* zavolani skutecneho obsahu */
   }
-
 } 
 ```
 Nově vytvořená metoda **detail** má za úkol provést naplnění obsahu stránky s detailem do řetězce **$custom** a následně z důvodu listování, řazení a filtrování volat původní metodu.
@@ -1054,4 +1051,6 @@ Aplikace může rovněž využít evidenci uživatelských nastavení a pro uži
 
 Aplikační skripty vytvářené komplexní aplikace by měly být umístěny ve složce **php/** a jsou pomocí výše popsaného mechanismu inkludovány při běhu metody **App::$cms->folder()** . V samotné databázi se jen jméno inkludovaného souboru. Skript musí při GET a POST requestech předat aktuální hodnotu parametru item (nejlépe pomocí **getpar('item')** ). Skript dále může využít aktuální informace o přihlášeném uživateli a podle toho přizpůsobit svou funkcionalitu. Třída **Cm** používá PHP session, ve které udržuje jméno uživatelského účtu  **$_SESSION['uzivatel']** a může testovat, zde tento uživatel je v určité skupině pomocí **App::$cms->is_in_group('SKUPINA'))** , dále je k dispozici skript pro získání hodnoty daného atributu individuálního nastavení uživatele **App::$cms->get_user_setting('kod_atributu')** .
 
+
+## Problematika HTML a SQL injection
 

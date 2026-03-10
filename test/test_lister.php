@@ -11,12 +11,12 @@ M5::set('header','Test Lister');
 M5::set('debug',true);
 M5::skeleton('../');
 
-$db = new OpenDB_Oracle(CONN_APP_DKB_02);
+$db = new OpenDB_Oracle(DB_CONNECT);
 $where="id<18";
 $pole=$db->SqlFetchArray(
     "select id, nazev, ochrana_stup_kod, ochrana_kat_kod, ochrana_dop ".
-    "from dat_lok1.lok where $where",[],15,getpar('_ofs',1));
-$total=$db->SqlFetch("select count(*) as pocet from dat_lok1.lok where $where",[]);
+    "from dat_lok.lok where $where",[],15,getpar('_ofs',1));
+$total=$db->SqlFetch("select count(*) as pocet from dat_lok.lok where $where",[]);
 htpr(
    bt_lister(
       'Nalezené lokality',
