@@ -1,8 +1,8 @@
 <?php
 /**
- * Content Management System object
+ * Content Management System object - upravený Hackem pro GOD
  * @author Petr Čoupek 
- * @version 1.1
+ * @version 1.3
  * 28.2.2020 , 23.03.2020, 30.03.2020, 31.03.2020,  6.5.2020, 14.5.2020, 15.5.2020
  * 27.5.2020, 11.6.2020 18.8.2020 - localtime SQLite
  * 17.09.2020
@@ -24,109 +24,135 @@
  * 11.06.2024 - zmena vracene hodnoty v get_groups
  * 08.07.2024 - vyvojova verze, revize kodu, odstraneni registr shutdown function
  * 14.10.2024 - sidebar d-print none
- * 06.11.2024 - M5_ERROR_CLASS
+ * 06.11.2024 - m5_error_class - později jako parametr
  * 26.11.2024 - oprava razeni seznamu uzivatelu a skupin
  * 27.11.2024 - uprava vzhledu, refaktoring
  * 25.06.2025 - str_replace optimization
+ * 10.03.2026 - implementace skupiny LOGIN pro prihlasene uzivatele
+ * 03.06.2026 - implementace jazykove mutace
+ * 16.07.2026 - opravy, změna konstruktoru, zavedení parametrů, možnost měnit tabulku s účty
+ * 14.08.2026 - uživatel PUBLIC není členem skupiny LOGIN
+ * 07.10.2026 - sjednocení a opravy bt_dialog
  * *  */
-define('M5_CM_LDAP_SERVER','ldap://10.1.8.11:389'); /* replace with correct value when used - see pattern */
-define('M5_CM_ERROR_HANDLER',true);
-define('M5_ERROR_CLASS','m5-errors'); /* class for edit interface in edit mode in CM system */
 
-class Cm{
 
-  var $tree=[];  /* internal tree with menu items */
+class Cm {
+
+  var $tree = [];  /* internal tree with menu items */
   var $db, $table, $leftside, $ace_editor, $sysdate, $begin, $end, $concat, $debug, $default_node,
-   $user, $legacy, $afterEdit, $typy, $def_s_p, $dv, $def_la, $erh, $item, $err;
+   $user, $legacy, $afterEdit, $typy, $def_s_p, $dv, $def_la, $erh, $item, $err, $pars;
     
   /** constructor for the cms 
    * @param string $table - the name of the tree table
-   * @param object $db - allready initialized database object
-   * @param bool $leftside - indicator of the left side , default false
-   * @param bool $ldap - indicator, if is used LDAP authorization or a password file
+   * @param object $db    - initialized database object
+   * @param array  $pars  - parameters : 
+   * currently: 'leftside' (t/f), lef side with menu
+   *            'ldap' (t/f),  - LDAP accont checking
+   *            'ldap_server' - address for ldap server protocol - aka ldap://10.1.8.11:389
+   *            'table_user' (string) - name for alternative table with user accounts
+   *            'implicit_login' - an external implicit 
+   *            'error_handler' - if true, internal hander is used when app branch is called in folder, default true.
+   *            'm5_error_class' - the name of class for debugging , default m5-errors
    * 
    */ 
-  function __construct($table, $db, $leftside=false, $ldap=true){
-     $this->table=$table;
-     $this->leftside=$leftside;
-     $this->ace_editor=false; /* if ace JS --based editor is used for app's items */
-     $this->db=$db;
+  function __construct($table, $db, $pars) {
+     $this->table = $table;
+     $this->db = $db;
+     $this->pars = $pars;
+
+     $this->leftside = $pars['leftside']??false;
+     $ldap = $pars['ldap']??false;
+     if (!isset($this->pars['implicit_login'])){
+       $this->pars['implicit_login'] = '';
+     }
+     if (!isset($this->pars['error_handler'])){
+       $this->pars['error_handler'] = true;
+     }
+     if (!isset($this->pars['m5_error_class'])){
+       $this->pars['m5_error_class'] = 'm5-errors';
+     }
+
+     $this->ace_editor = false; /* if ace JS --based editor is used for app's items */
+
+     
      switch ($this->db->typedb){
        case 'sqlite': 
-         $this->sysdate="datetime('now','localtime')";
-         $this->begin="";
-         $this->end="";
-         $this->concat='||';
+         $this->sysdate = "datetime('now','localtime')";
+         $this->begin = "";
+         $this->end = "";
+         $this->concat = '||';
          break;
        case 'oracle':
-         $this->sysdate="sysdate";
-         $this->begin="begin ";
-         $this->end="end;";
-         $this->concat='||';
+         $this->sysdate = "sysdate";
+         $this->begin = "begin ";
+         $this->end = "end;";
+         $this->concat = '||';
          break;
        default:
-         $this->sysdate="sysdate";
+         $this->sysdate = "sysdate";
      }
      $this->debug=false;
      $this->legacy=true; /* true when the folder contains "old-fashioned" scripts with using eval */
                          /* false when only include_once directive is allowed */
      $this->default_node=1;
      /* login check   */
-     if (getpar('__LOG')!=''){
-       $this->user=$this->check_login($ldap);
-       $_SESSION['uzivatel']=$this->user;
-       if ($this->user!=''){
+     if (getpar('__LOG') != ''){
+       $this->user = $this->check_login($ldap);
+       $_SESSION['uzivatel'] = $this->user;
+       if ($this->user != ''){
          $this->log_mess('Přihlášen');
        }  
      }else{
-       if (isset($_SESSION['uzivatel']) && $_SESSION['uzivatel']!=''){
-         $this->user=$_SESSION['uzivatel'];
+       if (isset($_SESSION['uzivatel']) && $_SESSION['uzivatel'] != ''){
+         $this->user = $_SESSION['uzivatel'];
        }else{
           /* try system logging  */
-         if (isset($_SERVER['PHP_AUTH_USER'])){
-           $this->user=strtoupper($_SERVER['PHP_AUTH_USER']);
-           $_SESSION['uzivatel']=$this->user;
+         //if (isset($_SERVER['PHP_AUTH_USER'])){
+         if ($this->pars['implicit_login'] != ''){
+           //$this->user=strtoupper($_SERVER['PHP_AUTH_USER']);
+           $this->user = strtoupper($this->pars['implicit_login']);
+           $_SESSION['uzivatel'] = $this->user;
            $this->log_mess('Automaticky přihlášen');
          }else{
            /* generating initial page - before login processing */
-           $this->user='';
+           $this->user = '';
          }   
        }  
      }
-     $this->afterEdit=false;
-     
-     $this->typy=[
-      'text'=>http_lan_text('text item','textová položka'),
+     $this->afterEdit = false;
+          
+     $this->typy = [
+      'text' => http_lan_text('text item','textová položka'),
       //'url'=>http_lan_text('URL link','odkaz URL'),
       //'file'=>http_lan_text('file','vložený soubor'),
       //'img'=>http_lan_text('image','obrázek'),
-      'app'=>http_lan_text('application script','aplikační skript'),
-      'inc'=>http_lan_text('file include','include - připojení souboru ke kódu'),
-      'md'=>http_lan_text('markdown text','markdown text')
+      'app' => http_lan_text('application script','aplikační skript'),
+      'inc' => http_lan_text('file include','include - připojení souboru ke kódu'),
+      'md'  => http_lan_text('markdown text','markdown text')
      ];
      $this->def_s_p=[
-      'OWN'=>http_lan_text('owner','vlastník'),
-      'MANAGE'=>http_lan_text('administrator','správa'),
-      'EDIT'=>http_lan_text('editor','editace'),
-      'VIEW'=>http_lan_text('reader','prohlížení')
+      'OWN'   => http_lan_text('owner','vlastník'),
+      'MANAGE'=> http_lan_text('administrator','správa'),
+      'EDIT'  => http_lan_text('editor','editace'),
+      'VIEW'  => http_lan_text('reader','prohlížení')
      ];
      $dv='';
      foreach ($this->def_s_p as $kl=>$value){
-       $dv.=($dv == ''?'':',').$kl.'='.$this->def_s_p[$kl];
+       $dv .= ($dv == ''?'':',').$kl.'='.$this->def_s_p[$kl];
      }
-     $this->dv='static '.$dv;
-     $this->def_la=http_lan_text(
+     $this->dv = 'static '.$dv;
+     $this->def_la = http_lan_text(
        'static none=none,left=left,right=right,center=center,'.
        'line=line,hide=hide,point=shortcut',
        'static none=nezáleží,left=vlevo,right=vpravo,center=uprostřed,'.
        'line=na řádku,hide=zabaleno,point=zástupce');
-     $this->erh=http_lan_text('Error','Chyba');
-     $this->item=0;
+     $this->erh = http_lan_text('Error','Chyba');
+     $this->item = 0;
   }
   
   /** desctructor 
   */
-  function __destruct(){
+  function __destruct() {
     unset($this->tree);    
   } 
 
@@ -134,45 +160,44 @@ class Cm{
    *   three methods are availbable -
    *  @param bool $ldap label, when LDAP login is used 
    */ 
-  function check_login($ldap=false){
-    
+  function check_login($ldap=false) { 
     /* v pripade spravne vyplneneho hesla vrati identifikacni cookie, ktery slouzi pro autorizaci */
-    $ldap_server=M5_CM_LDAP_SERVER; /* server autorit hesel IP: 11-nts1 ,28-devkl nebo false */   
-   
+      
     if ($ldap){
       /* try LDAP */
-      $conn=ldap_connect($ldap_server,389);
-      if(!$conn){
+      $conn=ldap_connect($this->pars['ldap_server'],389);
+      if (!$conn) {
         htpr("LDAP Server neni dostupny");
         return '';
       }
-      $testhesla=false;
-      $ldap_user="cn=".getpar('NAME').", cn=users, dc=cgu, dc=cz";
-      $ldap_pass=getpar('PASS'); 
-      $testhesla=@ldap_bind($conn,$ldap_user,$ldap_pass);  
+      $testhesla = false;
+      $ldap_user = "cn=".getpar('NAME').", cn=users, dc=cgu, dc=cz";
+      $ldap_pass = getpar('PASS'); 
+      $testhesla = @ldap_bind($conn,$ldap_user,$ldap_pass);  
         /* @ potlaci varovani ldap_bind(): Unable to bind to server: Invalid credentials */
         /* chyba by jinak byla zpracovana v lib.php, kde je definovany set_error_handler */
       
       ldap_close($conn);
-      if ($testhesla){ /* pri uspesnem sparovani heslo/uzivatel vraci 1 */
+      if ($testhesla) { /* pri uspesnem sparovani heslo/uzivatel vraci 1 */
         return strtoupper(getpar('NAME'));
       }       
     }
     
     /* use password file - sha1 imprints */
     $pwdf='data/passwd';
-    if (is_file($pwdf)){
-      $li=file($pwdf);$l=[];
-      for($i=0;$i<count($li);$i++) {
-         $lp=explode(':',self::remcr($li[$i]));
-         $l[$lp[0]]=$lp[1];
+    if (is_file($pwdf)) {
+      $li = file($pwdf);
+      $l = [];
+      for($i = 0; $i<count($li); $i++) {
+         $lp = explode(':',self::remcr($li[$i]));
+         $l[$lp[0]] = $lp[1];
       }
     }
       
     /* in password file are stored password imprints sha1 : php -r echo(sha1('heslo'));*/
     setpar('NAME',strtolower(getpar('NAME')));
-    if (getpar('NAME') && isset($l[getpar('NAME')])){
-      if (strcmp(sha1(getpar('PASS')),$l[getpar('NAME')])==0){
+    if (getpar('NAME') && isset($l[getpar('NAME')])) {
+      if (strcmp(sha1(getpar('PASS')), $l[getpar('NAME')]) == 0) {
         /* if there is a match entered and stored imprints , retrun a user */
         //$this->user=strtoupper($DATA['NAME']);
         return strtoupper(getpar('NAME'));
@@ -180,32 +205,33 @@ class Cm{
     }
     
     /* try local database - sha1 imprints */
-    $pas=$this->db->SqlFetch("select lheslo from ".$this->table."_uziv ".
-                             "where ljmeno='".strtoupper(getpar('NAME'))."'");  
-    if (strcmp(sha1(getpar('PASS')),$pas)==0){
+    $pas = $this->db->SqlFetch("select lheslo from ".$this->table."_uziv ".
+                               "where ljmeno='".strtoupper(getpar('NAME'))."'");  
+    if (strcmp(sha1(getpar('PASS')),$pas) == 0) {
       return strtoupper(getpar('NAME'));
     }
     
     /* all attempts were lost */        
-    htpr('Neplatný vstup .') ;
+    htpr('Neplatný vstup .');
     return '';
   }
 
-  function process_logout(){
+  function process_logout() {
     /* odstrani uzivatele ze session promenne */
-    $_SESSION['uzivatel']='';
-    htpr('Odhlášeno. ',br(),br(),ahref('?','Přihlásit'));
+    $_SESSION['uzivatel'] = 'PUBLIC';
+    htpr(bt_alert('Odhlášeno. '),br(2),
+         ahref('/login/gdo.php','Přihlásit','class="btn btn-primary"'));
     return true;
   }
 
-  static function remcr($vstup){
+  static function remcr($input) {
     /* odstrani odradkovani z radku nacteneho souboru - pro passwd */
-    return str_replace(["\t","\n","\r"],'', $vstup);
+    return str_replace(["\t","\n","\r"],'', $input);
   }
 
   /**  MCMS Tree getter
    */ 
-  function getTree(){
+  function getTree() {
     return $this->tree;
   }
 
@@ -214,34 +240,37 @@ class Cm{
    * @param int $n: current item
    * @param bool $leftside - if tree is generating for left-side menu, the item of current node is added
    * */
-  private function ret_child($a,$n,$leftside){
-    $b=[];
-    if ($leftside){
+  private function ret_child($a,$n,$leftside) {
+    $b = [];
+    $lansel = la('','_E');
+    if ($leftside) {
       /* tree acceptable for left-side sidebar */
       /* sub-folders */
       $ch=[]; /* array $a as table result is indexed from 1 */
-      for ($k=1;$k<=count($a);$k++){
-        if ($a[$k]['ID_UP']==$n){
-          $ch[$a[$k]['ID']]=$this->ret_child($a,$a[$k]['ID'],$leftside);
+      for ($k=1; $k<=count($a); $k++){
+        if ($a[$k]['ID_UP'] == $n){
+          $ch[$a[$k]['ID']] = $this->ret_child($a,$a[$k]['ID'],$leftside);
         }
-        if ($a[$k]['ID']==$n){
-          $b['name']=$a[$k]['ZKR_NAZEV'];
-          $b['order']=$a[$k]['PORADI'];
+        if ($a[$k]['ID'] == $n){
+          $b['name'] = $a[$k]['ZKR_NAZEV'.$lansel];
+          $b['order']= $a[$k]['PORADI'];
         }    
       }
-      $b['href']='?item='.$n;
+      $b['href'] = '?item='.$n;
       if (count($ch)){
-        $b['child']=$ch;
+        $b['child'] = $ch;
       }
-    }else{
+    } else {
       /* tree acceptable for upper menu widget */
-      for ($k=1;$k<count($a);$k++){
-        if ($a[$k]['ID_UP']==$n){
-          $b[$a[$k]['ZKR_NAZEV']]=$this->ret_child($a,$a[$k]['ID'],$leftside);
-        }    
+      for ($k=1; $k<count($a); $k++){
+        if ($a[$k]['ID_UP'] == $n){
+          $b[$a[$k]['ZKR_NAZEV']] = $this->ret_child($a,$a[$k]['ID'],$leftside);
+        }
       }
-      if (count($b)==0) { /* no child - final item - return link to it */
-        if (isset($a[$n])) $b=['href'=>'?item='.$n];
+      if (count($b) == 0) { /* no child - final item - return link to it */
+        if (isset($a[$n])) {
+          $b = ['href'=>'?item='.$n];
+        }  
       }    
     }  
     return $b;
@@ -251,20 +280,24 @@ class Cm{
    * @param bool $leftside - true: tree for sidebar, false: tree for upper menu widget
    * @return array 
    */
-  function generateMenuTree($leftside){
-    $table_strom=$this->table.'_strom';
-    $table_prava=$this->table.'_prava';
-    $table_uskup=$this->table.'_uskup';
-    $user=$this->user;
-    $a=to_array(
-      "select id,id_up,zkr_nazev,panazev,poradi ".
+  function generateMenuTree($leftside) {
+    $table_strom = $this->table.'_strom';
+    $table_prava = $this->table.'_prava';
+    $table_uskup = $this->table.'_uskup';
+    $user = $this->user;
+    $lansel = la('','_E');
+    
+    $a = to_array(
+      "select id,id_up,zkr_nazev$lansel,panazev,poradi ".
       "from $table_strom ".
       "where id in (".
       " select distinct id from $table_prava ". 
       " where ". 
       "  (uzivatel=:uzivatel ". 
       "   or skupina in (select skupina from $table_uskup where uzivatel=:uzivatel )".
-      "   or skupina='ALL') ".
+      "   or skupina='ALL' ".
+      "   or ((skupina ='LOGIN') and length('$this->user')>0 and upper('$this->user')<>'PUBLIC' ) ". 
+      "  ) ".
       "  and privilege in ('VIEW','OWN','EDIT') ".
       "  and objekt='FOLDER' ".
       " ) ".   
@@ -280,13 +313,13 @@ class Cm{
    * @param integer $item
    * @return array items
    */  
-  private function traverse($t,$item){
-    foreach($t as $k=>$v){
-      if ($k==$item){
+  private function traverse($t,$item) {
+    foreach ($t as $k=>$v){
+      if ($k == $item){
         return [[$k,$v['name']]];
-      }else{
-        if (isset($v['child']) && is_array($v['child'])){
-          $subtree=$this->traverse($v['child'],$item);
+      } else {
+        if (isset($v['child']) && is_array($v['child'])) {
+          $subtree = $this->traverse($v['child'],$item);
           if (count($subtree)>0){
             array_push($subtree,[$k,$v['name']]);
             return $subtree;
@@ -302,14 +335,14 @@ class Cm{
    * @return array nodes
    * It returns all nodes from the root to the item  (=path)
    */
-  function getNodes($item){
+  function getNodes($item) {
      $t=$this->tree;
      if (isset($t['child'])){
-       $a=$this->traverse($t['child'],$item);
+       $a = $this->traverse($t['child'],$item);
      }else{
-       $a=[];
+       $a = [];
      }
-     $a=array_reverse($a);
+     $a = array_reverse($a);
      return $a;
   }
 
@@ -317,24 +350,24 @@ class Cm{
    * @param $item current item
    * @return string
    */
-  function breadCrumb($item){
-    $a=$this->getNodes($item);
-    $pom='class="breadcrumb-item"';
-    $s=''; 
-    for($i=0;$i<count($a);$i++){
-       if ($a[$i][0]==$item){
-         $s.=tg('li','class="breadcrumb-item active" aria-current="page"',$a[$i][1]);
+  function breadCrumb($item) {
+    $a = $this->getNodes($item);
+    $pom = 'class="breadcrumb-item"';
+    $s = ''; 
+    for($i=0; $i<count($a); $i++) {
+       if ($a[$i][0] == $item){
+         $s .= tg('li','class="breadcrumb-item active" aria-current="page"',$a[$i][1]);
        }else{ 
-         $s.=tg('li','class="breadcrumb-item"',ahref('?item='.$a[$i][0],$a[$i][1]));
+         $s .= tg('li','class="breadcrumb-item"',ahref('?item='.$a[$i][0],$a[$i][1]));
        }  
     }
     
-    if ($s==''){
+    if ($s == ''){
       /* when link is not accessible .. */
-      $s=$s=tg('li', $pom,ahref('?','Úvod'));
+      $s = tg('li', $pom,ahref('?','Úvod'));
     }elseif ( $a[0][0]!=1) {
       /* Home link when not first page on the path */
-      $s=tg('li', $pom,ahref('?','Úvod')).$s;
+      $s = tg('li', $pom,ahref('?','Úvod')).$s;
     }  
     return tg('nav','aria-label="breadcrumb" class="nav justify-content-left p-0" ',
             tg('ol','class="breadcrumb p-2 m-2"',$s));
@@ -345,8 +378,8 @@ class Cm{
    * @return integer root node item
    * 
    */
-  function rootNode($item){
-    $a=$this->getNodes($item);
+  function rootNode($item) {
+    $a = $this->getNodes((int)$item);
     return (count($a)<1)?0:$a[0][0];
   }
   
@@ -355,22 +388,23 @@ class Cm{
    *  @return bool 
    */
 
-  function folder($item){
+  function folder($item) {
     if ($this->debug){ 
       return true;  /* debug only */
     }
-    $this->item=$item;  
-    $table=$this->table.'_polozky';
-    $table_prava=$this->table.'_prava';
-    $table_uskup=$this->table.'_uskup';
-    $user=$this->user;
+    $this->item = $item;  
+    $table = $this->table.'_polozky';
+    $table_prava =$this->table.'_prava';
+    $table_uskup = $this->table.'_uskup';
+    $user = $this->user;
+    $lansel = la('','_E');
     /* zpracovani udalosti editace slozky a editace polozky ve slozce */
-    if (getpar('eD')=='1'){
-      if (getpar('f')=='1'){
+    if (getpar('eD') == '1') {
+      if (getpar('f') == '1') {
         $this->edit_folder();
         return true;      
       } 
-      if (getpar('i')=='1'){
+      if (getpar('i') == '1') {
         $this->edit_article();
         return true;
       } 
@@ -380,20 +414,20 @@ class Cm{
       $this->editBar($item,'FOLDER');
     }
     /* print folder description */
-    $table_strom=$this->table.'_strom';
-    $this->db->Sql("select nazev,popisek from $table_strom where id=".$item);
+    $table_strom = $this->table.'_strom';
+    $this->db->Sql("select nazev$lansel, popisek$lansel from $table_strom where id=".$item);
     $this->db->FetchRow();
-    if ($this->db->Data('NAZEV')!='') htpr(ta('h3',$this->db->Data('NAZEV')));
-    if ($this->db->Data('POPISEK')!='') htpr(ta('p',$this->db->Data('POPISEK')));
+    if ($this->db->Data('NAZEV'.$lansel) != '') htpr(ta('h3',$this->db->Data('NAZEV'.$lansel)));
+    if ($this->db->Data('POPISEK'.$lansel) != '') htpr(ta('p',$this->db->Data('POPISEK'.$lansel)));
 
     /* nasledujici radky jsou z duvodu zpetne kompatability pro puvodni script ocekavajici glob. prom.*/
     if ($this->legacy){   
       global $uzivatel;  //toto jen kvuli ladeni
-      $uzivatel=$user;
+      $uzivatel = $user;
     }  
    
     /* zjisti id tech polozek, ktere lze editovat */
-    $editable=[];
+    $editable = [];
     $this->db->Sql(
       "select id from $table where id_up=:item and ".
       "id in (".
@@ -407,15 +441,15 @@ class Cm{
       " ) ".   
       "order by id_up,poradi asc",
       [':uzivatel'=>$user,':item'=>$item]);
-    while ($this->db->FetchRow()){
-      $editable[$this->db->Data('ID')]=true;
+    while ($this->db->FetchRow()) {
+      $editable[$this->db->Data('ID')] = true;
     }
     /* cyklus pres polozky, ktere se maji zobrazovat / vykonavat
      * seznam polozek se vygeneruje do pole, aby se uvolnil databazovy dotaz pro dalsi dotazovani 
      * v jednotlivych polozkach
      */          
-    $a=to_array(
-        "select id,typ_polozky,nazev,zkr_nazev,popisek,poradi,zarovnani ".
+    $a = to_array(
+        "select id,typ_polozky,nazev$lansel,zkr_nazev$lansel,popisek,popisek$lansel,poradi,zarovnani ".
         "from $table ".
         "where id_up=$item and ".
         "id in (".
@@ -423,66 +457,75 @@ class Cm{
         " where ". 
         "  (uzivatel=:uzivatel ". 
         "   or skupina in (select skupina from $table_uskup where uzivatel=:uzivatel )".
-        "   or skupina='ALL') ".
+        "   or skupina='ALL' ".
+        "   or ((skupina='LOGIN') and length('$this->user')>0 and upper('$this->user')<>'PUBLIC') ".
+        "  )".
         "  and privilege in ('VIEW','OWN','EDIT') ".
         "  and objekt='ITEM' ".
         " ) ".   
         "order by id_up,poradi asc",
         $this->db,
         [':uzivatel'=>$user]);
+       
     /*
       nyni jiz CMS nebude pracovat s databazi - jednotlive podrizene skripty mohou otevrit tutez DB,
       pokud to potrebuji
     */
         
-    foreach ($a as $D){
+    foreach ($a as $D) {
       if (isset($_SESSION['editace']) && $_SESSION['editace']){
         $this->editBar($item,'ITEM',$D);
       }
-      switch ($D['TYP_POLOZKY']){
+      switch ($D['TYP_POLOZKY']) {
         case 'app':
-          if (M5_CM_ERROR_HANDLER) set_error_handler("Cm::errorHandler", E_ALL ); /*E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED); #E_STRICT);*/
-          try{
-            $D['POPISEK']=str_replace('require','include',$D['POPISEK']); /* require hands pre-compile PHP system core */
+          if ($this->pars['error_handler']) {
+            set_error_handler("Cm::errorHandler", E_ALL ); /*E_ALL & ~E_NOTICE & ~E_STRICT & ~E_DEPRECATED); #E_STRICT);*/
+          }  
+          try {
+            $D['POPISEK'.$lansel] = str_replace('require','include',$D['POPISEK'.$lansel]); /* require hands pre-compile PHP system core */
             eval($D['POPISEK']);
             /* neni @eval($D['POPISEK']) */
-          }catch (Exception $e){
+          } catch (Exception $e) {
             deb('CM Eval error',false);
             //deb($e,false);
           }  
-          if (M5_CM_ERROR_HANDLER) restore_error_handler();
+          if ($this->pars['error_handler']) {
+            restore_error_handler();
+          }  
           break;
         case 'inc':
-          $D['POPISEK'] = str_replace(["\r", "\n"], '', $D['POPISEK']);
-          $t=explode(';',$D['POPISEK']);
+          $D['POPISEK'.$lansel] = str_replace(["\r", "\n"], '', $D['POPISEK'.$lansel]);
+          $t = explode(';',$D['POPISEK']);
           foreach ($t as $it){
-            if ($it=='') continue;
-            list($k,$v)=explode('=',$it);
-            if ($k=='include'){
+            if ($it == '') continue;
+            list($k,$v) = explode('=',$it);
+            if ($k == 'include') {
               include_once $v;
-            }else{
+            } else {
               setpar($k,$v);
             }  
           }
-          
           break;
-        case 'text': htpr($D['NAZEV']!=''?ta('h3',$D['NAZEV']):'',$D['POPISEK']);
+        case 'text': 
+          htpr($D['NAZEV'.$lansel]!=''?ta('h3',$D['NAZEV'.$lansel]):'',$D['POPISEK'.$lansel]);
           break;
         case 'md':
           include_once "vendor/Parsedown.php";
-          htpr($D['NAZEV']!=''?ta('h3',$D['NAZEV']):'',Parsedown::instance()->text($D['POPISEK']));
+          htpr(($D['NAZEV'.$lansel] !='')?ta('h3',$D['NAZEV'.$lansel]):'',
+               Parsedown::instance()->text($D['POPISEK'.$lansel]));
           break;    
-        default: htpr($item);
+        default: 
+          htpr($item);
       }    
    }
   }
 
-  static function errorHandler($errno, $errstr, $errfile, $errline=null, $errcontext=null){ 
+  static function errorHandler($errno, $errstr, $errfile, $errline=null, $errcontext=null) {
 
-    $e_notice=true; /* e-notice level errors are not printed */
-    $e_general=true; /* general errors are printed */
-    if (!is_string($errcontext)){
-      $errcontext=preg_replace("/pwd\=(.+)/",'pwd=****',print_r($errcontext,true));
+    $e_notice = true; /* e-notice level errors are not printed */
+    $e_general = true; /* general errors are printed */
+    if (!is_string($errcontext)) {
+      $errcontext = preg_replace("/pwd\=(.+)/",'pwd=****',print_r($errcontext,true));
     }
     switch ($errno) {
       case E_NOTICE:
@@ -503,14 +546,18 @@ class Cm{
    * @param string  user login name 
    * @return string user name and surname
    */
-  function getUserInfo($user){
-    $table=$this->table.'_uziv';
-    $user=strtoupper($user);
+  function getUserInfo($user) {
+    if (isset($this->pars['table_user'])){
+      $table = $this->pars['table_user'];
+    } else {
+      $table = $this->table.'_uziv';
+    }
+    $user = strtoupper($user);
     $this->db->Sql(
      "select jmeno||' '||prijmeni as JM ".
      "from $table where ljmeno=:uzivatel ",
      [':uzivatel'=>$user]);
-    return $this->db->FetchRow()?$this->db->Data('JM'):'-';   
+    return $this->db->FetchRow()?$this->db->Data('JM'):la('Nepřihlášeno','Public profile');   
   }
 
   /** recursive menu tree submethod - see method sidebar
@@ -520,21 +567,20 @@ class Cm{
    * @param integer rootnode
    * @param object cms
   */
-  static function sidebar_part($tp,$item,$deep,$rootnode,$cms){
-    //deb($tp);
-    $s='';
+  static function sidebar_part($tp,$item,$deep,$rootnode,$cms) {
+    $s = '';
     if (isset($tp['child'])){
-      foreach($tp['child'] as $it=>$value){
-        $current=($value['href']==('?item='.$item));
-        if ($deep==0){
+      foreach ($tp['child'] as $it => $value){
+        $current = ($value['href'] == ('?item='.$item));
+        if ($deep == 0) {
           $s.= tg('div','',
-               ($value['href']!=''?ahref($value['href'],
-                                         $value['name'],'class="list-group-item list-group-item-action bg-ligth'.
-                                         ($current?' active':'').'" '):
+               ($value['href'] != ''?ahref($value['href'],
+                                           $value['name'],'class="list-group-item list-group-item-action bg-ligth'.
+                                          ($current?' active':'').'" '):
                                    tg('i','class="list-group-item list-group-item-action text-muted"',$value['name'])).                
                 self::sidebar_part($value,$item,$deep+1,$rootnode,$cms));
         }else{
-           if ($cms->rootNode($it)==$rootnode) { /* rozbaluje se jen aktivni cast stromu od korene */
+           if ($cms->rootNode($it) == $rootnode) { /* rozbaluje se jen aktivni cast stromu od korene */
             $s.=ahref($value['href'],
                      $value['name'],
                      'class="nav-link ml-'.floor($deep).' my-0'.
@@ -555,7 +601,7 @@ class Cm{
    * @param string $addings
    * @param string $add_style (f.e. 'style="background-color:#FAFFFA"' )
    */ 
-  function sidebar($t,$item,$rootnode,$cms,$addings='',$add_style=''){
+  function sidebar ($t,$item,$rootnode,$cms,$addings='',$add_style='') {
     $s=self::sidebar_part($t,$item,0,$rootnode,$cms); /* do prvni iterace se preda cely strom */
     
     return tg('div','class="bg-light border-right d-print-none" id="sidebar-wrapper" ',"\n".
@@ -569,9 +615,9 @@ class Cm{
    *  @param integer item - current page 
    *  @return string anchor HTML element
    */ 
-  function editLink($item){
-    $table_prava=$this->table.'_prava';
-    $table_uskup=$this->table.'_uskup';
+  function editLink($item) {
+    $table_prava = $this->table.'_prava';
+    $table_uskup = $this->table.'_uskup';
     $this->db->Sql("select privilege from $table_prava where id=$item ".
        "and objekt='FOLDER' ".
        "and (uzivatel=:uzivatel ". 
@@ -595,9 +641,10 @@ class Cm{
    *  @param string type of the item
    *  @return string anchor HTML element 
    */
-  function editBar($item,$type,$D=[]){
-    if ($type=='FOLDER'){
-      htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
+  function editBar($item,$type,$D=[]) {
+    $lansel = la('','_E');
+    if ($type == 'FOLDER'){
+      htpr(tg('div','class="'.$this->pars['m5_error_class'].'"',
        http_lan_text('Folder','Složka').' '.$item.',['.$this->user.']: '.
        ahref('?eD=1&amp;f=1&amp;item='.$item,
         bt_icon('pencil').http_lan_text('Folder properties','Vlastnosti této složky')).nbsp(2).
@@ -607,11 +654,11 @@ class Cm{
         bt_icon('plus').http_lan_text('Create item','Nová položka')).nbsp(2)
        ));
     }
-    if ($type=='ITEM'){
-      htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
+    if ($type == 'ITEM'){
+      htpr(tg('div','class="'.$this->pars['m5_error_class'].'"',
          ahref('?eD=1&amp;i=1&amp;eitem='.$D['ID'].'&amp;item='.$item,
          bt_icon('pencil').
-         $D['ID'].':'.$D['ZKR_NAZEV'].'['.$D['TYP_POLOZKY'].']' //.
+         $D['ID'].':'.$D['ZKR_NAZEV'.$lansel].'['.$D['TYP_POLOZKY'].']' //.
          //(verejne($D['ID'],'ITEM')?'':'<img src="img/lock_icon.png" alt="[soukromé]">')
          )));
     }
@@ -620,81 +667,82 @@ class Cm{
   /** Edit folder form method
    * @return bool true
    */
-  function edit_folder(){
-    htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
-          ahref('?item='.getpar('item'),http_lan_text('Return to folder','Návrat do složky'))));
-    $table_strom=$this->table.'_strom';
-    $table_prava=$this->table.'_prava';
-    $table_uskup=$this->table.'_uskup';
-    $def_usporadani=http_lan_text(
+  function edit_folder() {
+    htpr(tg('div','class="'.$this->pars['m5_error_class'].'"',
+         ahref('?item='.getpar('item'),http_lan_text('Return to folder','Návrat do složky'))));
+    $table_strom = $this->table.'_strom';
+    $table_prava = $this->table.'_prava';
+    $table_uskup = $this->table.'_uskup';
+    $def_usporadani = http_lan_text(
      'static order=order,template=template,time=time',
      'static order=podle pořadí,template=šablonou,time=podle data změny');
     $DB=[
-     'ID_UP'=>getpar('id_up'),
-     'NAZEV'=>'', 
-     'ZKR_NAZEV'=>'',
-     'PANAZEV'=>'', 
-     'PORADI'=>'', 
-     'POPISEK'=>'',
-     'ZAROVNANI'=>'',
-     'NAZEV_E'=>'',
+     'ID_UP'     => getpar('id_up'),
+     'NAZEV'     => '', 
+     'ZKR_NAZEV' => '',
+     'PANAZEV'   => '', 
+     'PORADI'    => '', 
+     'POPISEK'   => '',
+     'ZAROVNANI' => '',
+     'NAZEV_E'   => '',
      'ZKR_NAZEV_E'=>'',
-     'POPISEK_E'=>''];
+     'POPISEK_E' => ''];
     
-    if (getpar('U')!=''){
+    if (getpar('U') != ''){
        $this->update_folder();
     }
-    if (getpar('D')!=''){
+    if (getpar('D') != ''){
        $nid=$this->delete_folder();
-       if ($nid>=0){
+       if ($nid >= 0) {
          /* the folder was removed, construct a link to the parent folder */
-          htpr(ahref('?item='.$nid,http_lan_text('Go to the parent folder','Otevřít nadřízenou složku')));
+          htpr(ahref('?item='.$nid, http_lan_text('Go to the parent folder','Otevřít nadřízenou složku')));
           return true;   
        }
        /* otherwise do nothing there */
     }
     if (getpar('I')!=''){
        $nid=$this->insert_folder();
-       if ($nid>=0){
+       if ($nid >= 0) {
          /* the folder has just been created: move to it in next step */
          /* it is not posssible do it immediatelly, because navigation menu is not updated yet */
-         htpr(ahref('?item='.$nid,http_lan_text('Go to the new folder','Otevřít vytvořenou složku')));
+         htpr(ahref('?item='.$nid, http_lan_text('Go to the new folder','Otevřít vytvořenou složku')));
          return true;
-       }else{
+       } else {
          /* vloz neulozena data do $D */
-         $DB=getpars();
+         $DB = getpars();
          setpar('new',1);
        }
     }
-    if (getpar('DA')!=''){
+    if (getpar('DA') != ''){
        $this->deleteFolderAccessProp();
     }
-    if (getpar('IA')!=''){
+    if (getpar('IA') != ''){
        $this->insertFolderAccessProp();
     }
     
-    if (getpar('new')!=1){
+    if (getpar('new') != 1){
       /* editace existujici slozky - dotahni data*/
       if (!$this->afterEdit){
-        $pom=to_array(
+        $pom = to_array(
               "select * from $table_strom where id=:id ",
               $this->db,
-              [':id'=>getpar('item')]);
-        if (count($pom)<1){
+              [':id' => getpar('item')]
+              );
+        if ( count($pom) < 1 ) {
           htpr(http_lan_text('Folder not found','Složka nenalezena'));
           return true;
         }
-        $DB=$pom[1];
+        $DB = $pom[1];
       }
-      $head_text=http_lan_text('Folder editing','Editace složky');
+      $head_text = http_lan_text('Folder editing','Editace složky');
     }else{
       /* nova slozka - je dana jedine jeji nadrazena slozka*/    
-      $head_text=http_lan_text('New Folder','Nová složka');
+      $head_text = http_lan_text('New Folder','Nová složka');
     }
-    if (getpar('new')==1){
-      $DB['SLOUPCU']=1;
+    if (getpar('new') == 1){
+      $DB['SLOUPCU'] = 1;
     }
-    $sql_co="select id,zkr_nazev from $table_strom ".
+    $sql_co = "select id,zkr_nazev from $table_strom ".
      "where (id in (select id from $table_prava where ". 
      " (skupina in (select skupina from $table_uskup where uzivatel=:u) ".
      " or uzivatel=:u ) ".
@@ -735,7 +783,7 @@ class Cm{
        ],'row','contaiter').
          tg('div','class=""',
           textarea(http_lan_text('Folder description','Popisný text ke složce').br(),'POPISEK',15,90,$DB['POPISEK'])).
-         bt_hidable_area('Anglicky','engl',
+         bt_hidable_area(http_lan_text('English','Anglicky'),'engl',
            textfield(ta('b',http_lan_text('English title','Anglický název')),
             'NAZEV_E',60,255,$DB['NAZEV_E']).br().
            textfield(http_lan_text('English short title','Anglický krátký název '),
@@ -753,8 +801,7 @@ class Cm{
            para('f',1).
            para('eD',1))));
 
-
-    if (getpar('new')==''){
+    if (getpar('new') == ''){
       if ($this->canManage(getpar('item'))){
         htpr(br(),$this->folderAccessProp(getpar('item')));
       }else{
@@ -768,19 +815,19 @@ class Cm{
   /** Edit folder form method
    * @return integer return code
    */
-  function insert_folder(){
-    $this->err=$this->check('folder');
-    if ($this->err!='') {
-      htpr(bt_dialog('Chyba',$this->err));
+  function insert_folder() {
+    $this->err = $this->check('folder');
+    if ($this->err != '') {
+      htpr(bt_dialog(http_lan_text('Error','Chyba'),$this->err));
       setpar('NEW',1);    
       return -1;
     }
-    $table_strom=$this->table.'_strom';
-    $table_prava=$this->table.'_prava';  
+    $table_strom = $this->table.'_strom';
+    $table_prava = $this->table.'_prava';  
     /* generate next id - simple approach - it can be replaced by sequence */
-    $next_id=$this->db->SqlFetch("select max(id)+1 as m from $table_strom");
+    $next_id = $this->db->SqlFetch("select max(id)+1 as m from $table_strom");
     /* zatim je to delene, protoze SQLite nevykonava druhy prikaz v bloku, kdyz je bind  */
-    if ($this->db->typedb=='oracle'){
+    if ($this->db->typedb == 'oracle'){
       $sql=$this->begin.
       "insert into $table_strom ".
                "(id, id_up, nazev, zkr_nazev, panazev, poradi, popisek, sloupcu, zarovnani, nazev_e, zkr_nazev_e, popisek_e, dbuser, dbdatum) ".
@@ -789,81 +836,81 @@ class Cm{
       " values (:id,'FOLDER','NONE',:uzivatel,'OWN',:dbuser,".$this->sysdate."); ".
       $this->end;
       $bind=[
-       ':id_up'=>getpar('ID_UP'),
-       ':nazev'=>getpar('NAZEV'),
-       ':zkr_nazev'=>getpar('ZKR_NAZEV'),
-       ':panazev'=>getpar('PANAZEV'),
-       ':poradi'=>getpar('PORADI'),
-       ':popisek'=>getpar('POPISEK'),
-       ':sloupcu'=>getpar('SLOUPCU'),
+       ':id_up'   => getpar('ID_UP'),
+       ':nazev'   => getpar('NAZEV'),
+       ':zkr_nazev' => getpar('ZKR_NAZEV'),
+       ':panazev' => getpar('PANAZEV'),
+       ':poradi'  => getpar('PORADI'),
+       ':popisek' => getpar('POPISEK'),
+       ':sloupcu' => getpar('SLOUPCU'),
        ':zarovnani'=>getpar('ZAROVNANI'),
-       ':nazev_e'=>getpar('NAZEV_E'),
-       ':zkr_nazev_e'=>getpar('ZKR_NAZEV_E'),
-       ':popisek_e'=>getpar('POPISEK_E'),
-       ':dbuser'=>$this->user,
-       ':uzivatel'=>$this->user,
-       ':id'=>$next_id
+       ':nazev_e' => getpar('NAZEV_E'),
+       ':zkr_nazev_e' => getpar('ZKR_NAZEV_E'),
+       ':popisek_e' => getpar('POPISEK_E'),
+       ':dbuser'  => $this->user,
+       ':uzivatel'=> $this->user,
+       ':id'      => $next_id
       ];
     
-      if ($this->db->Sql($sql,$bind)){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
-       setpar('NEW',1);
-       return -1;
-      }else{
-       //htpr('Uloženo.','Data uložena.');
-       htpr(bt_dialog('Uloženo.','Data uložena.'));
-       return $next_id;
+      if ($this->db->Sql($sql, $bind)) {
+        htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                       http_lan_text('Data was not saved','Data nebyla uložena.')));
+        setpar('NEW',1);
+        return -1;
+      } else {
+        htpr(bt_alert(http_lan_text('Saved','Uloženo.')));
+        return $next_id;
       }
     }
-    if ($this->db->typedb=='sqlite'){
-      $sql1="insert into $table_strom ".
-                "(id, id_up, nazev, zkr_nazev, panazev, poradi, popisek, sloupcu, zarovnani, nazev_e, zkr_nazev_e, popisek_e, dbuser, dbdatum) ".
-       "values  (:id,:id_up,:nazev,:zkr_nazev,:panazev,:poradi,:popisek,:sloupcu,:zarovnani,:nazev_e,:zkr_nazev_e,:popisek_e,:dbuser,".$this->sysdate."); ";
-      $bind1=[
-        ':id_up'=>getpar('ID_UP'),
-        ':nazev'=>getpar('NAZEV'),
-        ':zkr_nazev'=>(string)getpar('ZKR_NAZEV'),
-        ':panazev'=>getpar('PANAZEV'),
-        ':poradi'=>getpar('PORADI'),
-        ':popisek'=>getpar('POPISEK'),
-        ':sloupcu'=>getpar('SLOUPCU'),
-        ':zarovnani'=>getpar('ZAROVNANI'),
-        ':nazev_e'=>getpar('NAZEV_E'),
-        ':zkr_nazev_e'=>getpar('ZKR_NAZEV_E'),
-        ':popisek_e'=>getpar('POPISEK_E'),
-        ':dbuser'=>$this->user,
-        ':id'=>$next_id
+    if ($this->db->typedb == 'sqlite') {
+      $sql1 = "insert into $table_strom ".
+              "(id, id_up, nazev, zkr_nazev, panazev, poradi, popisek, sloupcu, zarovnani, nazev_e, zkr_nazev_e, popisek_e, dbuser, dbdatum) ".
+              "values  (:id,:id_up,:nazev,:zkr_nazev,:panazev,:poradi,:popisek,:sloupcu,:zarovnani,:nazev_e,:zkr_nazev_e,:popisek_e,:dbuser,".$this->sysdate."); ";
+      $bind1 = [
+        ':id_up'    => getpar('ID_UP'),
+        ':nazev'    => getpar('NAZEV'),
+        ':zkr_nazev'=> (string)getpar('ZKR_NAZEV'),
+        ':panazev'  => getpar('PANAZEV'),
+        ':poradi'   => getpar('PORADI'),
+        ':popisek'  => getpar('POPISEK'),
+        ':sloupcu'  => getpar('SLOUPCU'),
+        ':zarovnani'=> getpar('ZAROVNANI'),
+        ':nazev_e'  => getpar('NAZEV_E'),
+        ':zkr_nazev_e' => getpar('ZKR_NAZEV_E'),
+        ':popisek_e'=> getpar('POPISEK_E'),
+        ':dbuser'   => $this->user,
+        ':id'       => $next_id
       ]; 
 
       $sql2="insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
        " values (:id,'FOLDER','NONE',:uzivatel,'OWN',:dbuser,".$this->sysdate."); ";
-      $bind2=[
-       ':dbuser'=>$this->user,
-       ':uzivatel'=>$this->user,
-       ':id'=>$next_id];
-      if ($this->db->Sql($sql1,$bind1)){
-        $er=true;
-      }elseif ($this->db->Sql($sql2,$bind2)){
-        $er=true;
-      }else{
-        $er=false;
+      $bind2 = [
+       ':dbuser'   => $this->user,
+       ':uzivatel' => $this->user,
+       ':id'       => $next_id];
+      if ($this->db->Sql($sql1,$bind1)) {
+        $er = true;
+      } elseif ($this->db->Sql($sql2,$bind2)) {
+        $er = true;
+      } else {
+        $er = false;
       }
-      if ($er){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
+      if ($er) {
+       htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                      http_lan_text('Data was not saved','Data nebyla uložena.')));
        setpar('NEW',1);
        return -1;
-      }else{
-       //htpr('Uloženo.','Data uložena.');
-       htpr(bt_dialog('Uloženo.','Data uložena.'));
+      } else {
+       htpr(bt_alert(http_lan_text('Data was saved.','Data uložena.')));
        return $next_id;
       } 
     }  
   }
   
-  function update_folder(){
-    $table_strom=$this->table.'_strom';
-    $item=getpar('item');
-    $sql="update $table_strom set ".
+  function update_folder() {
+    $table_strom = $this->table.'_strom';
+    $item = getpar('item');
+    $sql = "update $table_strom set ".
       "id_up=:id_up,".
       "nazev=:nazev,".
       "zkr_nazev=:zkr_nazev,".
@@ -878,188 +925,193 @@ class Cm{
       "dbuser=:dbuser,".
       "dbdatum=".$this->sysdate.
       " where id=:id";
-     $bind=[
-      ':id_up'=>(integer)getpar('ID_UP'),
-      ':nazev'=>(string)getpar('NAZEV'),
-      ':zkr_nazev'=>(string)getpar('ZKR_NAZEV'),
-      ':panazev'=>(string)getpar('PANAZEV'),
-      ':poradi'=>(integer)getpar('PORADI'),
-      ':popisek'=>(string)getpar('POPISEK'),
-      ':sloupcu'=>(integer)getpar('SLOUPCU'),
-      ':zarovnani'=>(string)getpar('ZAROVNANI'),
-      ':nazev_e'=>(string)getpar('NAZEV_E'),
-      ':zkr_nazev_e'=>(string)getpar('ZKR_NAZEV_E'),
-      ':popisek_e'=>(string)getpar('POPISEK_E'),
-      ':dbuser'=>$this->user,
-      ':id'=>$item];  
-    if ($this->db->Sql($sql,$bind)){
-       htpr(bt_dialog($this->erh,http_lan_text('Data was not saved.','Data nebyla uložena.')));
+     $bind = [
+      ':id_up'    => (integer)getpar('ID_UP'),
+      ':nazev'    => (string)getpar('NAZEV'),
+      ':zkr_nazev'=> (string)getpar('ZKR_NAZEV'),
+      ':panazev'  => (string)getpar('PANAZEV'),
+      ':poradi'   => (integer)getpar('PORADI'),
+      ':popisek'  => (string)getpar('POPISEK'),
+      ':sloupcu'  => (integer)getpar('SLOUPCU'),
+      ':zarovnani'=> (string)getpar('ZAROVNANI'),
+      ':nazev_e'  => (string)getpar('NAZEV_E'),
+      ':zkr_nazev_e'=> (string)getpar('ZKR_NAZEV_E'),
+      ':popisek_e'=> (string)getpar('POPISEK_E'),
+      ':dbuser'   => $this->user,
+      ':id'       => $item
+      ];  
+    if ($this->db->Sql($sql, $bind)) {
+       htpr(bt_dialog($this->erh,
+                      http_lan_text('Data was not saved.','Data nebyla uložena.')));
     }else{
-       htpr(bt_dialog('Uloženo.',http_lan_text('Data was saved.','Data uložena.')));
+       htpr(bt_alert(http_lan_text('Data was saved.','Data uložena.')));
     }
   }
   
-  function delete_folder(){
-    $table_strom=$this->table.'_strom';
-    $table_polozky=$this->table.'_polozky';
-    $table_prava=$this->table.'_prava';
-    $item=getpar('item');
+  function delete_folder() {
+    $table_strom = $this->table.'_strom';
+    $table_polozky = $this->table.'_polozky';
+    $table_prava = $this->table.'_prava';
+    $item = getpar('item');
     /* kontrola, zda nejsou podrizene polozky. V takovem pripade nelze smazat */
     $this->db->Sql("select count(id) as pocet from $table_strom where id_up=:item", [':item'=>$item]);
     $this->db->FetchRow();
-    if ($this->db->Data('POCET')>0){
-      htpr(bt_dialog($this->erh,http_lan_text('Cannot delete - there are subfolders','Nelze smazat - jsou podřízené složky')));
+    if ($this->db->Data('POCET') > 0) {
+      htpr(bt_dialog($this->erh, 
+                     http_lan_text('Cannot delete - there are subfolders','Nelze smazat - jsou podřízené složky')));
       return -1;
     }
     $this->db->Sql("select count(id) as pocet from $table_polozky where id_up=:item", [':item'=>$item]);
     $this->db->FetchRow();
-    if ($this->db->Data('POCET')>0){
+    if ($this->db->Data('POCET') > 0) {
       htpr(bt_dialog($this->erh,http_lan_text('Cannot delete - there are sub-items.','Nelze smazat - jsou podřízené položky')));
       return -1;
     }
     $this->db->Sql("select count(id) as pocet from $table_prava where id=:item and objekt='FOLDER'",[':item'=>$item]);
     $this->db->FetchRow();
-    if ($this->db->Data('POCET')>1){
+    if ($this->db->Data('POCET') > 1) {
       htpr(bt_dialog($this->erh,http_lan_text('Remove foreign access rights.','Odstraňte cizí přístupová práva.')));
       return -1;
     }    
     
     /* */
-    $id_up=$this->db->SqlFetch("select id_up from $table_strom where id=:item", [':item'=>$item]);
-    $sql1="delete from $table_strom where id=:item ";
-    $sql2="delete from $table_prava where id=:item and objekt='FOLDER' ";
-    $er=$this->db->Sql($sql1, [':item'=>(integer)$item]);
+    $id_up = $this->db->SqlFetch("select id_up from $table_strom where id=:item", [':item'=>$item]);
+    $sql1 = "delete from $table_strom where id=:item ";
+    $sql2 = "delete from $table_prava where id=:item and objekt='FOLDER' ";
+    $er = $this->db->Sql($sql1, [':item'=>(integer)$item]);
     if ($er){
        htpr(bt_dialog(http_lan_text('Error','Chyba'),
             http_lan_text('Folder was not removed.','Složka nebyla smazána.').br().$this->db->Error));
        return -1;
-    }else{
-      $er=$this->db->Sql($sql2, [':item'=>(integer)$item]);
-      if ($er){
+    } else {
+      $er = $this->db->Sql($sql2, [':item'=>(integer)$item]);
+      if ($er) {
         htpr(bt_dialog(http_lan_text('Error','Chyba'),
-            http_lan_text('Folder was not removed.','Složka nebyla smazána.')));
-         return -1;
-      }else{
-          htpr(bt_dialog(http_lan_text('Removed','Odstraněno'),
-          http_lan_text('Folder was removed.','Složka byla smazána.')));
-          return $id_up;
+             http_lan_text('Folder was not removed.','Složka nebyla smazána.')));
+        return -1;
+      } else {
+        htpr(bt_alert(http_lan_text('Removed','Odstraněno'),
+         http_lan_text('Folder was removed.','Složka byla smazána.')));
+        return $id_up;
       }
     }         
   }
   
-  function deleteFolderAccessProp(){
-    $table_prava=$this->table.'_prava';
-    $item=getpar('item');
-    $u=getpar('uu');
-    $p=getpar('p');
-    $g=getpar('g');
-    if ($u==$this->user && $p=='OWN'){
-      htpr(bt_dialog('Nelze odstranit','Toto oprávnění nemůžete odstranit samostatně. Smažte položku.'));
+  function deleteFolderAccessProp() {
+    $table_prava = $this->table.'_prava';
+    $item = getpar('item');
+    $u = getpar('uu');
+    $p = getpar('p');
+    $g = getpar('g');
+    if ($u == $this->user && $p == 'OWN'){
+      htpr(bt_dialog(http_lan_text('Not removable','Nelze odstranit'),
+                     http_lan_text('No standalone - remove item first','Toto oprávnění nemůžete odstranit samostatně. Smažte položku.')));
       return;
     }
-    $sql="delete from $table_prava where id=:item and objekt='FOLDER' ".
+    $sql = "delete from $table_prava where id=:item and objekt='FOLDER' ".
      "and trim(skupina)='$g' and trim(uzivatel)='$u' and privilege='$p' ";
     if ($this->db->Sql($sql,[':item'=>$item])){
-       htpr(bt_dialog(http_lan_text('Error','Chyba'),http_lan_text('Not deleted.','Data nebyla smazána.')));
-    }else{
-       //htpr(bt_dialog('Uloženo.','Data uložena.'));
+      htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                     http_lan_text('Not deleted.','Data nebyla smazána.')));
+    } else {
+      htpr(bt_alert(http_lan_text('Removed.','Odstraněno.')));
     }    
   }
   
-  function insertFolderAccessProp(){
-    $table_prava=$this->table.'_prava';
-    $item=getpar('item');
-    $u=getpar('UZIVATEL');
-    $p=getpar('PRIVILEGE');
-    $g=getpar('SKUPINA');
-    if ($u.$g=='' || $p=='') return; /* nothing to do whne empty */
-    if ($u!='' && $g!='') $g='';     /* prefer user rights before group */
-    if ($u=='') $u='NONE';
-    if ($g=='') $g='NONE';
-    $sql="insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
-         "values (:item,'FOLDER',:g, :u, :p ,'".$this->user."',".$this->sysdate.")";
-    $bind=[':item'=>$item,':g'=>$g,':u'=>$u,':p'=>$p];     
-    if ($this->db->Sql($sql,$bind)){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
-    }else{
-       //htpr(bt_dialog('Uloženo.','Data uložena.'));
+  function insertFolderAccessProp() {
+    $table_prava = $this->table.'_prava';
+    $item = getpar('item');
+    $u = getpar('UZIVATEL');
+    $p = getpar('PRIVILEGE');
+    $g = getpar('SKUPINA');
+    if ($u.$g == '' || $p == '') return; /* nothing to do whne empty */
+    if ($u != '' && $g != '') $g = '';     /* prefer user rights before group */
+    if ($u == '') $u = 'NONE';
+    if ($g == '') $g = 'NONE';
+    $sql = "insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
+           "values (:item,'FOLDER',:g, :u, :p ,'".$this->user."',".$this->sysdate.")";
+    $bind = [':item'=>$item,':g'=>$g,':u'=>$u,':p'=>$p];     
+    if ($this->db->Sql($sql,$bind)) {
+      htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                     http_lan_text('Data was not saved','Data nebyla uložena.')));
+    } else {
+      htpr(bt_alert(http_lan_text('Inserted','Vloženo')));
     } 
   }
   
   /** Article properties edit
    * 
    */
-  function edit_article(){
-    $table_polozky=$this->table.'_polozky';
-    $table_strom=$this->table.'_strom';
-    $table_prava=$this->table.'_prava';
-    $table_uskup=$this->table.'_uskup';
+  function edit_article() {
+    $table_polozky = $this->table.'_polozky';
+    $table_strom = $this->table.'_strom';
+    $table_prava = $this->table.'_prava';
+    $table_uskup = $this->table.'_uskup';
     
     $typ=getpar('type');
-    $D=['TYP'=>$typ,
-     'ID_UP'=>getpar('item'),
-     'NAZEV'=>'', 
-     'ZKR_NAZEV'=>'', 
-     'PORADI'=>'', 
-     'POPISEK'=>'',
-     'NAZEV_E'=>'',
-     'ZKR_NAZEV_E'=>'',
-     'POPISEK_E'=>'', 
-     'ZAROVNANI'=>''];   
-    htpr(tg('div','class="'.M5_ERROR_CLASS.'"',
+    $D=['TYP'     => $typ,
+        'ID_UP'   => getpar('item'),
+        'NAZEV'   => '', 
+        'ZKR_NAZEV' => '', 
+        'PORADI'  => '', 
+        'POPISEK' => '',
+        'NAZEV_E' => '',
+        'ZKR_NAZEV_E' => '',
+        'POPISEK_E'   => '', 
+        'ZAROVNANI'=> ''];   
+    htpr(tg('div','class="'.$this->pars['m5_error_class'].'"',
       ahref('?item='.getpar('item'),
             http_lan_text('Return to folder','Návrat do složky'))));
     if (getpar('U')!=''){
-       $saved=$this->update_article();
+      $saved = $this->update_article();
     }
-    if (getpar('I')!=''){
-       $nid=$this->insert_article();
-       if ($nid>=0){
+    if (getpar('I') != '') {
+       $nid = $this->insert_article();
+       if ($nid >= 0){
          /* znalost klice polozky zpusobi nacteni vety z DB */
          setpar('eitem',$nid);
-       }else{
+       } else {
          /* vloz neulozena data do $D */
-         $D=getpars();
+         $D = getpars();
          setpar('new',1);
        }
     }
-    if (getpar('D')!=''){
+    if (getpar('D') != ''){
        $this->del_article_conf();
     }
-    if (getpar('DD')!=''){
-       $err=$this->del_article();
+    if (getpar('DD') != ''){
+       $err = $this->del_article();
        if ($err){
          htpr(bt_dialog(http_lan_text('Error','Chyba'),
                         http_lan_text('Record was not deleted.','Chyba při mazání záznamu')));
-       }else{
-         htpr(bt_dialog(http_lan_text('Deleted','Smazáno'),
-                        http_lan_text('Item was removed.','Položka odstraněna.')));
+       } else {
+         htpr(bt_alert(http_lan_text('Item was removed.','Položka odstraněna.')));
          return;
        }
     }
-    if (getpar('DA')!=''){
-       $this->deleteArticleAccessProp();
+    if (getpar('DA') != ''){
+      $this->deleteArticleAccessProp();
     }
-    if (getpar('IA')!=''){
-       $this->insertArticleAccessProp();
+    if (getpar('IA') != ''){
+      $this->insertArticleAccessProp();
     }
                
-    if (getpar('eitem')!=''){
-      $eitem=getpar('eitem');
+    if (getpar('eitem') != ''){
+      $eitem = getpar('eitem');
       $this->db->Sql("select * from $table_polozky where id=:eitem",[":eitem"=>$eitem]);
       $this->db->FetchRow();
-      $D=$this->db->DataHash();
+      $D = $this->db->DataHash();
       if (getpar('U') && !$saved) {
-        $D=getpars();
+        $D = getpars();
       }
-      $typ=$D['TYP_POLOZKY'];
-    }else{        
-      if (getpar('type')==''){
-        $typy='';  
+      $typ = $D['TYP_POLOZKY'];
+    } else {
+      if (getpar('type') == ''){
+        $typy = '';  
         foreach ($this->typy as $klic => $value){ 
-          $typy.=(($typy != '')?',':'').$klic.'='.$value;
+          $typy .= (($typy != '')?',':'').$klic.'='.$value;
         }
-        $typy='static '.$typy;
+        $typy = 'static '.$typy;
 
         /* formular pro zjisteni typu polozky */
         htpr(tg('form','action="'.$_SERVER['SCRIPT_NAME'].'" class="bg-light border p-2"',
@@ -1077,18 +1129,19 @@ class Cm{
       
     }
     /*  */
-    $u=$this->user;
-    $sql_lov=["select id,zkr_nazev from $table_strom ".
+    $u = $this->user;
+    $sql_lov = [
+     "select id,zkr_nazev from $table_strom ".
      "where id in (select id from $table_prava where ".
      "(skupina in (select skupina from $table_uskup where uzivatel=:u) or uzivatel=:u) ".
      "and privilege in ('MANAGE','EDIT','OWN') ".
      "and objekt='FOLDER') or id=:id_up order by nazev",
      [':u'=>$u,':id_up'=>$D['ID_UP']]];
     
-    $pom=ta('h5',(getpar('NEW')!=''?http_lan_text('Insert','Vložení'):http_lan_text('Edit','Editace')).
+    $pom = ta('h5',(getpar('NEW')!=''?http_lan_text('Insert','Vložení'):http_lan_text('Edit','Editace')).
           ' - '.$this->typy[$typ]);
 
-    $a0=[[http_lan_text('Object ID','ID objektu'),
+    $a0 = [[http_lan_text('Object ID','ID objektu'),
        ((getpar('NEW')!='')?http_lan_text('not set so far','ještě neurčeno'):getpar('eitem')).
        para('eitem',(getpar('eitem')!='')?getpar('eitem'):'').
        para('item',getpar('item')).
@@ -1099,9 +1152,9 @@ class Cm{
         :
         (para('ID_UP',$D['ID_UP']). 'ID složky: '.$D['ID_UP']))]];
     
-    if ($D['ZKR_NAZEV']=='') $D['ZKR_NAZEV']='.';
-    if ($D['PORADI']=='') $D['PORADI']=1; 
-    switch ($typ){        
+    if ($D['ZKR_NAZEV'] == '') $D['ZKR_NAZEV']='.';
+    if ($D['PORADI'] == '') $D['PORADI']=1; 
+    switch ($typ){
       case 'text':
       case 'md':     
         $a1=[
@@ -1125,14 +1178,18 @@ class Cm{
           [http_lan_text('Text of the item including the HTML','Vlastní text včetně HTML').br().
            textarea('','POPISEK',10,110,$D['POPISEK'])
           ],
-          [bt_hidable_area('Anglicky','engl',
-            gl(textfield(ta('b',http_lan_text('English title','Anglický nadpis textu')),
-              'NAZEV_E',65,255,$D['NAZEV_E']).br().
-             textfield(http_lan_text('English short title','Anglický zkrácený název').' ',
-              'ZKR_NAZEV_E',20,20,$D['ZKR_NAZEV_E']).br().
-             textarea(http_lan_text('English text including the HTML',
-              'Anglický vlastní text četně HTML'),
-              'POPISEK_E',10,110,$D['POPISEK_E'])))
+          [bt_hidable_area(http_lan_text('English','Anglicky'),'engl',
+            bt_container(
+              ['col-2','col-10'],
+              [[ta('b',http_lan_text('English title','Anglický nadpis textu')),
+                textfield('','NAZEV_E',65,255,$D['NAZEV_E']) ],
+               [http_lan_text('English short title','Anglický zkrácený název'),
+                textfield('','ZKR_NAZEV_E',20,20,$D['ZKR_NAZEV_E'])]]).
+            bt_container(
+              ['col-12'],  
+              [[http_lan_text('English text including the HTML','Anglický vlastní text četně HTML')],
+               [textarea('', 'POPISEK_E', 10, 110, $D['POPISEK_E'])]]
+               ))
           ],
           [lov(http_lan_text('Portrayal','Strategie zobrazení').tdtd(),'ZAROVNANI','',$this->def_la,$D['ZAROVNANI'])]
         ];
@@ -1167,13 +1224,14 @@ class Cm{
             textarea('','POPISEK',10,110,$D['POPISEK'])
            ],
            [lov(http_lan_text('Portrayal','Strategie zobrazení').tdtd(),'ZAROVNANI','',$this->def_la,$D['ZAROVNANI'])]
-         ];break;   
+         ];
+         break;   
      }
       
-     $pom.=bt_container(['col-2','col-10'],array_merge($a0,$a1)).
-           bt_container(['col-12'],$a2);
+     $pom .= bt_container(['col-2','col-10'],array_merge($a0,$a1)).
+             bt_container(['col-12'],$a2);
 
-     $pom.=bt_justify_between(
+     $pom .= bt_justify_between(
        ((getpar('new')=='')?submit('D',http_lan_text('Delete','Smazat'),'btn btn-outline-primary'):nbsp(1)).
        submit(getpar('new')=='1'?'I':'U',
                  getpar('new')=='1'?http_lan_text('Insert','Vložit'):http_lan_text('Save','Uložit'),
@@ -1184,10 +1242,10 @@ class Cm{
      
      htpr(tg('form',true?('name="U" action="'.$_SERVER['SCRIPT_NAME'].'" class="bg-light border p-2"'):"",$pom)); 
 
-     if (getpar('new')==''){
-      if ($this->canManage(getpar('eitem'),'ITEM')){
+     if (getpar('new') == '') {
+      if ($this->canManage(getpar('eitem'),'ITEM')) {
         htpr(br(),$this->articleAccessProp(getpar('eitem'),$typ));
-      }else{
+      } else {
         htpr(http_lan_text(
           'Without the possibility of the editing the access rights.',
           'Bez možnosti měnit přístupová práva.'));
@@ -1199,22 +1257,22 @@ class Cm{
   /** insert article method
    * 
    */
-  function insert_article(){
-    $this->err=$this->check('article');
-    if ($this->err!='') {
-      htpr(bt_dialog('Chyba',$this->err));
+  function insert_article() {
+    $this->err = $this->check('article');
+    if ($this->err != '') {
+      htpr(bt_dialog(http_lan_text('Error','Chyba'),$this->err));
       setpar('NEW',1);    
       return -1;
     }
-    $table_polozky=$this->table.'_polozky';
-    $table_prava=$this->table.'_prava';  
+    $table_polozky = $this->table.'_polozky';
+    $table_prava   = $this->table.'_prava';  
     
     /* generate next id - simple approach - it can be replaced by sequence */
-    $next_id=$this->db->SqlFetch("select max(id)+1 as m from $table_polozky");
-    if ($next_id=='') $next_id=1; /* at the start there is nothing in the table */
-    $popisek=getpar('POPISEK');
-    if ($this->ace_editor && getpar('TYP_POLOZKY')=='app' ){
-      $popisek=str_replace('<'.'?'.'php','',$popisek);
+    $next_id = $this->db->SqlFetch("select max(id)+1 as m from $table_polozky");
+    if ($next_id == '') $next_id = 1; /* at the start there is nothing in the table */
+    $popisek = getpar('POPISEK');
+    if ($this->ace_editor && getpar('TYP_POLOZKY') == 'app' ){
+      $popisek = str_replace('<'.'?'.'php','',$popisek);
     }  
     $sql1=
       "insert into $table_polozky ".
@@ -1223,46 +1281,46 @@ class Cm{
       "values (:id, :id_up, :nazev, :zkr_nazev, :poradi, :popisek, :zarovnani, :typ_polozky, :nazev_e, ".
       ":zkr_nazev_e, :popisek_e, '".$this->user."', ".$this->sysdate.") ";
     $bind1=[
-     ':id_up'=>(integer)getpar('ID_UP'),
-     ':nazev'=>(string)getpar('NAZEV'),
-     ':zkr_nazev'=>(string)getpar('ZKR_NAZEV'),
-     ':poradi'=>(integer)getpar('PORADI'),
-     ':popisek'=>(string)$popisek,
-     ':zarovnani'=>(string)getpar('ZAROVNANI'),
+     ':id_up'     => (integer)getpar('ID_UP'),
+     ':nazev'     => (string)getpar('NAZEV'),
+     ':zkr_nazev' => (string)getpar('ZKR_NAZEV'),
+     ':poradi'    => (integer)getpar('PORADI'),
+     ':popisek'   => (string)$popisek,
+     ':zarovnani' => (string)getpar('ZAROVNANI'),
      ':typ_polozky'=>(string)getpar('TYP_POLOZKY'),
-     ':nazev_e'=>(string)getpar('NAZEV_E'),
+     ':nazev_e'   => (string)getpar('NAZEV_E'),
      ':zkr_nazev_e'=>(string)getpar('ZKR_NAZEV_E'),
-     ':popisek_e'=>(string)getpar('POPISEK_E'),
-     ':id'=>(integer)$next_id
+     ':popisek_e' => (string)getpar('POPISEK_E'),
+     ':id'        => (integer)$next_id
     ];  
     $sql2="insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
       " values (:id,'ITEM','NONE','".$this->user."','OWN','".$this->user."',".$this->sysdate.") ";
     $bind2=[':id'=>(integer)$next_id];  
-    if ($this->db->Sql($sql1,$bind1)){
-      $er=true;
-    }elseif ($this->db->Sql($sql2,$bind2)){
-      $er=true;
-    }else{
-      $er=false;
+    if ($this->db->Sql($sql1,$bind1)) {
+      $er = true;
+    } elseif ($this->db->Sql($sql2,$bind2)){
+      $er = true;
+    } else {
+      $er = false;
     }
-    if ($er){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
-       
-       setpar('POPISEK',$popisek);
-       setpar('NEW',1);
-       return -1;
-    }else{
-       htpr(bt_dialog('Uloženo.','Data uložena.'));
-       return $next_id;
+    if ($er) {
+      htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                     http_lan_text('Data was not saved','Data nebyla uložena.')));
+      setpar('POPISEK',$popisek);
+      setpar('NEW',1);
+      return -1;
+    } else {
+      htpr(bt_alert(http_lan_text('Data was saved','Data uložena.')));
+      return $next_id;
     }
   } 
   
-  function update_article(){
-    $table_polozky=$this->table.'_polozky'; 
-    $eitem=getpar('eitem');
-    $popisek=getpar('POPISEK');
-    if ($this->ace_editor && getpar('TYP_POLOZKY')=='app' ){
-      $popisek=str_replace('<'.'?'.'php'.chr(13).chr(10),'',$popisek);
+  function update_article() {
+    $table_polozky = $this->table.'_polozky'; 
+    $eitem = getpar('eitem');
+    $popisek = getpar('POPISEK');
+    if ($this->ace_editor && getpar('TYP_POLOZKY') == 'app' ){
+      $popisek = str_replace('<'.'?'.'php'.chr(13).chr(10),'',$popisek);
     } 
     $sql="update $table_polozky set ".
       "id_up=:id_up,".
@@ -1273,45 +1331,50 @@ class Cm{
       "zarovnani=:zarovnani,".
       "typ_polozky=:typ_polozky,".
       "nazev_e=:nazev_e,".
-      "zkr_nazev_e=zkr_nazev_e,".
+      "zkr_nazev_e=:zkr_nazev_e,".
       "popisek_e=:popisek_e,".
       "dbuser='".$this->user."',".
       "dbdatum=".$this->sysdate.
-     " where id=:id";
+      " where id=:id";
     $bind=[
-     ':id_up'=>(integer)getpar('ID_UP'),
-     ':nazev'=>(string)getpar('NAZEV'),
-     ':zkr_nazev'=>(string)getpar('ZKR_NAZEV'),
-     ':poradi'=>(integer)getpar('PORADI'),
-     ':popisek'=>(string)getpar('POPISEK'),
-     ':zarovnani'=>(string)getpar('ZAROVNANI'),
-     ':typ_polozky'=>(string)getpar('TYP_POLOZKY'),
-     ':nazev_e'=>(string)getpar('NAZEV_E'),
-     ':zkr_nazev_e'=>(string)getpar('ZKR_NAZEV_E'),
-     ':popisek_e'=>(string)getpar('POPISEK_E'),
-     ':id'=>$eitem]; 
-    if ($this->db->Sql($sql,$bind)){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'.$this->db->Error));
+     ':id_up'       => (integer)getpar('ID_UP'),
+     ':nazev'       => (string)getpar('NAZEV'),
+     ':zkr_nazev'   => (string)getpar('ZKR_NAZEV'),
+     ':poradi'      => (integer)getpar('PORADI'),
+     ':popisek'     => (string)getpar('POPISEK','',false),
+     ':zarovnani'   => (string)getpar('ZAROVNANI'),
+     ':typ_polozky' => (string)getpar('TYP_POLOZKY'),
+     ':nazev_e'     => (string)getpar('NAZEV_E'),
+     ':zkr_nazev_e' => (string)getpar('ZKR_NAZEV_E'),
+     ':popisek_e'   => (string)getpar('POPISEK_E','',false),
+     ':id'          => $eitem]; 
+
+    if ($this->db->Sql($sql,$bind)) {
+       htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                      http_lan_text('Data was not saved','Data nebyla uložena.').$this->db->Error));
        return false;
-    }else{
-       htpr(bt_dialog('Uloženo.','Data uložena.'));
+    } else {
+       htpr(bt_alert(http_lan_text('Data was saved','Položka byla uložena.')));     
        return true;
     }
   }
   
-  function del_article_conf(){
+  function del_article_conf() {
     /* test for other acces rights */
-    $table_prava=$this->table.'_prava';
-    $eitem=getpar('eitem');   
-    $c=$this->db->SqlFetch(
+    $table_prava = $this->table.'_prava';
+    $eitem = getpar('eitem');   
+    $c = $this->db->SqlFetch(
        "select count(id) as c ".
        "from $table_prava ".
        "where id=:eitem and objekt='ITEM'",
       [':eitem'=>$eitem]);
     
-    if ($c>1){
-      htpr(bt_dialog('Nelze odstranit',
-       'Nejprve odstraňte cizí přístupová práva. Odstranit lze jen Vaši vlastní položku.'));
+    if ($c > 1){
+      htpr(
+       bt_dialog(
+        http_lan_text('Cannot remove','Nelze odstranit'),
+        http_lan_text('Remove foreign acces rights first',
+          'Nejprve odstraňte cizí přístupová práva. Odstranit lze jen Vaši vlastní položku.')));
       return 0;
     }
     
@@ -1322,131 +1385,141 @@ class Cm{
       para('DD',1).para('eitem', $eitem).para('item',getpar('item'))));
   }
   
-  function del_article(){
-    $table_polozky=$this->table.'_polozky';
-    $table_prava=$this->table.'_prava';
-    $eitem=getpar('eitem');   
-    $sql1="delete from $table_polozky where id=:id ";
-    $sql2="delete from $table_prava where id=:id and objekt='ITEM' ";
-    $bind=[':id'=>$eitem];     
-    $er=$this->db->Sql($sql1,$bind);
-    if ($er){
+  function del_article() {
+    $table_polozky = $this->table.'_polozky';
+    $table_prava = $this->table.'_prava';
+    $eitem = getpar('eitem');   
+    $sql1 = "delete from $table_polozky where id=:id ";
+    $sql2 = "delete from $table_prava where id=:id and objekt='ITEM' ";
+    $bind = [':id'=>$eitem];     
+    $er = $this->db->Sql($sql1,$bind);
+    if ($er) {
       return $er;
-    }else{
-       $er=$this->db->Sql($sql2,$bind);
-       if ($er){
+    } else {
+       $er = $this->db->Sql($sql2,$bind);
+       if ($er) {
          return $er; 
        }
     }
     return false;   
   }
   
-  function deleteArticleAccessProp(){
-    $table_prava=$this->table.'_prava';
-    $eitem=getpar('eitem');
-    $u=getpar('uu');
-    $p=getpar('p');
-    $g=getpar('g');
-    if ($u==$this->user && $p=='OWN'){
-      htpr(bt_dialog('Nelze odstranit','Toto oprávnění nemůžete odstranit samostatně. Smažte položku.'));
+  function deleteArticleAccessProp() {
+    $table_prava = $this->table.'_prava';
+    $eitem = getpar('eitem');
+    $u = getpar('uu');
+    $p = getpar('p');
+    $g = getpar('g');
+    if ($u == $this->user && $p == 'OWN'){
+      htpr(bt_dialog(
+        http_lan_text('Cannot remove','Nelze odstranit'),
+        http_lan_text('Remove foreign acces rights first',
+          'Nejprve odstraňte cizí přístupová práva. Odstranit lze jen Vaši vlastní položku.')));
       return;
     }
     
     $sql="delete from $table_prava where id=:eitem and objekt='ITEM' ".
      "and trim(skupina)=:g and trim(uzivatel)=:u and privilege=:p ";
-    if ($this->db->Sql($sql,[':eitem'=>$eitem,':g'=>$g,':u'=>$u,':p'=>$p])){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
-    }else{
-       //htpr(bt_dialog('Uloženo.','Data uložena.'));
+    if ($this->db->Sql($sql,[':eitem'=>$eitem,':g'=>$g,':u'=>$u,':p'=>$p])) {
+       htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                      http_lan_text('Data was not saved','Data nebyla uložena.')));
+    } else {
+       htpr(bt_alert(http_lan_text('Data was saved','Data uložena.')));
     } 
   }
   
   function insertArticleAccessProp(){
-    $table_prava=$this->table.'_prava';
-    $eitem=getpar('eitem');
-    $u=getpar('UZIVATEL');
-    $p=getpar('PRIVILEGE');
-    $g=getpar('SKUPINA');
-    if ($u.$g=='' || $p=='') return; /* nothing to do whne empty */
-    if ($u!='' && $g!='') $g='';     /* prefer user rights before group */
-    if ($u=='') $u='NONE';
-    if ($g=='') $g='NONE';
+    $table_prava = $this->table.'_prava';
+    $eitem = getpar('eitem');
+    $u = getpar('UZIVATEL');
+    $p = getpar('PRIVILEGE');
+    $g = getpar('SKUPINA');
+    if ($u.$g == '' || $p == '') return; /* nothing to do whne empty */
+    if ($u != '' && $g != '') $g = '';     /* prefer user rights before group */
+    if ($u == '') $u = 'NONE';
+    if ($g == '') $g = 'NONE';
         
     $sql="insert into $table_prava (id,objekt,skupina,uzivatel,privilege,dbuser,dbdatum) ".
          "values (:eitem,'ITEM',:g, :u, :p, '".$this->user."',".$this->sysdate.")";
     if ($this->db->Sql($sql,[':eitem'=>$eitem,':g'=>$g,':u'=>$u,':p'=>$p])){
-       htpr(bt_dialog('Chyba','Data nebyla uložena.'));
-    }else{
-       //htpr(bt_dialog('Uloženo.','Data uložena.'));
+       htpr(bt_dialog(http_lan_text('Error','Chyba'),
+                      http_lan_text('Data was not saved','Data nebyla uložena.')));
+    } else {
+       htpr(bt_alert(http_lan_text('Data was saved','Data uložena.')));
     }
-     
   }
 
   /** get info if can manage current item (folder, article)
    *  @param $item
    *  @param $type ('FOLDER','ITEM')
    */
-  function canManage($item,$type='ITEM'){
+  function canManage($item,$type='ITEM') {
     if ($item && $type) return true;
   }
   
   /** prototype for overrriding 
    * @param int $item
   */
-  function itemToPath($item){
+  function itemToPath($item) {
     if ($item) return '';
   }
   
   /** Folder access properties editor form
    * @param int $sitem
    */
-  function folderAccessProp($sitem){
-    $table_prava=$this->table.'_prava';
-    $table_user=$this->table.'_uziv';
-    $table_groups=$this->table.'_skup';
+  function folderAccessProp($sitem) {
+    $table_prava = $this->table.'_prava';
+    //$table_user=$this->table.'_uziv';
+    if (isset($this->pars['table_user'])){
+      $table_user = $this->pars['table_user'];
+    } else {
+      $table_user = $this->table.'_uziv';
+    }
+    $table_groups = $this->table.'_skup';
     
     /* seznam opravneni na slozku */
-    $SS=['ALL'=>'Všichni'];
+    $SS = ['ALL' => 'Všichni'];
     $this->db->Sql("select * from $table_groups");
     while ($this->db->FetchRow()){
-      $SS[$this->db->Data('SKUPINA')]=$this->db->Data('NAZEV');
+      $SS[$this->db->Data('SKUPINA')] = $this->db->Data('NAZEV');
     }
-    $SU=[];
-    $this->db->Sql($this->concat=='||'?
+    $SU = [];
+    $this->db->Sql($this->concat == '||'?
      "select trim(ljmeno) as ljmeno,jmeno||' '||prijmeni as jm from $table_user order by prijmeni, jmeno":
      "select trim(ljmeno) as ljmeno, ".$this->concat."(jmeno,' ',prijmeni) as jm from $table_user order by prijmeni, jmeno");
-    while ($this->db->FetchRow()){
-      $SU[$this->db->Data('LJMENO')]=$this->db->Data('JM');
+    while ($this->db->FetchRow()) {
+      $SU[$this->db->Data('LJMENO')] = $this->db->Data('JM');
     } 
     $this->db->Sql("select * from $table_prava where id=:sitem and objekt='FOLDER'",
                   [':sitem'=>$sitem]);
-
-    $ta1=[];
-    while ($this->db->FetchRow()){
-      list($p1,$p2,$p3,$p0)=
+    $ta1 = [];
+    while ($this->db->FetchRow()) {
+      list($p1,$p2,$p3,$p0) =
         [trim($this->db->Data('SKUPINA')),
          trim($this->db->Data('UZIVATEL')),
          $this->db->Data('PRIVILEGE'),
          $this->db->Data('OBJEKT')
         ];
       if ($p1 == 'NONE'){
-        $p4=$SU[$p2]; $p5=' [uživatel]';
+        $p4 = $SU[$p2]; 
+        $p5 = ' [uživatel]';
       }
       if ($p2 == 'NONE'){
-        $p4=$SS[$p1]; $p5=' [skupina]';
+        $p4 = $SS[$p1]; 
+        $p5 = ' [skupina]';
       }
       array_push($ta1,
-       [$p4,$p5, $this->def_s_p[$p3], 
+       [$p4, $p5, $this->def_s_p[$p3], 
         ahref('?DA=1&amp;f=1&amp;g='.$p1.'&amp;uu='.$p2.'&amp;p='.
         $p3.'&amp;o='.$p0.'&amp;eD=1'.'&amp;item='.getpar('item'),
         http_lan_text('Delete access','Smazat oprávnění'),'class="btn btn-outline-primary"')
        ]); 
     }
     
-    $cache=bt_container(['col-3','col-3','col-3','col-3'],$ta1);
+    $cache = bt_container(['col-3','col-3','col-3','col-3'],$ta1);
 
     /* pridani opravneni - formular */
-    $cache.=tg('form','action="'.$_SERVER['SCRIPT_NAME'].'" class="form-inline"', 
+    $cache .= tg('form','action="'.$_SERVER['SCRIPT_NAME'].'" class="form-inline"', 
      bt_container(['col-6','col-3','col-3'],
       [[para('item',getpar('item')).para('eD','1').para('f','1').
         lov( http_lan_text('User','Uživatel'),'UZIVATEL',
@@ -1474,22 +1547,27 @@ class Cm{
             $cache); 
   }
 
-  function articleAccessProp($sitem,$typ){
-    $table_prava=$this->table.'_prava';
-    $table_user=$this->table.'_uziv';
-    $table_groups=$this->table.'_skup';
+  function articleAccessProp($sitem,$typ) {
+    $table_prava = $this->table.'_prava';
+    //$table_user=$this->table.'_uziv';
+    if (isset($this->pars['table_user'])){
+      $table_user = $this->pars['table_user'];
+    } else {
+      $table_user = $this->table.'_uziv';
+    }
+    $table_groups = $this->table.'_skup';
 
-    $SS=[];
+    $SS = [];
     $this->db->Sql("select skupina, nazev from $table_groups");
     while ($this->db->FetchRow()){
-      $SS[$this->db->Data('SKUPINA')]=$this->db->Data('NAZEV');
+      $SS[$this->db->Data('SKUPINA')] = $this->db->Data('NAZEV');
     }
-    $SU=[];
-    $this->db->Sql($this->concat=='||'?
+    $SU = [];
+    $this->db->Sql($this->concat == '||'?
      "select trim(ljmeno) as ljmeno,jmeno||' '||prijmeni as jm from $table_user order by prijmeni, jmeno":
      "select trim(ljmeno) as ljmeno, ".$this->concat."(prijmeni,' ',jmeno) as jm from $table_user order by prijmeni, jmeno");
     while ($this->db->FetchRow()){
-      $SU[trim($this->db->Data('LJMENO'))]=$this->db->Data('JM');
+      $SU[trim($this->db->Data('LJMENO'))] = $this->db->Data('JM');
     } 
     $this->db->Sql(
       "select * ".
@@ -1498,29 +1576,31 @@ class Cm{
       [':sitem'=>$sitem]);
     /* pridani opravneni - formular */
     
-    $ta1=[];
-    while ($this->db->FetchRow()){
-      list($p1,$p2,$p3,$p0)=
+    $ta1 = [];
+    while ($this->db->FetchRow()) {
+      list($p1,$p2,$p3,$p0) =
         [trim($this->db->Data('SKUPINA')),
          trim($this->db->Data('UZIVATEL')),
          $this->db->Data('PRIVILEGE'),
          $this->db->Data('OBJEKT')
         ];
       if ($p1 == 'NONE'){
-        $p4=$SU[$p2]; $p5=' [uživatel]';
+        $p4 = $SU[$p2]; 
+        $p5 = ' [uživatel]';
       }
       if ($p2 == 'NONE'){
-        $p4=$SS[$p1]; $p5=' [skupina]';
+        $p4 = $SS[$p1];
+        $p5 = ' [skupina]';
       }
       array_push($ta1,
-       [$p4,$p5, $this->def_s_p[$p3], 
+       [$p4, $p5, $this->def_s_p[$p3], 
         ahref('?DA=1&amp;i=1&amp;type='.$typ.'&eitem='.$sitem.'&amp;g='.$p1.'&amp;uu='.$p2.'&amp;p='.
         $p3.'&amp;o='.$p0.'&amp;eD=1'.'&amp;item='.getpar('item'),
         http_lan_text('Delete access','Smazat oprávnění'),'class="btn btn-outline-primary"')
        ]); 
     }
     
-    $cache=bt_container(['col-3','col-3','col-3','col-3'],$ta1);
+    $cache = bt_container(['col-3','col-3','col-3','col-3'],$ta1);
 
     $cache .= tg('form', 'action="' . $_SERVER['SCRIPT_NAME'] . '" class="form-inline"',
       bt_container(['col-6', 'col-3', 'col-3'],
@@ -1551,24 +1631,24 @@ class Cm{
      $cache); 
   }
   
-  function check($form){
-    $err='';
-    if ($form=='article'){
+  function check($form) {
+    $err = '';
+    if ($form == 'article'){
       $por=getpar('PORADI');
-      if (!is_numeric($por)){
-        $err.=http_lan_text('Order must be an integer value','Pořadí musí být celé číslo.');      
+      if (!is_numeric($por)) {
+        $err .= http_lan_text('Order must be an integer value','Pořadí musí být celé číslo.');      
       }    
     }
-    if ($form=='folder'){
-      $por=getpar('PORADI');
-      if (!is_numeric($por)){
-        $err.=http_lan_text('Order must be an integer value. ','Pořadí musí být celé číslo.');      
+    if ($form == 'folder'){
+      $por = getpar('PORADI');
+      if (!is_numeric($por)) {
+        $err .= http_lan_text('Order must be an integer value. ','Pořadí musí být celé číslo.');      
       }
       /*if (trim(getpar('NAZEV'))==''){
         $err.=http_lan_text('Name is compulsory item. ','Název je třeba vyplnit. ');
       } */
-      if (trim(getpar('ZKR_NAZEV'))==''){
-        $err.=http_lan_text('Short name is compulsory item. ','Zkrácený název je třeba vyplnit. ');
+      if (trim(getpar('ZKR_NAZEV')) == '') {
+        $err .= http_lan_text('Short name is compulsory item. ','Zkrácený název je třeba vyplnit. ');
       }    
     }  
     return $err;
@@ -1577,7 +1657,7 @@ class Cm{
   /** Store an application log message into the database
    *  @param $message string 
    *  */ 
-  function log_mess($message){
+  function log_mess($message) {
      $this->db->Sql("insert into ".$this->table."_log_tab (datum,text) values ".
                    "(".$this->sysdate.",'".$this->user.': '.$message."')");                  
   }
@@ -1585,7 +1665,7 @@ class Cm{
   /** Get the current user
    *  @return login name of the current user
    */ 
-  function get_user(){
+  function get_user() {
     return $this->user;
   }
 
@@ -1593,10 +1673,10 @@ class Cm{
    *  @return array list of groups IDs
    */
     
-  function get_groups(){
-    $table_uskup=$this->table.'_uskup';
+  function get_groups() {
+    $table_uskup = $this->table.'_uskup';
     return $this->db->SqlFetchList(
-             "select skupina from $table_uskup where uzivatel=:uzivatel",
+             "select skupina from $table_uskup where uzivatel=:uzivatel union select 'LOGIN' from dual",
              [':uzivatel'=>$this->user],0,',');
   }
 
@@ -1605,14 +1685,18 @@ class Cm{
    *  @return boolean true or false
    */
     
-  function is_in_group($group){
-    $table_uskup=$this->table.'_uskup';
+  function is_in_group($group) {
+    $table_uskup = $this->table.'_uskup';
+    if ($group == 'LOGIN' && $this->user != '' && strtoupper($this->user) <> 'PUBLIC'){
+      return true;
+    }
+
     $this->db->Sql(
      "select skupina ".
      "from $table_uskup ".
      "where uzivatel=:uzivatel and skupina=:skupina",
      [':uzivatel'=>$this->user,':skupina'=>$group]);
-    if ($this->db->FetchRow()){
+    if ($this->db->FetchRow()) {
       return true;
     }
     return false;  
@@ -1622,8 +1706,8 @@ class Cm{
    *  @param string $key the parametr
    *  @return string a value of the $key parametr, empty string if missing
    */
-  function get_user_setting($key){
-    $value=$this->db->SqlFetch(
+  function get_user_setting($key) {
+    $value = $this->db->SqlFetch(
       "select hodnota ".
       "from ".$this->table."_unastav ".
       "where ljmeno=:ljmeno and param=:param",
@@ -1635,8 +1719,8 @@ class Cm{
    *  @param string $key the parametr
    *  @return int 1 if the parametr is present in the database, 0 otherwise
    */
-  function exists_user_setting($key){
-    $count=$this->db->SqlFetch(
+  function exists_user_setting($key) {
+    $count = $this->db->SqlFetch(
       "select count(param) as pocet ".
       "from ".$this->table."_unastav ".
       "where ljmeno=:ljmeno and param=:param",
@@ -1648,8 +1732,8 @@ class Cm{
    *  @param string $key the parametr
    *  @return string a value of the $key parametr, empty string if missing
    */
-  function set_user_setting($key,$value){
-    if ($this->exists_user_setting($key)){
+  function set_user_setting($key,$value) {
+    if ($this->exists_user_setting($key)) {
        /* update */
        $e=$this->db->Sql(
          "update ".$this->table."_unastav ".
@@ -1657,9 +1741,9 @@ class Cm{
          "where ljmeno=:ljmeno and param=:param",
          [':ljmeno'=>$this->user,':param'=> $key,':hodnota'=>$value]);
        //deb($e);        
-    }else{
+    } else {
        /* insert */
-       $e=$this->db->Sql(
+       $e = $this->db->Sql(
         "insert into  ".$this->table."_unastav ".
         "(ljmeno, param, hodnota) values (:ljmeno, :param, :hodnota) ",
         [':ljmeno'=>$this->user,
@@ -1667,7 +1751,10 @@ class Cm{
               ':hodnota'=>$value]);
     }
     if ($e) {
-      htpr(bt_alert('Parametr '.$key.' se nenastavil na hodnotu '.$value,'alert-danger'));  
+      htpr(
+        bt_alert(
+         http_lan_text('Parameter '.$key.' was not set to value '.$value,
+                       'Parametr '.$key.' se nenastavil na hodnotu '.$value),'alert-danger'));
     }
   }
 }

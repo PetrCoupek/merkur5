@@ -17,7 +17,7 @@ htpr(ta('h1','Icons'),
      'power','plusminus','exclamation-triangle','check-square','diamond','dot','lock','info','question',
      'menu','geolocation','alarm','dash-circle','hourglass','hourglass-split','exclamation-circle',
      'exclamation-octagon','bug-fill','bug','wrench','wrench-adjustable','trash-fill','magic','gear-fill',
-     'database','database-add'
+     'database','database-add','cart-check','cart-plus','cart-dash-fill','cart','cart-x-fill'
     ]),
   br(2),  
   ikona_sekvence(

@@ -1068,7 +1068,7 @@ function trans()
 {
     /* pokud data obsahuji jednoduche uvozovky, zmen je na chr(39), aby byl sql dotaz syntakticky spravne*/
     global $DATA;
-    foreach ($DATA as $klic => $pol) {
+    if (isset($DATA)) foreach ($DATA as $klic => $pol) {
         if ($klic <> 'WHR_') {
             $DATA[$klic] = str_replace("'", "&#039;", $DATA[$klic]);
             $DATA[$klic] = str_replace(chr(92), '', $DATA[$klic]);

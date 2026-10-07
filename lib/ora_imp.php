@@ -3,12 +3,21 @@
  *  @author Petr Coupek
  *  @date 04.02.2021
  *  11.02.2021
+ *  14.11.2025
  */
 
-include_once "lib/libdbOracle.php"; 
 
-class ora_imp {
 
+class Ora_imp {
+
+/**
+ * Class for Oracle database import operations
+ * 
+ * This class provides functionality to import data into Oracle databases,
+ * handling various import formats and configurations. It manages database
+ * connections, data transformation, and import validation processes.
+ * 
+ */
 function __construct($napojeni){
   $this->napojeni=$napojeni;  /* prazdny retezec vyvola jen vypis prikazu */
   $this->odkud='export/';
@@ -27,6 +36,11 @@ function __destruct(){
   }  
 }
 
+/** It imports the CSV file using the INF file
+ * @param string $soubor - name of input file based on entity name
+ * @param string $tabulka - entity name
+ * @param string $odkud - path
+ */
 function importuj($soubor,$tabulka,$odkud=''){
   /* provede ímport tabulky do schematu */
   if ($odkud!='') $this->odkud=$odkud;
@@ -197,11 +211,10 @@ function importuj_schema($odkud){
 }
 
 /** jen provede ímport dat ze souboru csv do existujici tabulky ve schematu
- * @param $soubor string jmeno imortovanoho souboru (bez cesty k importovane slozce ) 
+ * @param $soubor string jmeno importovanoho souboru (bez cesty k importovane slozce ) 
  * @param $tabulka string prazdna tabulka znaci, ze se vyuzije jmeno souboru, ale odstrani se z nej schema
  * @param $odkud string='' cesta k importovane slozce, pokud neni uvedena, pouzije se vychozi slozka export/ 
 */
-
 function pripoj_csv($soubor,$tabulka,$odkud=''){
   
   if ($odkud!='') $this->odkud=$odkud;

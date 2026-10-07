@@ -10,11 +10,20 @@
  *  22.06.2023 - upravy
  *  29.01.2024 - upravy
  *  08.02.2024 - zmena generovani cilove tabulky
+ *  25.06.2025 - pokud neni csv soubor, jen se provede zalozeni tabulky
+ *  15.07.2025 - zaveden parametr bez dat, takze je jen zalozena tabulka
  */
 
 
 class Lite_imp {
-  var $napojeni,$odkud,$oddelovac,$verbose,$textOnly,$db,$conv,$create;
+  var $napojeni,
+      $odkud,
+      $oddelovac,
+      $verbose,
+      $textOnly,
+      $db,
+      $conv,
+      $create;
 
 function __construct($napojeni,$pars=[]){
   $this->napojeni=$napojeni;  /* prazdny retezec vyvola jen vypis prikazu */
@@ -90,11 +99,19 @@ function generuj($def){
 /** importuje jednu entitu ze souboru .inf a souboru .csv do schematu
  * @param string $soubor - jmeno souboru, zpravidla shodne se jmenem tabulby
  * @param string $tabulka - jmeno tabulky, pokud neni uvedeno, predpoklada se jmeno souboru 
- *                ve tavru SCHEMA.TABLE
+ *                ve tvaru SCHEMA.TABLE
  * @param string $odkud - $dokud je slozka, ve ktere se soubor nachazi
  */ 
-function importuj($soubor,$tabulka,$odkud=''){
+function importuj($soubor,$tabulka,$odkud='',$bez_dat=false){
   if ($odkud!='') $this->odkud=$odkud;
+  echo "$soubor $odkud $tabulka\n";
+  // Speed up import: disable synchronous and set journal to memory
+  if (!$this->textOnly) {
+    $this->db->Sql('PRAGMA synchronous = OFF');
+    $this->db->Sql('PRAGMA journal_mode = MEMORY');
+    $this->db->Sql('PRAGMA foreign_keys = OFF');
+  }
+
   /* definicni soubor, datovy soubor */
   $info=$this->odkud.$soubor.'.inf';
   $data=$this->odkud.$soubor.'.csv';
@@ -104,7 +121,7 @@ function importuj($soubor,$tabulka,$odkud=''){
   }
   if (!file_exists($data)){
     $this->hlaseni("Soubor $data s daty tabulky nebyl nalezen.");
-    return 0;
+    //return 0;
   }
   if ($tabulka==''){
     /* prazdna tabulka znaci, ze se vyuzije jmeno souboru, ale odstrani se z nej schema */
@@ -114,6 +131,7 @@ function importuj($soubor,$tabulka,$odkud=''){
     }
     $tabulka=substr($soubor,strpos($soubor,'.')+1);
   }
+  //$tabulka=substr($soubor,strpos($soubor,'.')+1);
   
   $f=fopen($info,"r");
   $prikaz='';
@@ -129,7 +147,11 @@ function importuj($soubor,$tabulka,$odkud=''){
       continue;
     } 
     if (preg_match("/^table\s+(.*)\($/",$r,$m)){
-      $def['-table']=$m[1];
+      if (strpos($m[1],'.') > 0) { 
+        $def['-table']=substr($m[1],strpos($m[1],'.')+1); /* odstranění případné tečky a jména schematu v SCHEMA.TABLE názvu */
+      } else {
+        $def['-table']=$m[1];
+      }  
     }elseif($r=='primary key ()'){
       $def['-primary']='';
     }elseif( preg_match("/primary key\s*\((.*)\)/",$r,$m) ){
@@ -151,9 +173,11 @@ function importuj($soubor,$tabulka,$odkud=''){
       }
     }   
   }
+  echo "$def\n";
   $prikaz=$this->generuj($def);
   //echo "$prikaz\n---------\n";
   //return 0;
+  
   $this->konej('BEGIN');
   if (!$this->konej($prikaz)){  
     $this->hlaseni("Chyba SQL: / ".$prikaz);
@@ -162,6 +186,7 @@ function importuj($soubor,$tabulka,$odkud=''){
   }
   $this->konej('COMMIT');
   fclose($f);
+  if (!file_exists($data) || $bez_dat) return 0;
   $f=fopen($data,"r");
   $k=0; 
   $n=0;
@@ -204,8 +229,8 @@ function importuj($soubor,$tabulka,$odkud=''){
            $this->hlaseni('radek '.$k.' hodnotu nelze prevest do UTF-8');
         }   
         
-        /* uvozovky uvnitr textu nahrad posloupnosti s funkci chr */
-        if (strstr($hodnoty[$i],'\"')){
+        /* uvozovky uvnitr textu nahrad posloupnosti s funkci chr - jen pro textovy vypis */
+        if ($this->textOnly && strstr($hodnoty[$i],'\"')){
           $hodnoty[$i]=str_replace('\"','"||char(34)||"',$hodnoty[$i]);
         }
 
@@ -222,11 +247,36 @@ function importuj($soubor,$tabulka,$odkud=''){
 
       }
      
-      $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
-      if ($this->konej($prikaz)){
-         $n++;
+      if ($this->textOnly){
+        $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$hodnoty).')';
+        $this->konej($prikaz);
+        $n++;
       }else{
-        $this->hlaseni('radek '.$k.' '.$prikaz);
+        /* skutecna manipulace s DB - hodnoty se vazou pres pole $bind metody Sql */
+        $placeholdery=[];
+        $bind=[];
+        for($j=0;$j<count($hodnoty);$j++){
+          $klic=':v'.$j;
+          $placeholdery[]=$klic;
+          $val=rtrim($hodnoty[$j],"\r\n");
+          if ($val==='null'){
+            $bind[$klic]=null;
+          }elseif (strlen($val)>=2 && $val[0]==='"' && $val[strlen($val)-1]==='"'){
+            /* text v uvozovkach - odstraneni obalu a zdvojenych uvozovek */
+            $bind[$klic]=str_replace('""','"',substr($val,1,-1));
+          }elseif (strlen($val)>=2 && $val[0]==="'" && $val[strlen($val)-1]==="'"){
+            /* datum v apostrofech (prevedeny TIMESTAMP) */
+            $bind[$klic]=substr($val,1,-1);
+          }else{
+            $bind[$klic]=$val;
+          }
+        }
+        $prikaz="insert into $tabulka (".implode(', ',$pole).') values ('.implode(', ',$placeholdery).')';
+        if (!$this->db->Sql($prikaz,$bind)){
+           $n++;
+        }else{
+          $this->hlaseni('radek '.$k.' '.$this->db->Error.' / '.$prikaz);
+        }
       }
       if ($this->verbose && !($n%100) ) echo "$n\r";       
     }
@@ -235,6 +285,10 @@ function importuj($soubor,$tabulka,$odkud=''){
   $this->konej('COMMIT');
   if (!$this->textOnly){
     $this->hlaseni("Importovano $n zaznamu do $tabulka.");
+    // Restore PRAGMAs if needed
+    $this->db->Sql('PRAGMA synchronous = FULL');
+    $this->db->Sql('PRAGMA journal_mode = DELETE');
+    $this->db->Sql('PRAGMA foreign_keys = ON');
   }
   return 1;  
 }
@@ -363,12 +417,25 @@ function proper($s){
   $r=str_replace(chr(13),' ',$r);
   $r=str_replace(chr(10),' ',$r);
   $r=str_replace(chr(9),' ',$r);
-  $r=str_replace("\"",'\"',$r);  /* uvozovky uvnitr retezce jsou uvozeny znakem vyjimky */
+  //$r=str_replace("\"",'\"',$r);  /* uvozovky uvnitr retezce jsou uvozeny znakem vyjimky */
+  //$r=str_replace('"', '""', $r);  /* uvozovky uvnitr retezce jsou zdvojeny */
   return $r;
 } 
 
 function hlaseni($s){
   echo $s."\n";
+}
+
+/* When writing CSV data*/
+function escapeCsvField($field) {
+    /* If field contains quotes, it needs to be quoted */
+    if (strpos($field, '"') !== false ) {
+        /* Escape quotes by doubling them */
+        $field = str_replace('"', '""', $field);
+        /* Wrap in quotes */
+        return '"' . $field . '"';
+    }
+    return $field;
 }
 
 } /*konec definice tridy liteimp */
